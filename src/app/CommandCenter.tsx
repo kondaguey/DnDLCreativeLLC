@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client"; // Connect to Supabase
 import {
   ListTodo,
   CircleDollarSign,
@@ -12,16 +13,20 @@ import {
   Book,
   Mic,
   Activity,
-  Clapperboard, // New Icon
+  Clapperboard,
 } from "lucide-react";
 
 import styles from "./CommandCenter.module.css";
 
 export default function CommandCenter() {
   const router = useRouter();
+  const supabase = createClient(); // Initialize client
 
   const handleSignOut = async () => {
-    console.log("User signed out");
+    // 1. Kill the session on Supabase
+    await supabase.auth.signOut();
+
+    // 2. Redirect to login
     router.push("/login");
     router.refresh();
   };
@@ -44,7 +49,7 @@ export default function CommandCenter() {
           </p>
         </div>
 
-        {/* FLEX CONTAINER: With 6 items, this naturally forms a perfect 3x2 grid on desktop */}
+        {/* FLEX CONTAINER */}
         <div className="flex flex-wrap justify-center gap-6 md:gap-8">
           {/* 1. TO DO APP (Purple) */}
           <Link
@@ -136,7 +141,7 @@ export default function CommandCenter() {
             </div>
           </Link>
 
-          {/* 4. CINESONIC PRODUCTIONS (Indigo) - NEW */}
+          {/* 4. CINESONIC PRODUCTIONS (Indigo) */}
           <Link
             href="/admin/cinesonic"
             className={`${styles.appCard} ${styles.cardCine} group`}
