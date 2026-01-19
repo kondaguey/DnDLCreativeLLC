@@ -3,12 +3,12 @@
 import {
   CheckSquare,
   Code2,
-  Share2,
-  Library,
+  Share2, // Using Share2 as the icon for the combined archive
   ChevronLeft,
   GraduationCap,
   Bug,
-} from "lucide-react"; // <--- Added Bug
+  Lightbulb,
+} from "lucide-react";
 import Link from "next/link";
 import styles from "../task-master.module.css";
 import { ViewType } from "./types";
@@ -21,6 +21,12 @@ interface SidebarNavProps {
 export default function SidebarNav({ activeView, onChange }: SidebarNavProps) {
   const navItems = [
     {
+      id: "idea_board",
+      label: "Quick Notes",
+      sub: "Idea Lab",
+      icon: <Lightbulb size={20} />,
+    },
+    {
       id: "task",
       label: "Protocol Tasks",
       sub: "Daily Ops",
@@ -31,7 +37,7 @@ export default function SidebarNav({ activeView, onChange }: SidebarNavProps) {
       label: "App Ledger",
       sub: "Bugs & Features",
       icon: <Bug size={20} />,
-    }, // <--- NEW
+    },
     {
       id: "level_up",
       label: "Leveling Up",
@@ -45,16 +51,11 @@ export default function SidebarNav({ activeView, onChange }: SidebarNavProps) {
       icon: <Code2 size={20} />,
     },
     {
-      id: "social_bookmark",
-      label: "Social Signal",
-      sub: "Inspiration",
-      icon: <Share2 size={20} />,
-    },
-    {
+      // MERGED VIEW: Maps to 'resource' internally, but fetches both types
       id: "resource",
-      label: "Resource Vault",
-      sub: "Great Finds",
-      icon: <Library size={20} />,
+      label: "Signal Archive",
+      sub: "Vault & Bookmarks",
+      icon: <Share2 size={20} />,
     },
   ];
 

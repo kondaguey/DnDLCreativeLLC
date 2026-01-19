@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Tag, Plus, X, Check } from "lucide-react";
+import { SYSTEM_TAGS } from "./types"; // <--- Import from types
 
 interface TagManagerProps {
   selectedTags: string[];
@@ -18,9 +19,11 @@ export default function TagManager({
   const [inputValue, setInputValue] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const AVAILABLE_TAGS = Array.from(
-    new Set([...allSystemTags, "Urgent", "Finance", "CineSonic"])
-  );
+  // Combine System Defaults + DB Tags + Current Selection
+  const AVAILABLE_TAGS = useMemo(() => {
+    const set = new Set([...SYSTEM_TAGS, ...allSystemTags, ...selectedTags]);
+    return Array.from(set).sort();
+  }, [allSystemTags, selectedTags]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -43,18 +46,13 @@ export default function TagManager({
     }
   };
 
-  const handleRemoveTag = (e: React.MouseEvent, tag: string) => {
-    e.preventDefault();
-    e.stopPropagation(); // <--- CRITICAL FIX
-    onUpdateTags(selectedTags.filter((t) => t !== tag));
-  };
-
   const handleCreateTag = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!inputValue.trim()) return;
-    if (!selectedTags.includes(inputValue.trim())) {
-      onUpdateTags([...selectedTags, inputValue.trim()]);
+    const clean = inputValue.trim();
+    if (!clean) return;
+    if (!selectedTags.includes(clean)) {
+      onUpdateTags([...selectedTags, clean]);
     }
     setInputValue("");
   };
@@ -73,7 +71,10 @@ export default function TagManager({
           >
             {tag}
             <button
-              onClick={(e) => handleRemoveTag(e, tag)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdateTags(selectedTags.filter((t) => t !== tag));
+              }}
               className="hover:text-white cursor-pointer p-0.5"
             >
               <X size={8} />
@@ -81,11 +82,7 @@ export default function TagManager({
           </span>
         ))}
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsOpen(!isOpen);
-          }}
+          onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-white/10 text-slate-500 hover:text-white hover:border-white/20 transition-colors"
         >
           <Tag size={8} /> {selectedTags.length === 0 ? "Tag" : "+"}
@@ -100,18 +97,10 @@ export default function TagManager({
               return (
                 <button
                   key={tag}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleTag(tag);
-                  }}
-                  className={`w-full text-left px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${
-                    isSelected
-                      ? "bg-purple-500/20 text-purple-300"
-                      : "hover:bg-white/5 text-slate-400"
-                  }`}
+                  onClick={() => toggleTag(tag)}
+                  className={`w-full text-left px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${isSelected ? "bg-purple-500/20 text-purple-300" : "hover:bg-white/5 text-slate-400"}`}
                 >
-                  {tag}
-                  {isSelected && <Check size={10} />}
+                  {tag} {isSelected && <Check size={10} />}
                 </button>
               );
             })}
@@ -125,7 +114,6 @@ export default function TagManager({
               placeholder="New tag..."
               className="w-full bg-black/20 border border-white/10 rounded px-2 py-1 text-[10px] text-white focus:outline-none focus:border-purple-500"
               autoFocus
-              onClick={(e) => e.stopPropagation()}
             />
             <button
               type="submit"

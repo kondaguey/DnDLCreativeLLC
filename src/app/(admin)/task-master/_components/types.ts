@@ -4,7 +4,9 @@ export type ViewType =
   | "social_bookmark"
   | "resource"
   | "level_up"
-  | "ledger"; // <--- ADDED ledger
+  | "ledger"
+  | "idea_board";
+
 export type RecurrenceType =
   | "daily"
   | "weekly"
@@ -12,6 +14,7 @@ export type RecurrenceType =
   | "quarterly"
   | "one_off"
   | "archived";
+
 export type SortOption =
   | "manual"
   | "date_asc"
@@ -19,6 +22,19 @@ export type SortOption =
   | "created_desc"
   | "alpha_asc"
   | "alpha_desc";
+
+// --- SINGLE SOURCE OF TRUTH FOR TAGS ---
+export const SYSTEM_TAGS = [
+  "CineSonic",
+  "Design",
+  "Dev",
+  "Finance",
+  "Marketing",
+  "Money",
+  "Ops",
+  "Strategy",
+  "Urgent",
+];
 
 export type TaskItem = {
   id: string;
@@ -33,13 +49,19 @@ export type TaskItem = {
   tags?: string[];
   position?: number;
   metadata?: {
-    // Level Up Fields
+    // Idea Board
+    stage?: "spark" | "solidified";
+    label?: { name: string; color: string; border: string; text: string };
+
+    // Level Up
     platform?: string;
     total_hours?: number;
     hours_completed?: number;
-    daily_study_goal?: number;
+    course_link?: string;
+    start_date?: string;
+    end_date?: string;
 
-    // Ledger Fields (NEW)
+    // Ledger
     app_name?: string;
     ticket_type?: "bug" | "feature" | "refactor";
     priority?: "critical" | "high" | "normal" | "low";
