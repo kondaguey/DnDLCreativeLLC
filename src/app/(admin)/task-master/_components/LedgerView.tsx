@@ -11,6 +11,7 @@ import {
   Trash2,
   AlertTriangle,
   Archive,
+  Edit2,
 } from "lucide-react";
 import styles from "../task-master.module.css";
 import { TaskItem, SortOption } from "./types";
@@ -25,6 +26,8 @@ interface LedgerViewProps {
   onToggleStatus: (id: string, status: string) => void;
   onReorder: (draggedId: string, targetId: string) => void;
   onArchive: (id: string) => void;
+  onManualMove?: (id: string, direction: "up" | "down") => void;
+  onEdit?: (item: TaskItem) => void;
 }
 
 export default function LedgerView({
@@ -37,6 +40,8 @@ export default function LedgerView({
   onToggleStatus,
   onReorder,
   onArchive,
+  onManualMove,
+  onEdit,
 }: LedgerViewProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
@@ -91,9 +96,8 @@ export default function LedgerView({
           onDragStart={(e) => handleDragStart(e, item.id)}
           onDragOver={handleDragOver}
           onDrop={(e) => handleDrop(e, item.id)}
-          className={`transition-all duration-300 ${
-            draggedId === item.id ? "opacity-40 scale-95" : "opacity-100"
-          }`}
+          className={`transition-all duration-300 ${draggedId === item.id ? "opacity-40 scale-95" : "opacity-100"
+            }`}
         >
           <TicketCard
             item={item}
@@ -103,6 +107,7 @@ export default function LedgerView({
             onDelete={onDelete}
             onToggleStatus={onToggleStatus}
             onArchive={onArchive}
+            onEdit={onEdit}
           />
         </div>
       ))}
@@ -119,6 +124,7 @@ function TicketCard({
   onDelete,
   onToggleStatus,
   onArchive,
+  onEdit,
 }: any) {
   const meta = item.metadata || {};
   const [title, setTitle] = useState(item.title);
@@ -164,15 +170,13 @@ function TicketCard({
 
   return (
     <div
-      className={`${
-        styles.itemCard
-      } relative flex flex-col md:flex-row gap-4 !p-4 !border-l-4 !border-l-${
-        priority === "critical"
+      className={`${styles.itemCard
+        } relative flex flex-col md:flex-row gap-4 !p-4 !border-l-4 !border-l-${priority === "critical"
           ? "rose-500"
           : priority === "high"
-          ? "orange-500"
-          : "transparent"
-      } ${isCompleted ? "opacity-60 grayscale" : ""}`}
+            ? "orange-500"
+            : "transparent"
+        } ${isCompleted ? "opacity-60 grayscale" : ""}`}
     >
       {/* LEFT: STATUS & GRIP */}
       <div className="flex flex-row md:flex-col items-center gap-3 shrink-0">
@@ -185,11 +189,10 @@ function TicketCard({
 
         <button
           onClick={() => onToggleStatus(item.id, item.status)}
-          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-            isCompleted
+          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isCompleted
               ? "bg-emerald-500 border-emerald-500 text-slate-900"
               : "border-slate-600 hover:border-emerald-500 text-transparent"
-          }`}
+            }`}
         >
           <CheckCircle2 size={14} />
         </button>
@@ -208,11 +211,10 @@ function TicketCard({
           {/* PRIORITY BADGE (Only if not normal) */}
           {priority !== "normal" && priority !== "low" && (
             <div
-              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border bg-black/40 ${
-                priority === "critical"
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border bg-black/40 ${priority === "critical"
                   ? "text-rose-500 border-rose-500"
                   : "text-orange-500 border-orange-500"
-              }`}
+                }`}
             >
               <AlertTriangle size={10} /> {priority}
             </div>
@@ -226,9 +228,8 @@ function TicketCard({
           onBlur={() => {
             if (title !== item.title) onUpdateTitle(item.id, title);
           }}
-          className={`bg-transparent text-base font-bold w-full focus:outline-none focus:border-b focus:border-white/20 transition-colors ${
-            isCompleted ? "text-slate-500 line-through" : "text-slate-200"
-          }`}
+          className={`bg-transparent text-base font-bold w-full focus:outline-none focus:border-b focus:border-white/20 transition-colors ${isCompleted ? "text-slate-500 line-through" : "text-slate-200"
+            }`}
         />
 
         {/* CONTROLS ROW */}
@@ -240,10 +241,9 @@ function TicketCard({
             className="bg-black/20 text-[10px] font-bold uppercase tracking-wider text-slate-400 border border-white/10 rounded px-2 py-1 focus:outline-none focus:border-purple-500"
           >
             <option value="General">General</option>
-            <option value="Task Master">Task Master</option>
-            <option value="CineSonic">CineSonic</option>
-            <option value="DnDLAA">DnDLAA</option>
-            <option value="GnoThyself">GnoThyself</option>
+            <option value="DnDL Website">DnDL Website</option>
+            <option value="DnDLCreative Website">DnDLCreative Webapp</option>
+            <option value="CineSonic Website/App">CineSonic Website/App</option>
           </select>
 
           {/* TYPE SELECTOR */}
@@ -280,6 +280,15 @@ function TicketCard({
         >
           <Archive size={16} />
         </button>
+        {onEdit && (
+          <button
+            onClick={() => onEdit(item)}
+            className="p-2 rounded hover:bg-white/10 text-slate-600 hover:text-cyan-400 transition-colors"
+            title="Edit"
+          >
+            <Edit2 size={16} />
+          </button>
+        )}
         <button
           onClick={() => onDelete(item.id)}
           className="p-2 rounded hover:bg-white/10 text-slate-600 hover:text-rose-400 transition-colors"

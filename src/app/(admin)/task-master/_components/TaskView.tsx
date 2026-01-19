@@ -15,6 +15,9 @@ import {
   Archive,
   RefreshCcw,
   GripVertical,
+  ArrowUp,
+  ArrowDown,
+  Edit2,
 } from "lucide-react";
 import styles from "../task-master.module.css";
 import { TaskItem, RecurrenceType, SortOption } from "./types";
@@ -31,17 +34,20 @@ interface TaskViewProps {
   onToggleStatus: (id: string, status: string) => void;
   onDelete: (id: string) => void;
   onArchive: (id: string) => void;
-  onRestore: (id: string) => void; // <--- New Prop
-  onReorder: (draggedId: string, targetId: string) => void; // <--- New Prop
+  onRestore: (id: string) => void;
+  onReorder: (draggedId: string, targetId: string) => void;
   onAddSubtask: (parentId: string, title: string) => void;
   onUpdateDate: (id: string, date: string) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
   onUpdateContent: (id: string, content: string) => void;
+  // NEW PROPS
+  onManualMove?: (id: string, direction: "up" | "down") => void;
   onReorderSubtask?: (
     parentId: string,
     subtaskId: string,
     direction: "up" | "down"
   ) => void;
+  onEdit?: (item: TaskItem) => void;
 }
 
 export default function TaskView({
@@ -60,7 +66,9 @@ export default function TaskView({
   onUpdateDate,
   onUpdateTags,
   onUpdateContent,
+  onManualMove,
   onReorderSubtask,
+  onEdit,
 }: TaskViewProps) {
   // DRAG STATE
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -82,7 +90,6 @@ export default function TaskView({
       if (a.status === "completed" && b.status !== "completed") return 1;
       if (a.status !== "completed" && b.status === "completed") return -1;
 
-      // NEW: Alphabetical
       if (sortOption === "alpha_asc") return a.title.localeCompare(b.title);
       if (sortOption === "alpha_desc") return b.title.localeCompare(a.title);
 
@@ -106,7 +113,6 @@ export default function TaskView({
 
   // DRAG HANDLERS
   const handleDragStart = (e: React.DragEvent, id: string) => {
-    // Only allow drag if manual sort is active
     if (sortOption !== "manual") return;
     setDraggedId(id);
     e.dataTransfer.effectAllowed = "move";
@@ -114,7 +120,7 @@ export default function TaskView({
 
   const handleDragOver = (e: React.DragEvent) => {
     if (sortOption !== "manual") return;
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault();
   };
 
   const handleDrop = (e: React.DragEvent, targetId: string) => {
@@ -122,6 +128,10 @@ export default function TaskView({
     if (sortOption !== "manual" || !draggedId || draggedId === targetId) return;
 
     onReorder(draggedId, targetId);
+    setDraggedId(null);
+  };
+
+  const handleDragEnd = () => {
     setDraggedId(null);
   };
 
@@ -161,9 +171,9 @@ export default function TaskView({
             onDragStart={(e) => handleDragStart(e, item.id)}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, item.id)}
-            className={`transition-all duration-300 ${
-              draggedId === item.id ? "opacity-40 scale-95" : "opacity-100"
-            }`}
+            onDragEnd={handleDragEnd}
+            className={`transition-all duration-300 ${draggedId === item.id ? "opacity-40 scale-95" : "opacity-100"
+              }`}
           >
             <TaskCard
               item={item}
@@ -172,11 +182,14 @@ export default function TaskView({
               onToggleStatus={onToggleStatus}
               onDelete={onDelete}
               onArchive={onArchive}
-              onRestore={onRestore} // <--- Pass down
+              onRestore={onRestore}
               onAddSubtask={onAddSubtask}
               onUpdateDate={onUpdateDate}
               onUpdateTags={onUpdateTags}
               onUpdateContent={onUpdateContent}
+              onManualMove={onManualMove}
+              onReorderSubtask={onReorderSubtask}
+              onEdit={onEdit}
             />
           </div>
         ))}
@@ -198,6 +211,9 @@ function TaskCard({
   onUpdateDate,
   onUpdateTags,
   onUpdateContent,
+  onManualMove,
+  onReorderSubtask,
+  onEdit,
 }: any) {
   const [expanded, setExpanded] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState("");
@@ -294,10 +310,31 @@ function TaskCard({
       className={`${styles.itemCard} flex-col !gap-0 !p-0 overflow-visible relative group border-l-4 ${statusBorder} ${statusBg} transition-colors duration-300`}
     >
       <div className="flex items-start gap-3 md:gap-4 p-3 md:p-4 w-full relative z-10">
-        {/* DRAG GRIP (Only visible in manual sort and not archived) */}
+        {/* DRAG GRIP & MANUAL SORT ARROWS */}
         {isManualSort && item.status !== "archived" && (
-          <div className="mt-1 cursor-grab text-slate-700 hover:text-slate-400 shrink-0">
-            <GripVertical size={16} />
+          <div className="flex flex-col items-center gap-1 mt-1 shrink-0">
+            <div className="cursor-grab text-slate-700 hover:text-slate-400">
+              <GripVertical size={16} />
+            </div>
+            {/* MANUAL SORT BUTTONS */}
+            {onManualMove && (
+              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => onManualMove(item.id, "up")}
+                  className="text-slate-700 hover:text-white p-0.5"
+                  title="Move Up"
+                >
+                  <ArrowUp size={12} />
+                </button>
+                <button
+                  onClick={() => onManualMove(item.id, "down")}
+                  className="text-slate-700 hover:text-white p-0.5"
+                  title="Move Down"
+                >
+                  <ArrowDown size={12} />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -306,9 +343,8 @@ function TaskCard({
             e.stopPropagation();
             onToggleStatus(item.id, item.status);
           }}
-          className={`${styles.checkbox} ${
-            item.status === "completed" ? styles.checkboxChecked : ""
-          } shrink-0 mt-1`}
+          className={`${styles.checkbox} ${item.status === "completed" ? styles.checkboxChecked : ""
+            } shrink-0 mt-1`}
           disabled={item.status === "archived"}
         >
           {item.status === "completed" && (
@@ -327,11 +363,10 @@ function TaskCard({
                   />
                 )}
                 <h4
-                  className={`font-medium text-base md:text-lg leading-tight transition-all cursor-pointer select-none break-words pr-2 ${
-                    item.status === "completed" || item.status === "archived"
-                      ? "line-through text-slate-600"
-                      : "text-slate-200"
-                  }`}
+                  className={`font-medium text-base md:text-lg leading-tight transition-all cursor-pointer select-none break-words pr-2 ${item.status === "completed" || item.status === "archived"
+                    ? "line-through text-slate-600"
+                    : "text-slate-200"
+                    }`}
                   onClick={() => setExpanded(!expanded)}
                 >
                   {item.title}
@@ -365,11 +400,10 @@ function TaskCard({
                   <button
                     onClick={handleDateClick}
                     className={`flex items-center gap-1.5 text-[10px] uppercase font-bold px-2 py-1 rounded border transition-colors whitespace-nowrap 
-                        ${
-                          statusColor === "slate"
-                            ? "text-slate-400 border-white/10 hover:border-purple-500/50 hover:text-purple-300"
-                            : `border-${statusColor}-500/30 bg-${statusColor}-500/10 ${statusText}`
-                        }`}
+                        ${statusColor === "slate"
+                        ? "text-slate-400 border-white/10 hover:border-purple-500/50 hover:text-purple-300"
+                        : `border-${statusColor}-500/30 bg-${statusColor}-500/10 ${statusText}`
+                      }`}
                   >
                     {statusColor === "rose" ? (
                       <AlertCircle size={12} />
@@ -396,6 +430,19 @@ function TaskCard({
                   >
                     <Archive size={16} />
                   </button>
+
+                  {onEdit && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(item);
+                      }}
+                      className="text-slate-600 hover:text-cyan-400 transition-colors p-1"
+                      title="Edit"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  )}
                 </>
               )}
 
@@ -440,26 +487,47 @@ function TaskCard({
             <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
               Checklist
             </h5>
-            {item.subtasks?.map((sub: any) => (
-              <div key={sub.id} className="flex items-start gap-3 group/sub">
+            {item.subtasks?.map((sub: any, index: number) => (
+              <div
+                key={sub.id}
+                className="flex items-start gap-3 group/sub relative"
+              >
+                {/* SUBTASK REORDER ARROWS */}
+                {onReorderSubtask && item.status !== "archived" && (
+                  <div className="flex flex-col absolute -left-6 top-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+                    <button
+                      disabled={index === 0}
+                      onClick={() => onReorderSubtask(item.id, sub.id, "up")}
+                      className="text-slate-600 hover:text-white disabled:opacity-0 p-0.5"
+                    >
+                      <ArrowUp size={10} />
+                    </button>
+                    <button
+                      disabled={index === (item.subtasks?.length || 0) - 1}
+                      onClick={() => onReorderSubtask(item.id, sub.id, "down")}
+                      className="text-slate-600 hover:text-white disabled:opacity-0 p-0.5"
+                    >
+                      <ArrowDown size={10} />
+                    </button>
+                  </div>
+                )}
+
                 <button
                   onClick={() => onToggleStatus(sub.id, sub.status)}
-                  className={`w-4 h-4 mt-0.5 rounded border border-slate-600 flex items-center justify-center shrink-0 ${
-                    sub.status === "completed"
-                      ? "bg-indigo-500 border-indigo-500"
-                      : "hover:border-indigo-400"
-                  }`}
+                  className={`w-4 h-4 mt-0.5 rounded border border-slate-600 flex items-center justify-center shrink-0 ${sub.status === "completed"
+                    ? "bg-indigo-500 border-indigo-500"
+                    : "hover:border-indigo-400"
+                    }`}
                 >
                   {sub.status === "completed" && (
                     <CheckSquare size={10} className="text-white" />
                   )}
                 </button>
                 <span
-                  className={`text-sm break-all leading-snug ${
-                    sub.status === "completed"
-                      ? "line-through text-slate-600"
-                      : "text-slate-300"
-                  }`}
+                  className={`text-sm break-all leading-snug ${sub.status === "completed"
+                    ? "line-through text-slate-600"
+                    : "text-slate-300"
+                    }`}
                 >
                   {sub.title}
                 </span>
@@ -506,11 +574,10 @@ function TaskCard({
                 item.status !== "archived" && (
                   <button
                     onClick={handleSaveNotes}
-                    className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                      isSavingNotes
-                        ? "text-emerald-500"
-                        : "text-purple-400 hover:text-white"
-                    }`}
+                    className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${isSavingNotes
+                      ? "text-emerald-500"
+                      : "text-purple-400 hover:text-white"
+                      }`}
                   >
                     <Save size={12} /> {isSavingNotes ? "Saved" : "Save Notes"}
                   </button>
@@ -536,11 +603,10 @@ function TimeframeTab({ label, id, active, onClick, icon }: any) {
   return (
     <button
       onClick={() => onClick(id)}
-      className={`flex items-center gap-2 snap-start shrink-0 px-4 py-2 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
-        isActive
-          ? "bg-purple-500 text-white border-purple-500 shadow-lg shadow-purple-500/25"
-          : "bg-white/5 text-slate-500 border-transparent hover:border-white/10 hover:text-slate-300"
-      }`}
+      className={`flex items-center gap-2 snap-start shrink-0 px-4 py-2 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border whitespace-nowrap ${isActive
+        ? "bg-purple-500 text-white border-purple-500 shadow-lg shadow-purple-500/25"
+        : "bg-white/5 text-slate-500 border-transparent hover:border-white/10 hover:text-slate-300"
+        }`}
     >
       {icon} {label}
     </button>
@@ -548,10 +614,14 @@ function TimeframeTab({ label, id, active, onClick, icon }: any) {
 }
 
 function EmptyState({ context }: { context: string }) {
-  // ... existing code ...
   return (
-    <div className="p-8 text-center">
-      <p className="text-slate-500">No tasks.</p>
+    <div className="p-12 text-center border border-dashed border-white/10 rounded-xl bg-white/5">
+      <div className="text-slate-500 font-medium">
+        No tasks found for {context}.
+      </div>
+      <p className="text-slate-600 text-sm mt-2">
+        Add a task above or switch tabs.
+      </p>
     </div>
   );
 }

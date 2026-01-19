@@ -2,10 +2,15 @@
 
 /* --- LAYOUT & ATMOSPHERE --- */
 .pageWrapper {
-  @apply min-h-screen w-full flex flex-col relative overflow-x-hidden;
+  /* Fix 1: Use 100dvh for mobile browsers */
+  @apply min-h-[100dvh] w-full flex flex-col relative overflow-hidden;
   background-color: var(--color-bg);
-  /* Mobile: Less padding, auto height */
-  @apply p-2 pb-20 md:p-6 md:h-screen md:overflow-hidden;
+
+  /* Fix 2: INCREASED TOP PADDING (pt-14) to clear mobile status bars/notches */
+  @apply pt-14 px-4 pb-20;
+
+  /* Desktop overrides: Standard padding, lock height */
+  @apply md:p-6 md:h-screen md:overflow-hidden;
 }
 
 .atmosphereBlob {
@@ -40,7 +45,6 @@
 
 /* --- SIDEBAR NAV (Left Col) --- */
 .sidebar {
-  /* Hidden on mobile (handled by JS component), visible on LG */
   @apply hidden lg:flex lg:col-span-2 flex-col gap-4 overflow-y-auto pr-2 pb-10;
 }
 
@@ -65,9 +69,8 @@
   @apply lg:col-span-10 flex flex-col gap-4 h-full overflow-hidden;
 }
 
-/* --- HEADER (THE FIX) --- */
+/* --- HEADER --- */
 .header {
-  /* Mobile: Column (Stack), Desktop: Row (Side-by-Side) */
   @apply flex flex-col md:flex-row md:justify-between md:items-end gap-4 pb-4 border-b border-white/10 shrink-0;
 }
 
@@ -80,8 +83,9 @@
 }
 
 .title {
-  /* Mobile: Smaller text, tighter leading */
-  @apply text-2xl md:text-5xl font-black uppercase tracking-tight leading-none;
+  @apply text-3xl md:text-5xl font-black uppercase tracking-tight;
+  /* Fix 3: Relaxed line-height and added vertical padding to prevent font clipping */
+  @apply leading-normal py-1;
   @apply text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-indigo-300;
 }
 
@@ -92,7 +96,6 @@
 /* --- CONTENT PANEL --- */
 .panel {
   @apply flex-grow overflow-y-auto rounded-xl md:rounded-[2rem] border relative;
-  /* Mobile: Less padding */
   @apply p-3 md:p-6;
   background: rgba(255, 255, 255, 0.02);
   border-color: rgba(255, 255, 255, 0.08);

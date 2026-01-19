@@ -15,7 +15,8 @@ import ResourceGrid from "./ResourceGrid";
 import LevelUpView from "./LevelUpView";
 import LedgerView from "./LedgerView";
 import FilterBar from "./FilterBar";
-import { Toast, ConfirmModal, ToastType } from "./NotificationUI";
+import { Toast, ConfirmModal, ToastType, EditModal, EditableFields } from "./NotificationUI";
+import TagManager from "./TagManager";
 
 export default function TaskMasterShell() {
   const supabase = createClient();
@@ -40,10 +41,15 @@ export default function TaskMasterShell() {
   const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Edit modal state
+  const [editCandidate, setEditCandidate] = useState<TaskItem | null>(null);
+
   const showToast = (type: "success" | "error", message: string) => {
     setToast({ id: Date.now().toString(), type, message });
     setTimeout(() => setToast(null), 4000);
   };
+
+  // --- HANDLER: Subtask Reorder ---
   const handleReorderSubtask = async (
     parentId: string,
     subtaskId: string,
@@ -66,7 +72,7 @@ export default function TaskMasterShell() {
       newSubtasks[subIndex],
     ];
 
-    // Swap Positions
+    // Swap Positions for DB
     const itemA = newSubtasks[subIndex];
     const itemB = newSubtasks[targetIndex];
     const tempPos = itemA.position || 0;
@@ -90,6 +96,8 @@ export default function TaskMasterShell() {
       .update({ position: itemB.position })
       .eq("id", itemB.id);
   };
+
+  // --- HANDLER: Manual Main Item Move ---
   const handleManualMove = async (id: string, direction: "up" | "down") => {
     // Find item index
     const index = items.findIndex((i) => i.id === id);
@@ -100,12 +108,14 @@ export default function TaskMasterShell() {
 
     if (targetIndex < 0 || targetIndex >= newItems.length) return;
 
+    // Swap in UI
     [newItems[index], newItems[targetIndex]] = [
       newItems[targetIndex],
       newItems[index],
     ];
     setItems(newItems);
 
+    // Swap DB Positions
     const itemA = newItems[index];
     const itemB = newItems[targetIndex];
 
@@ -344,6 +354,38 @@ export default function TaskMasterShell() {
     await supabase.from("task_master_items").update({ metadata }).eq("id", id);
   };
 
+  // --- UNIFIED EDIT HANDLER ---
+  const handleEditItem = async (id: string, fields: EditableFields) => {
+    // Build update object
+    const updateData: any = {};
+    if (fields.title !== undefined) updateData.title = fields.title;
+    if (fields.content !== undefined) updateData.content = fields.content;
+    if (fields.due_date !== undefined) updateData.due_date = fields.due_date;
+    if (fields.tags !== undefined) updateData.tags = fields.tags;
+    if (fields.metadata !== undefined) updateData.metadata = fields.metadata;
+
+    // Optimistic UI update
+    setItems(items.map((i) => {
+      if (i.id === id) {
+        return {
+          ...i,
+          ...updateData,
+        };
+      }
+      return i;
+    }));
+
+    // DB update
+    await supabase.from("task_master_items").update(updateData).eq("id", id);
+
+    // Refresh tags if they were updated
+    if (fields.tags) fetchSystemTags();
+
+    showToast("success", "Updated.");
+  };
+
+  const requestEdit = (item: TaskItem) => setEditCandidate(item);
+
   const requestDelete = (id: string) => setDeleteCandidate(id);
   const confirmDelete = async () => {
     if (!deleteCandidate) return;
@@ -383,14 +425,14 @@ export default function TaskMasterShell() {
                 {activeView === "task"
                   ? "Task Operations"
                   : activeView === "ledger"
-                  ? "App Ledger"
-                  : activeView === "level_up"
-                  ? "Level Up"
-                  : activeView === "code_snippet"
-                  ? "Tech Codex"
-                  : activeView === "social_bookmark"
-                  ? "Signal Archive"
-                  : "Resources"}
+                    ? "App Ledger"
+                    : activeView === "level_up"
+                      ? "Level Up"
+                      : activeView === "code_snippet"
+                        ? "Tech Codex"
+                        : activeView === "social_bookmark"
+                          ? "Signal Archive"
+                          : "Resources"}
               </h1>
             </div>
 
@@ -451,6 +493,9 @@ export default function TaskMasterShell() {
                     onUpdateDate={handleUpdateDate}
                     onUpdateTags={handleUpdateTags}
                     onUpdateContent={handleUpdateContent}
+                    onManualMove={handleManualMove}
+                    onReorderSubtask={handleReorderSubtask}
+                    onEdit={requestEdit}
                   />
                 )}
 
@@ -465,6 +510,8 @@ export default function TaskMasterShell() {
                     onToggleStatus={handleToggleStatus}
                     onReorder={handleReorder}
                     onArchive={handleArchive}
+                    onManualMove={handleManualMove}
+                    onEdit={requestEdit}
                   />
                 )}
 
@@ -479,6 +526,8 @@ export default function TaskMasterShell() {
                     onDelete={requestDelete}
                     onReorder={handleReorder}
                     onToggleStatus={handleToggleStatus}
+                    onManualMove={handleManualMove}
+                    onEdit={requestEdit}
                   />
                 )}
 
@@ -491,28 +540,31 @@ export default function TaskMasterShell() {
                     onUpdateContent={handleUpdateContent}
                     onUpdateTags={handleUpdateTags}
                     onDelete={requestDelete}
-                    // onArchive={handleArchive} // Removed from Codex per previous request
                     onReorder={handleReorder}
+                    onManualMove={handleManualMove}
+                    onEdit={requestEdit}
                   />
                 )}
 
                 {(activeView === "social_bookmark" ||
                   activeView === "resource") && (
-                  <ResourceGrid
-                    items={items}
-                    type={activeView}
-                    sortOption={sortOption}
-                    filterTags={filterTags}
-                    allSystemTags={allSystemTags}
-                    onUpdateTitle={handleUpdateTitle}
-                    onUpdateContent={handleUpdateContent}
-                    onUpdateTags={handleUpdateTags}
-                    onUpdateDate={handleUpdateDate} // <--- Added missing prop
-                    onDelete={requestDelete}
-                    onArchive={handleArchive}
-                    onReorder={handleReorder}
-                  />
-                )}
+                    <ResourceGrid
+                      items={items}
+                      type={activeView}
+                      sortOption={sortOption}
+                      filterTags={filterTags}
+                      allSystemTags={allSystemTags}
+                      onUpdateTitle={handleUpdateTitle}
+                      onUpdateContent={handleUpdateContent}
+                      onUpdateTags={handleUpdateTags}
+                      onUpdateDate={handleUpdateDate}
+                      onDelete={requestDelete}
+                      onArchive={handleArchive}
+                      onReorder={handleReorder}
+                      onManualMove={handleManualMove}
+                      onEdit={requestEdit}
+                    />
+                  )}
               </>
             )}
           </div>
@@ -526,6 +578,15 @@ export default function TaskMasterShell() {
         onConfirm={confirmDelete}
         onCancel={() => setDeleteCandidate(null)}
         isProcessing={isDeleting}
+      />
+      <EditModal
+        isOpen={!!editCandidate}
+        item={editCandidate}
+        itemType={activeView}
+        onSave={handleEditItem}
+        onClose={() => setEditCandidate(null)}
+        TagManagerComponent={TagManager}
+        allSystemTags={allSystemTags}
       />
     </>
   );

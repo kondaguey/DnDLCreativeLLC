@@ -31,7 +31,8 @@ interface ResourceGridProps {
   onDelete: (id: string) => void;
   onArchive: (id: string) => void;
   onReorder: (draggedId: string, targetId: string) => void;
-  onManualMove?: (id: string, direction: "up" | "down") => void; // Added
+  onManualMove?: (id: string, direction: "up" | "down") => void;
+  onEdit?: (item: TaskItem) => void;
 }
 
 export default function ResourceGrid({
@@ -48,6 +49,7 @@ export default function ResourceGrid({
   onArchive,
   onReorder,
   onManualMove,
+  onEdit,
 }: ResourceGridProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
@@ -97,9 +99,8 @@ export default function ResourceGrid({
           onDragOver={(e) => sortOption === "manual" && e.preventDefault()}
           onDrop={(e) => handleDrop(e, item.id)}
           onDragEnd={handleDragEnd}
-          className={`transition-all duration-300 ${
-            draggedId === item.id ? "opacity-40 scale-95" : "opacity-100"
-          }`}
+          className={`transition-all duration-300 ${draggedId === item.id ? "opacity-40 scale-95" : "opacity-100"
+            }`}
         >
           <NoteCard
             item={item}
@@ -114,6 +115,7 @@ export default function ResourceGrid({
             onDelete={onDelete}
             onArchive={onArchive}
             onManualMove={onManualMove}
+            onEdit={onEdit}
           />
         </div>
       ))}
@@ -134,6 +136,7 @@ function NoteCard({
   onDelete,
   onArchive,
   onManualMove,
+  onEdit,
 }: any) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(item.content || "");
@@ -150,11 +153,10 @@ function NoteCard({
       {/* CARD HEADER */}
       <div className="p-4 pb-2 flex items-start gap-3">
         <div
-          className={`mt-1 p-2 rounded-lg ${
-            type === "social_bookmark"
+          className={`mt-1 p-2 rounded-lg ${type === "social_bookmark"
               ? "bg-pink-500/10 text-pink-400"
               : "bg-cyan-500/10 text-cyan-400"
-          }`}
+            }`}
         >
           {type === "social_bookmark" ? (
             <Share2 size={16} />
@@ -234,12 +236,23 @@ function NoteCard({
         >
           <Trash2 size={14} />
         </button>
-        <button
-          onClick={() => onArchive(item.id)}
-          className="text-slate-600 hover:text-purple-400 p-2 transition-colors"
-        >
-          <Archive size={14} />
-        </button>
+        <div className="flex gap-1">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(item)}
+              className="text-slate-600 hover:text-cyan-400 p-2 transition-colors"
+              title="Edit"
+            >
+              <Edit2 size={14} />
+            </button>
+          )}
+          <button
+            onClick={() => onArchive(item.id)}
+            className="text-slate-600 hover:text-purple-400 p-2 transition-colors"
+          >
+            <Archive size={14} />
+          </button>
+        </div>
       </div>
     </div>
   );

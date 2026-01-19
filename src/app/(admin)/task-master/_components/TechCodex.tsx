@@ -11,6 +11,7 @@ import {
   FilterX,
   Maximize2,
   Minimize2,
+  Edit2,
 } from "lucide-react";
 import { TaskItem, SortOption } from "./types";
 import TagManager from "./TagManager";
@@ -24,6 +25,8 @@ interface TechCodexProps {
   onUpdateTags: (id: string, tags: string[]) => void;
   onDelete: (id: string) => void;
   onReorder: (draggedId: string, targetId: string) => void;
+  onManualMove?: (id: string, direction: "up" | "down") => void;
+  onEdit?: (item: TaskItem) => void;
 }
 
 export default function TechCodex({
@@ -35,6 +38,8 @@ export default function TechCodex({
   onUpdateTags,
   onDelete,
   onReorder,
+  onManualMove,
+  onEdit,
 }: TechCodexProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
@@ -108,9 +113,8 @@ export default function TechCodex({
           onDragStart={(e) => handleDragStart(e, item.id)}
           onDragOver={handleDragOver}
           onDrop={(e) => handleDrop(e, item.id)}
-          className={`transition-all duration-300 ${
-            draggedId === item.id ? "opacity-30" : "opacity-100"
-          }`}
+          className={`transition-all duration-300 ${draggedId === item.id ? "opacity-30" : "opacity-100"
+            }`}
         >
           <CodeEditor
             item={item}
@@ -119,6 +123,7 @@ export default function TechCodex({
             onUpdate={onUpdateContent}
             onUpdateTags={onUpdateTags}
             onDelete={onDelete}
+            onEdit={onEdit}
           />
         </div>
       ))}
@@ -133,6 +138,7 @@ function CodeEditor({
   onUpdate,
   onUpdateTags,
   onDelete,
+  onEdit,
 }: any) {
   const [code, setCode] = useState(item.content || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -153,11 +159,10 @@ function CodeEditor({
 
   return (
     <div
-      className={`group relative bg-black/40 border border-white/10 rounded-xl overflow-hidden flex flex-col md:flex-row items-stretch shadow-2xl ${
-        isExpanded
+      className={`group relative bg-black/40 border border-white/10 rounded-xl overflow-hidden flex flex-col md:flex-row items-stretch shadow-2xl ${isExpanded
           ? "fixed inset-4 z-50 bg-slate-950/95 backdrop-blur-xl border-emerald-500/30"
           : ""
-      }`}
+        }`}
     >
       {/* SIDEBAR (Desktop) / TOPBAR (Mobile) */}
       <div className="w-full md:w-56 bg-white/5 border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col justify-between shrink-0">
@@ -198,9 +203,8 @@ function CodeEditor({
           </button>
           <button
             onClick={handleSave}
-            className={`p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors ${
-              isSaving ? "text-emerald-500" : "text-slate-400 hover:text-white"
-            }`}
+            className={`p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors ${isSaving ? "text-emerald-500" : "text-slate-400 hover:text-white"
+              }`}
             title="Save"
           >
             <Save size={14} />
@@ -213,6 +217,15 @@ function CodeEditor({
           >
             {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(item)}
+              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-purple-400 transition-colors"
+              title="Edit Title"
+            >
+              <Edit2 size={14} />
+            </button>
+          )}
           <button
             onClick={() => onDelete(item.id)}
             className="p-2 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-600 hover:text-rose-400 transition-colors ml-auto md:ml-0"
