@@ -129,7 +129,6 @@ export default function TaskMasterShell() {
     const maxPos =
       items.length > 0 ? Math.max(...items.map((i) => i.position || 0)) : 0;
 
-    // Determine Type (Resource adds default to 'resource', but view shows both)
     const typeToAdd = activeView === "resource" ? "resource" : activeView;
 
     const { data } = await supabase
@@ -248,6 +247,40 @@ export default function TaskMasterShell() {
       .from("task_master_items")
       .update({ position: itemB.position })
       .eq("id", itemB.id);
+  };
+
+  // --- RESTORED FUNCTION ---
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === "active" ? "completed" : "active";
+
+    // Optimistic Update (Handles Top Level and Subtasks)
+    setItems((prevItems) =>
+      prevItems.map((item) => {
+        // 1. Check Top Level
+        if (item.id === id) {
+          return { ...item, status: newStatus as any };
+        }
+        // 2. Check Subtasks
+        if (item.subtasks && item.subtasks.length > 0) {
+          const subtaskExists = item.subtasks.find((s) => s.id === id);
+          if (subtaskExists) {
+            return {
+              ...item,
+              subtasks: item.subtasks.map((s) =>
+                s.id === id ? { ...s, status: newStatus as any } : s,
+              ),
+            };
+          }
+        }
+        return item;
+      }),
+    );
+
+    // DB Update
+    await supabase
+      .from("task_master_items")
+      .update({ status: newStatus })
+      .eq("id", id);
   };
 
   // GENERIC UPDATE HANDLER
@@ -491,7 +524,7 @@ export default function TaskMasterShell() {
                     onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
                     onUpdateMetadata={(id, m) =>
                       handleUpdate(id, "metadata", m)
-                    } // <--- CRITICAL FIX: Added this prop
+                    }
                     onDelete={requestDelete}
                     onArchive={(id) => handleUpdate(id, "status", "archived")}
                     onReorder={handleReorder}
