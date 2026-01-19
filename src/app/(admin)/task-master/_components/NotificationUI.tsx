@@ -340,6 +340,7 @@ export function EditModal({
     title: string;
     content?: string;
     due_date?: string | null;
+    created_at?: string; // <--- FIXED: ADDED THIS FIELD
     tags?: string[];
     metadata?: Record<string, any>;
   } | null;
@@ -361,8 +362,11 @@ export function EditModal({
       setTitle(item.title || "");
       setContent(item.content || "");
 
-      // For Resources/Tasks, prefer due_date if available
-      const effectiveDate = item.due_date ? item.due_date : item.created_at;
+      // For Resources/Tasks, prefer due_date if available, else created_at
+      // Fallback to empty string if both undefined to prevent crashes
+      const effectiveDate = item.due_date
+        ? item.due_date
+        : item.created_at || "";
       setDueDate(effectiveDate.split("T")[0]);
 
       setTags(item.tags || []);
@@ -433,7 +437,7 @@ export function EditModal({
             />
           </div>
 
-          {/* --- NEW: URL INPUT FOR RESOURCES --- */}
+          {/* URL FIELD FOR RESOURCES */}
           {(itemType === "resource" || itemType === "social_bookmark") && (
             <div>
               <label className="block text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2">
