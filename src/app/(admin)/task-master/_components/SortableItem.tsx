@@ -65,13 +65,13 @@ export function DragHandle({ children, className = "" }: DragHandleProps) {
     useContext(SortableItemContext);
 
   return (
-    <button
+    <div
       ref={setActivatorNodeRef}
       {...attributes}
       {...listeners}
       className={`${className} cursor-grab active:cursor-grabbing touch-none`}
     >
       {children}
-    </button>
+    </div>
   );
 }
