@@ -25,6 +25,19 @@ import { TaskItem, RecurrenceType, SortOption } from "./types";
 import TagManager from "./TagManager";
 import { formatDate, toInputDate, getDaysUntil } from "./dateUtils";
 
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortableItem, DragHandle } from "./SortableItem";
+
 interface TaskViewProps {
   items: TaskItem[];
   activeRecurrence: RecurrenceType;
@@ -81,7 +94,7 @@ export default function TaskView({
   onDeleteSubtask,
 }: TaskViewProps) {
   // DRAG STATE
-  const [draggedId, setDraggedId] = useState<string | null>(null);
+
 
   // --- SAFETY NET #1: Ensure items is always an array ---
   const safeItems = items || [];
@@ -129,27 +142,16 @@ export default function TaskView({
     });
 
   // DRAG HANDLERS
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    if (sortOption !== "manual") return;
-    setDraggedId(id);
-    e.dataTransfer.effectAllowed = "move";
-  };
+  // DRAG STATE & SENSORS
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
 
-  const handleDragOver = (e: React.DragEvent) => {
-    if (sortOption !== "manual") return;
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    if (sortOption !== "manual" || !draggedId || draggedId === targetId) return;
-
-    onReorder(draggedId, targetId);
-    setDraggedId(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedId(null);
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      onReorder(active.id, over.id);
+    }
   };
 
   return (
@@ -181,38 +183,43 @@ export default function TaskView({
           <EmptyState context={activeRecurrence} />
         )}
 
-        {filteredItems.map((item) => (
-          <div
-            key={item.id}
-            draggable={sortOption === "manual"}
-            onDragStart={(e) => handleDragStart(e, item.id)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, item.id)}
-            onDragEnd={handleDragEnd}
-            className={`transition-all duration-300 ${
-              draggedId === item.id ? "opacity-40 scale-95" : "opacity-100"
-            }`}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={filteredItems.map((i) => i.id)}
+            strategy={verticalListSortingStrategy}
           >
-            <TaskCard
-              item={item}
-              isManualSort={sortOption === "manual"}
-              allSystemTags={allSystemTags}
-              onToggleStatus={onToggleStatus}
-              onDelete={onDelete}
-              onArchive={onArchive}
-              onRestore={onRestore}
-              onAddSubtask={onAddSubtask}
-              onUpdateDate={onUpdateDate}
-              onUpdateTags={onUpdateTags}
-              onUpdateContent={onUpdateContent}
-              onManualMove={onManualMove}
-              onReorderSubtask={onReorderSubtask}
-              onEdit={onEdit}
-              onToggleSubtask={onToggleSubtask}
-              onDeleteSubtask={onDeleteSubtask}
-            />
-          </div>
-        ))}
+            {filteredItems.map((item) => (
+              <SortableItem
+                key={item.id}
+                id={item.id}
+                disabled={sortOption !== "manual"}
+              >
+                <TaskCard
+                  item={item}
+                  isManualSort={sortOption === "manual"}
+                  allSystemTags={allSystemTags}
+                  onToggleStatus={onToggleStatus}
+                  onDelete={onDelete}
+                  onArchive={onArchive}
+                  onRestore={onRestore}
+                  onAddSubtask={onAddSubtask}
+                  onUpdateDate={onUpdateDate}
+                  onUpdateTags={onUpdateTags}
+                  onUpdateContent={onUpdateContent}
+                  onManualMove={onManualMove}
+                  onReorderSubtask={onReorderSubtask}
+                  onEdit={onEdit}
+                  onToggleSubtask={onToggleSubtask}
+                  onDeleteSubtask={onDeleteSubtask}
+                />
+              </SortableItem>
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
     </div>
   );
@@ -337,9 +344,9 @@ function TaskCard({
         {/* MANUAL SORT HANDLE */}
         {isManualSort && item.status !== "archived" && (
           <div className="flex flex-col items-center gap-1 mt-1.5 shrink-0">
-            <div className="cursor-grab text-slate-600 hover:text-white transition-colors">
+            <DragHandle className="text-slate-600 hover:text-white transition-colors">
               <GripVertical size={16} />
-            </div>
+            </DragHandle>
             {onManualMove && (
               <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity mt-1">
                 <button
@@ -367,11 +374,10 @@ function TaskCard({
             e.stopPropagation();
             onToggleStatus(item.id, item.status);
           }}
-          className={`w-6 h-6 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 transition-all shadow-inner ${
-            item.status === "completed"
-              ? "bg-emerald-500 border-emerald-500 text-slate-900 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-              : "border-slate-500 hover:border-emerald-500 text-transparent"
-          }`}
+          className={`w-6 h-6 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 transition-all shadow-inner ${item.status === "completed"
+            ? "bg-emerald-500 border-emerald-500 text-slate-900 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+            : "border-slate-500 hover:border-emerald-500 text-transparent"
+            }`}
           disabled={item.status === "archived"}
         >
           {item.status === "completed" && (
@@ -391,11 +397,10 @@ function TaskCard({
                 )}
                 {/* BIG MOBILE TITLE */}
                 <h4
-                  className={`font-black text-xl md:text-lg leading-tight transition-all cursor-pointer select-none break-words pr-2 ${
-                    item.status === "completed" || item.status === "archived"
-                      ? "line-through text-slate-600"
-                      : "text-slate-100"
-                  }`}
+                  className={`font-black text-xl md:text-lg leading-tight transition-all cursor-pointer select-none break-words pr-2 ${item.status === "completed" || item.status === "archived"
+                    ? "line-through text-slate-600"
+                    : "text-slate-100"
+                    }`}
                   onClick={() => setExpanded(!expanded)}
                 >
                   {item.title}
@@ -429,11 +434,10 @@ function TaskCard({
                   <button
                     onClick={handleDateClick}
                     className={`flex items-center gap-1.5 text-xs md:text-[10px] uppercase font-black px-3 py-2 md:px-2 md:py-1 rounded-xl border transition-all whitespace-nowrap shadow-inner
-                        ${
-                          statusColor === "slate"
-                            ? "text-slate-400 border-white/10 hover:border-purple-500/50 hover:text-purple-300"
-                            : `border-${statusColor}-500/30 bg-${statusColor}-500/10 ${statusText}`
-                        }`}
+                        ${statusColor === "slate"
+                        ? "text-slate-400 border-white/10 hover:border-purple-500/50 hover:text-purple-300"
+                        : `border-${statusColor}-500/30 bg-${statusColor}-500/10 ${statusText}`
+                      }`}
                   >
                     {statusColor === "rose" ? (
                       <AlertCircle size={14} />
@@ -545,22 +549,20 @@ function TaskCard({
 
                 <button
                   onClick={() => onToggleSubtask(item.id, sub.id, sub.status)}
-                  className={`w-5 h-5 md:w-4 md:h-4 mt-0.5 rounded-md border-2 md:border flex items-center justify-center shrink-0 transition-all ${
-                    sub.status === "completed"
-                      ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                      : "border-slate-600 hover:border-indigo-400"
-                  }`}
+                  className={`w-5 h-5 md:w-4 md:h-4 mt-0.5 rounded-md border-2 md:border flex items-center justify-center shrink-0 transition-all ${sub.status === "completed"
+                    ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                    : "border-slate-600 hover:border-indigo-400"
+                    }`}
                 >
                   {sub.status === "completed" && (
                     <Check size={12} className="text-white font-black" />
                   )}
                 </button>
                 <span
-                  className={`text-base md:text-sm break-all leading-relaxed pt-0.5 ${
-                    sub.status === "completed"
-                      ? "line-through text-slate-600"
-                      : "text-slate-200"
-                  }`}
+                  className={`text-base md:text-sm break-all leading-relaxed pt-0.5 ${sub.status === "completed"
+                    ? "line-through text-slate-600"
+                    : "text-slate-200"
+                    }`}
                 >
                   {sub.title}
                 </span>
@@ -615,11 +617,10 @@ function TaskCard({
                 item.status !== "archived" && (
                   <button
                     onClick={handleSaveNotes}
-                    className={`flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 md:px-0 md:py-0 rounded-lg md:rounded-none bg-white/5 md:bg-transparent transition-colors ${
-                      isSavingNotes
-                        ? "text-emerald-500"
-                        : "text-purple-400 hover:text-white"
-                    }`}
+                    className={`flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 md:px-0 md:py-0 rounded-lg md:rounded-none bg-white/5 md:bg-transparent transition-colors ${isSavingNotes
+                      ? "text-emerald-500"
+                      : "text-purple-400 hover:text-white"
+                      }`}
                   >
                     <Save size={14} /> {isSavingNotes ? "Saved" : "Save Notes"}
                   </button>
@@ -646,11 +647,10 @@ function TimeframeTab({ label, id, active, onClick, icon }: any) {
   return (
     <button
       onClick={() => onClick(id)}
-      className={`flex items-center gap-2 snap-center shrink-0 px-5 py-3 md:px-4 md:py-2 rounded-2xl md:rounded-full text-xs md:text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap active:scale-95 ${
-        isActive
-          ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)] shadow-inner"
-          : "bg-white/5 text-slate-400 border-transparent hover:border-white/10 hover:text-white"
-      }`}
+      className={`flex items-center gap-2 snap-center shrink-0 px-5 py-3 md:px-4 md:py-2 rounded-2xl md:rounded-full text-xs md:text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap active:scale-95 ${isActive
+        ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)] shadow-inner"
+        : "bg-white/5 text-slate-400 border-transparent hover:border-white/10 hover:text-white"
+        }`}
     >
       {icon} {label}
     </button>

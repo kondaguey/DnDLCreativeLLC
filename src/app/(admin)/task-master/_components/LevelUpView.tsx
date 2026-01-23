@@ -14,56 +14,83 @@ import {
   ExternalLink,
   Link as LinkIcon,
   Edit2,
-  GripVertical,
 } from "lucide-react";
+
 import { TaskItem, SortOption } from "./types";
 import TagManager from "./TagManager";
 import { formatDate } from "./dateUtils";
 
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortableItem, DragHandle } from "./SortableItem";
+import { GripVertical } from "lucide-react";
+
 interface LevelUpViewProps {
   items: TaskItem[];
-  sortOption: SortOption;
+  sortOption: SortOption; // Ignored for UI, but kept for type compliance
   filterTags: string[];
   allSystemTags: string[];
   onUpdateMetadata: (id: string, metadata: any) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
   onDelete: (id: string) => void;
-  onReorder: (draggedId: string, targetId: string) => void;
   onToggleStatus: (id: string, status: string) => void;
+  onReorder: (draggedId: string, targetId: string) => void;
   onManualMove?: (id: string, direction: "up" | "down") => void;
-  onEdit?: (item: TaskItem) => void; // <--- THE MASTER EDIT PROP
+  onEdit?: (item: TaskItem) => void;
 }
 
 export default function LevelUpView({
   items,
-  sortOption,
+  sortOption, // Used for disabling drag
   filterTags,
   allSystemTags,
   onUpdateMetadata,
   onUpdateTags,
   onDelete,
   onToggleStatus,
+  onReorder,
   onManualMove,
-  onEdit, // <--- PASSED DOWN
+  onEdit,
 }: LevelUpViewProps) {
-  // 1. Calculate Overall "Global" Progress (High Precision)
+  // --- MATH ENGINE ---
   const globalTotalHours = items.reduce(
     (acc, item) => acc + (item.metadata?.total_hours || 0),
     0,
   );
-  const globalCompletedHours = items.reduce(
-    (acc, item) => acc + (item.metadata?.hours_completed || 0),
-    0,
-  );
 
-  // PRECISION PERCENTAGE LOGIC
+  const globalCompletedHours = items.reduce((acc, item) => {
+    // 100% automatic credit if marked completed
+    if (item.status === "completed") {
+      return acc + (item.metadata?.total_hours || 0);
+    }
+    return acc + (item.metadata?.hours_completed || 0);
+  }, 0);
+
   const globalProgressRaw =
     globalTotalHours > 0 ? (globalCompletedHours / globalTotalHours) * 100 : 0;
-
-  // Formats to x.xx (e.g., "12.50" or "99.99")
   const globalProgress = globalProgressRaw.toFixed(2);
 
-  // Filter & Sort
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      onReorder(active.id, over.id);
+    }
+  };
+
+  // --- STRICT MANUAL SORT ONLY ---
   const filteredItems = items
     .filter((item) => {
       if (item.status === "archived") return false;
@@ -74,14 +101,7 @@ export default function LevelUpView({
         return false;
       return true;
     })
-    .sort((a, b) => {
-      if (sortOption === "manual") return 0;
-      if (sortOption === "created_desc")
-        return (
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      return 0;
-    });
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
 
   if (filteredItems.length === 0)
     return (
@@ -94,19 +114,20 @@ export default function LevelUpView({
     );
 
   return (
-    <div className="relative space-y-0 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
-      {/* --- OVERALL PROGRESS BAR (Glassmorphic) --- */}
-      <div className="mb-10 bg-slate-900/60 backdrop-blur-xl border border-white/10 p-6 rounded-3xl relative overflow-hidden group shadow-2xl">
-        <div className="flex justify-between items-end mb-3 relative z-10">
+    <div className="relative space-y-0 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto w-full">
+      {/* --- OVERALL PROGRESS BAR --- */}
+      <div className="mb-10 bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 md:p-6 rounded-3xl relative overflow-hidden group shadow-2xl w-full">
+        <div className="flex flex-wrap justify-between items-end mb-4 md:mb-3 relative z-10 gap-3">
           <div>
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-              <Trophy size={16} className="text-yellow-500" /> Mastery Level
+              <Trophy size={16} className="text-yellow-500 shrink-0" /> Mastery
+              Level
             </h2>
             <div className="text-3xl md:text-2xl font-black text-white mt-1 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
               {globalProgress}%
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-left md:text-right">
             <div className="text-[10px] font-mono text-slate-500 uppercase">
               Total Hours Invested
             </div>
@@ -116,7 +137,6 @@ export default function LevelUpView({
             </div>
           </div>
         </div>
-        {/* Background Bar */}
         <div className="w-full h-4 md:h-3 bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-inner">
           <div
             className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(34,211,238,0.5)]"
@@ -125,52 +145,67 @@ export default function LevelUpView({
         </div>
       </div>
 
-      {/* --- CONNECTOR LINE --- */}
-      <div className="absolute left-[28px] md:left-[36px] top-32 bottom-20 w-0.5 bg-gradient-to-b from-transparent via-white/10 to-transparent -z-0" />
+      {/* --- CONNECTOR LINE (Mobile Adjusted) --- */}
+      <div className="absolute left-[20px] md:left-[36px] top-32 bottom-20 w-0.5 bg-gradient-to-b from-transparent via-white/10 to-transparent -z-0" />
 
-      {/* --- ITEMS --- */}
-      {filteredItems.map((item, index) => (
-        <div
-          key={item.id}
-          className="relative pl-16 md:pl-20 py-4 transition-all duration-300 group"
+      {/* --- LIST ITEMS --- */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={filteredItems.map((i) => i.id)}
+          strategy={verticalListSortingStrategy}
         >
-          {/* NODE CIRCLE */}
-          <div
-            className={`absolute left-4 md:left-6 top-10 w-6 h-6 rounded-full border-4 border-slate-950 z-10 flex items-center justify-center transition-all duration-500
-                ${
-                  item.status === "completed"
-                    ? "bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)] border-emerald-900"
-                    : "bg-slate-700 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
-                }
-            `}
-          >
-            {item.status === "completed" && (
-              <CheckCircle2 size={12} className="text-slate-900" />
-            )}
+          <div className="space-y-4 md:space-y-0 w-full">
+            {filteredItems.map((item, index) => (
+              <SortableItem
+                key={item.id}
+                id={item.id}
+                disabled={sortOption !== "manual"} // Using sortOption here as passed prop, assuming manual sort logic is handled by parent but disabled if not manual
+              >
+                <div className="relative pl-12 md:pl-20 py-2 md:py-4 transition-all duration-300 w-full">
+                  {/* NODE CIRCLE */}
+                  <div
+                    className={`absolute left-2 md:left-6 top-8 md:top-12 w-6 h-6 rounded-full border-4 border-slate-950 z-10 flex items-center justify-center transition-all duration-500
+                        ${item.status === "completed"
+                        ? "bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)] border-emerald-900"
+                        : "bg-slate-700 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                      }
+                    `}
+                  >
+                    {item.status === "completed" && (
+                      <CheckCircle2 size={12} className="text-slate-900" />
+                    )}
+                  </div>
+
+                  {/* ARROW CONNECTOR */}
+                  {index < filteredItems.length - 1 && (
+                    <div className="absolute left-[16px] md:left-[32px] bottom-[-10px] text-white/10 z-0 hidden md:block">
+                      <ArrowDown size={16} />
+                    </div>
+                  )}
+
+                  <CourseCard
+                    item={item}
+                    allSystemTags={allSystemTags}
+                    onUpdateMetadata={onUpdateMetadata}
+                    onUpdateTags={onUpdateTags}
+                    onDelete={onDelete}
+                    onToggleStatus={onToggleStatus}
+                    onManualMove={onManualMove}
+                    onEdit={onEdit}
+                    isFirst={index === 0}
+                    isLast={index === filteredItems.length - 1}
+                    isManualSort={sortOption === "manual"} // Pass this down
+                  />
+                </div>
+              </SortableItem>
+            ))}
           </div>
-
-          {/* ARROW CONNECTOR */}
-          {index < filteredItems.length - 1 && (
-            <div className="absolute left-[24px] md:left-[32px] bottom-[-10px] text-white/10 z-0">
-              <ArrowDown size={16} />
-            </div>
-          )}
-
-          <CourseCard
-            item={item}
-            isManualSort={sortOption === "manual"}
-            allSystemTags={allSystemTags}
-            onUpdateMetadata={onUpdateMetadata}
-            onUpdateTags={onUpdateTags}
-            onDelete={onDelete}
-            onToggleStatus={onToggleStatus}
-            onManualMove={onManualMove}
-            onEdit={onEdit} // <--- PASSED TO CARD
-            isFirst={index === 0}
-            isLast={index === filteredItems.length - 1}
-          />
-        </div>
-      ))}
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
@@ -178,18 +213,17 @@ export default function LevelUpView({
 // --- COURSE CARD COMPONENT ---
 function CourseCard({
   item,
-  isManualSort,
   allSystemTags,
   onUpdateMetadata,
   onUpdateTags,
   onDelete,
   onToggleStatus,
   onManualMove,
-  onEdit, // <--- RECEIVED HERE
+  onEdit,
   isFirst,
   isLast,
+  isManualSort,
 }: any) {
-  // Parse Metadata
   const meta = item.metadata || {};
   const [totalHours, setTotalHours] = useState(meta.total_hours || 0);
   const [completedHours, setCompletedHours] = useState(
@@ -199,14 +233,14 @@ function CourseCard({
   const [endDate, setEndDate] = useState(meta.end_date || "");
   const [courseLink, setCourseLink] = useState(meta.course_link || "");
 
-  // Controls Inline Editing
   const [isEditing, setIsEditing] = useState(false);
 
-  // Calculations
   const progress =
-    totalHours > 0
-      ? Math.min(Math.round((completedHours / totalHours) * 100), 100)
-      : 0;
+    item.status === "completed"
+      ? 100
+      : totalHours > 0
+        ? Math.min(Math.round((completedHours / totalHours) * 100), 100)
+        : 0;
 
   const handleSaveMeta = () => {
     onUpdateMetadata(item.id, {
@@ -224,69 +258,74 @@ function CourseCard({
 
   return (
     <div
-      className={`bg-slate-900/40 backdrop-blur-xl border border-white/5 relative overflow-hidden flex flex-col gap-4 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all rounded-3xl p-5 md:p-6`}
+      className={`bg-slate-900/40 backdrop-blur-xl border border-white/5 relative overflow-hidden flex flex-col gap-4 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all rounded-3xl p-5 md:p-6 w-full`}
     >
-      {/* INDIVIDUAL PROGRESS BAR (Top Border) */}
+      {/* INDIVIDUAL PROGRESS BAR */}
       <div className="absolute top-0 left-0 right-0 h-1.5 bg-black/40">
         <div
-          className={`h-full transition-all duration-700 ${
-            item.status === "completed"
-              ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-              : "bg-gradient-to-r from-blue-500 to-purple-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
-          }`}
+          className={`h-full transition-all duration-700 ${item.status === "completed"
+            ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+            : "bg-gradient-to-r from-blue-500 to-purple-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+            }`}
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* Header Row */}
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          {/* MANUAL SORT ARROWS */}
-          {isManualSort && onManualMove && (
-            <div className="flex flex-col gap-1 shrink-0">
-              <GripVertical size={16} className="text-slate-600 mb-1" />
+      {/* --- HEADER: Title & Arrows --- */}
+      <div className="flex flex-col md:flex-row md:justify-between items-start gap-3 w-full">
+        {/* DRAG HANDLE */}
+        {isManualSort && (
+          <DragHandle className="mt-1 mr-2 text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
+            <GripVertical size={20} />
+          </DragHandle>
+        )}
+
+        {/* Title & Tags */}
+        <div className="flex-1 min-w-0 w-full">
+          <h3
+            className={`text-xl md:text-lg font-black leading-tight truncate ${item.status === "completed"
+              ? "text-emerald-400 line-through"
+              : "text-slate-100"
+              }`}
+            title={item.title}
+          >
+            {item.title}
+          </h3>
+          <div className="mt-2 overflow-x-auto no-scrollbar mask-linear-fade pr-2">
+            <TagManager
+              selectedTags={item.tags || []}
+              allSystemTags={allSystemTags}
+              onUpdateTags={(tags) => onUpdateTags(item.id, tags)}
+            />
+          </div>
+        </div>
+
+        {/* Action Controls (Responsive Wrap) */}
+        <div className="flex flex-wrap gap-1.5 shrink-0 w-full md:w-auto mt-2 md:mt-0">
+          {/* UP/DOWN ARROWS */}
+          {onManualMove && (
+            <div className="flex items-center bg-white/5 rounded-xl border border-white/5 shadow-inner mr-1">
               <button
                 disabled={isFirst}
                 onClick={() => onManualMove(item.id, "up")}
-                className="text-slate-600 hover:text-white disabled:opacity-0 p-1 bg-white/5 rounded-md"
+                className="p-3 md:p-2 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
+                title="Move Up"
               >
-                <ArrowUp size={12} />
+                <ArrowUp size={16} />
               </button>
+              <div className="w-px h-6 bg-white/10" />
               <button
                 disabled={isLast}
                 onClick={() => onManualMove(item.id, "down")}
-                className="text-slate-600 hover:text-white disabled:opacity-0 p-1 bg-white/5 rounded-md"
+                className="p-3 md:p-2 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
+                title="Move Down"
               >
-                <ArrowDown size={12} />
+                <ArrowDown size={16} />
               </button>
             </div>
           )}
 
-          <div className="flex-1 min-w-0">
-            <h3
-              className={`text-xl md:text-lg font-black leading-tight truncate ${
-                item.status === "completed"
-                  ? "text-emerald-400 line-through"
-                  : "text-slate-100"
-              }`}
-              title={item.title}
-            >
-              {item.title}
-            </h3>
-            {/* Thumb-swipeable tags */}
-            <div className="mt-2 overflow-x-auto no-scrollbar mask-linear-fade pr-2">
-              <TagManager
-                selectedTags={item.tags || []}
-                allSystemTags={allSystemTags}
-                onUpdateTags={(tags) => onUpdateTags(item.id, tags)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* CONTROLS (Scaled for thumbs) */}
-        <div className="flex gap-1.5 shrink-0">
-          {/* COURSE LINK BUTTON */}
+          {/* OTHER ACTIONS */}
           {!isEditing && courseLink && (
             <a
               href={courseLink}
@@ -301,14 +340,10 @@ function CourseCard({
 
           <button
             onClick={() => onToggleStatus(item.id, item.status)}
-            className={`p-3 md:p-2 rounded-xl border transition-all ${
-              item.status === "completed"
-                ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-inner"
-                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/30"
-            }`}
-            title={
-              item.status === "completed" ? "Mark Active" : "Mark Complete"
-            }
+            className={`p-3 md:p-2 rounded-xl border transition-all ${item.status === "completed"
+              ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-inner"
+              : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/30"
+              }`}
           >
             {item.status === "completed" ? (
               <CheckCircle2 size={16} />
@@ -317,15 +352,13 @@ function CourseCard({
             )}
           </button>
 
-          {/* --- THE MASTER EDIT BUTTON --- */}
           {onEdit && (
             <button
               onClick={(e) => {
-                e.stopPropagation(); // Stops inline edit from opening
-                onEdit(item); // OPENS MASTER MODAL
+                e.stopPropagation();
+                onEdit(item);
               }}
               className="p-3 md:p-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 hover:text-white transition-all"
-              title="Edit in Master Modal"
             >
               <Edit2 size={16} />
             </button>
@@ -334,22 +367,20 @@ function CourseCard({
           <button
             onClick={() => onDelete(item.id)}
             className="p-3 md:p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-white transition-all"
-            title="Delete Course"
           >
             <Trash2 size={16} />
           </button>
         </div>
       </div>
 
-      {/* STATS AREA / QUICK EDIT (Clicking this opens Inline Edit) */}
+      {/* --- STATS / QUICK EDIT --- */}
       <div
-        className="bg-black/40 rounded-2xl p-4 md:p-3 cursor-pointer hover:bg-black/60 transition-colors border border-white/5 shadow-inner"
+        className="bg-black/40 rounded-2xl p-4 md:p-3 cursor-pointer hover:bg-black/60 transition-colors border border-white/5 shadow-inner w-full"
         onClick={() => !isEditing && setIsEditing(true)}
       >
         {isEditing ? (
-          <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-200">
-            {/* INPUTS (text-base required for iOS) */}
-            <div className="col-span-2 space-y-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
+            <div className="col-span-1 md:col-span-2 space-y-1">
               <label className="text-[10px] uppercase font-bold text-slate-500 flex items-center gap-1">
                 <LinkIcon size={12} /> Course Link (URL)
               </label>
@@ -412,13 +443,13 @@ function CourseCard({
               />
             </div>
 
-            <div className="col-span-2 flex justify-end gap-3 mt-2 border-t border-white/5 pt-4">
+            <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-2 border-t border-white/5 pt-4">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsEditing(false);
                 }}
-                className="px-5 py-2.5 md:py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-white transition-colors"
+                className="px-5 py-3 md:py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-white transition-colors"
               >
                 Cancel
               </button>
@@ -427,15 +458,14 @@ function CourseCard({
                   e.stopPropagation();
                   handleSaveMeta();
                 }}
-                className="px-5 py-2.5 md:py-2 rounded-xl text-sm font-black uppercase tracking-widest bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/20 transition-all"
+                className="px-5 py-3 md:py-2 rounded-xl text-sm font-black uppercase tracking-widest bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/20 transition-all"
               >
-                Save Updates
+                Save
               </button>
             </div>
           </div>
         ) : (
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            {/* VIEW MODE: HOURS */}
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-full bg-cyan-500/10 text-cyan-400">
                 <Clock size={18} />
@@ -446,7 +476,7 @@ function CourseCard({
                 </div>
                 <div className="font-mono text-base md:text-sm text-slate-200">
                   <span className="text-cyan-400 font-bold">
-                    {completedHours}
+                    {item.status === "completed" ? totalHours : completedHours}
                   </span>{" "}
                   / {totalHours} hrs
                   <span className="text-slate-600 ml-2">({progress}%)</span>
@@ -454,7 +484,6 @@ function CourseCard({
               </div>
             </div>
 
-            {/* VIEW MODE: DATES */}
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-full bg-purple-500/10 text-purple-400">
                 <CalendarDays size={18} />
@@ -468,10 +497,6 @@ function CourseCard({
                   {endDate ? formatDate(endDate) : "End"}
                 </div>
               </div>
-            </div>
-
-            <div className="hidden md:block text-[10px] text-slate-600 uppercase font-bold tracking-widest hover:text-cyan-400 transition-colors ml-auto">
-              Tap to Quick Edit
             </div>
           </div>
         )}

@@ -6,7 +6,7 @@ import {
   BrainCircuit,
   Trash2,
   ArrowRightCircle,
-  GripVertical,
+  GripHorizontal,
   ArrowUp,
   ArrowDown,
   ArrowLeft,
@@ -39,7 +39,7 @@ import {
 
 import { TaskItem, SortOption } from "./types";
 import TagManager from "./TagManager";
-import { SortableItem } from "./SortableItem";
+import { SortableItem, DragHandle } from "./SortableItem";
 
 interface IdeaBoardProps {
   items: TaskItem[];
@@ -61,6 +61,18 @@ interface IdeaBoardProps {
 const getEffectiveDate = (item: TaskItem): Date =>
   item.due_date ? new Date(item.due_date) : new Date(item.created_at);
 
+const getSortText = (item: TaskItem): string => {
+  const title = item.title || "";
+  if (
+    title === "Quick Note" ||
+    title === "[CODE] Quick Note" ||
+    title.trim() === ""
+  ) {
+    return (item.content || "").toLowerCase();
+  }
+  return title.toLowerCase();
+};
+
 export default function IdeaBoard({
   items,
   sortOption,
@@ -77,16 +89,13 @@ export default function IdeaBoard({
   onManualMove,
   onEdit,
 }: IdeaBoardProps) {
-  // --- STATE ---
   const [activeTab, setActiveTab] = useState<"sparks" | "solidified">("sparks");
   const [activePeriod, setActivePeriod] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Mobile Input Bar State
   const [quickNote, setQuickNote] = useState("");
   const [noteFormat, setNoteFormat] = useState<"text" | "code">("text");
 
-  // --- TIMELINE BUILDER ---
   const timeline = useMemo(() => {
     const periods = new Set<string>();
     items.forEach((item) => {
@@ -118,7 +127,6 @@ export default function IdeaBoard({
     }),
   );
 
-  // --- FILTERING & SORTING ---
   const filteredItems = items
     .filter((item) => {
       if (item.status === "archived") return false;
@@ -131,7 +139,6 @@ export default function IdeaBoard({
       )
         return false;
 
-      // Date Filter
       if (activePeriod !== "all") {
         const date = getEffectiveDate(item);
         const itemKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -140,23 +147,37 @@ export default function IdeaBoard({
       return true;
     })
     .sort((a, b) => {
-      // 1. Favorites always float to the top
       const aFav = a.metadata?.is_favorite ? 1 : 0;
       const bFav = b.metadata?.is_favorite ? 1 : 0;
       if (aFav !== bFav) return bFav - aFav;
 
-      // 2. Normal Sorting
-      if (sortOption === "manual") return (a.position || 0) - (b.position || 0);
-
-      // THE FIX: Safe alphabetical sort handling for undefined/null/empty titles
-      if (sortOption === "alpha_asc")
-        return (a.title || "").localeCompare(b.title || "");
-      if (sortOption === "alpha_desc")
-        return (b.title || "").localeCompare(a.title || "");
-
-      return (
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      switch (sortOption) {
+        case "manual":
+          return (a.position || 0) - (b.position || 0);
+        case "alpha_asc": {
+          const comp = getSortText(a).localeCompare(getSortText(b));
+          return comp !== 0
+            ? comp
+            : new Date(b.created_at).getTime() -
+            new Date(a.created_at).getTime();
+        }
+        case "alpha_desc": {
+          const comp = getSortText(b).localeCompare(getSortText(a));
+          return comp !== 0
+            ? comp
+            : new Date(b.created_at).getTime() -
+            new Date(a.created_at).getTime();
+        }
+        case "date_asc":
+          return getEffectiveDate(a).getTime() - getEffectiveDate(b).getTime();
+        case "date_desc":
+          return getEffectiveDate(b).getTime() - getEffectiveDate(a).getTime();
+        case "created_desc":
+        default:
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+      }
     });
 
   const handleQuickAdd = (e: React.FormEvent) => {
@@ -176,11 +197,11 @@ export default function IdeaBoard({
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-20">
-      {/* 1. TOP CONTROL BAR (Mobile Optimized) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-20 w-full overflow-hidden">
+      {/* 1. TOP CONTROL BAR */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 w-full">
         {/* TABS */}
-        <div className="flex items-center gap-4 border-b border-white/10 px-2 flex-1 md:max-w-sm">
+        <div className="flex items-center gap-4 border-b border-white/10 px-2 w-full md:w-auto md:max-w-sm">
           <button
             onClick={() => setActiveTab("sparks")}
             className={`pb-3 text-sm md:text-xs font-black uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${activeTab === "sparks" ? "text-amber-400 border-amber-400" : "text-slate-500 border-transparent hover:text-white"}`}
@@ -196,8 +217,8 @@ export default function IdeaBoard({
         </div>
 
         {/* TIMELINE & VIEW TOGGLE */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade max-w-[60vw] md:max-w-[40vw]">
+        <div className="flex items-center gap-3 w-full md:w-auto min-w-0">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade flex-1 min-w-0 pr-4 md:pr-0">
             <button
               onClick={() => setActivePeriod("all")}
               className={`shrink-0 px-4 py-2.5 md:px-3 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === "all" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"}`}
@@ -215,10 +236,10 @@ export default function IdeaBoard({
             ))}
           </div>
 
-          <div className="w-px h-6 bg-white/10 hidden md:block" />
+          <div className="w-px h-6 bg-white/10 hidden md:block shrink-0" />
 
           {/* VIEW TOGGLE */}
-          <div className="hidden sm:flex bg-white/5 p-1 rounded-xl border border-white/5 shadow-inner">
+          <div className="hidden sm:flex bg-white/5 p-1 rounded-xl border border-white/5 shadow-inner shrink-0">
             <button
               onClick={() => setViewMode("grid")}
               className={`p-2.5 md:p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
@@ -243,11 +264,11 @@ export default function IdeaBoard({
         onDragEnd={handleDragEnd}
       >
         {activeTab === "sparks" && (
-          <div className="space-y-6 md:space-y-8">
-            {/* 2. THE ULTIMATE QUICK ADD BAR */}
+          <div className="space-y-6 md:space-y-8 w-full">
+            {/* 2. QUICK ADD BAR */}
             <form
               onSubmit={handleQuickAdd}
-              className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 focus-within:border-amber-500/50 focus-within:shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)] transition-all max-w-4xl mx-auto shadow-2xl"
+              className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 focus-within:border-amber-500/50 focus-within:shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)] transition-all max-w-4xl mx-auto shadow-2xl w-full"
             >
               <button
                 type="button"
@@ -272,7 +293,7 @@ export default function IdeaBoard({
                     ? "Paste code snippet..."
                     : "Capture thought..."
                 }
-                className={`flex-1 bg-transparent border-none text-base focus:outline-none p-3 min-w-0 placeholder:text-slate-600 ${noteFormat === "code" ? "font-mono text-emerald-300" : "text-slate-100"}`}
+                className={`flex-1 min-w-0 bg-transparent border-none text-base focus:outline-none p-3 placeholder:text-slate-600 ${noteFormat === "code" ? "font-mono text-emerald-300" : "text-slate-100"}`}
               />
 
               <button
@@ -285,7 +306,7 @@ export default function IdeaBoard({
               </button>
             </form>
 
-            {/* 3. THE NOTE GRID */}
+            {/* 3. NOTE GRID */}
             <SortableContext
               items={filteredItems.map((i) => i.id)}
               strategy={
@@ -297,8 +318,8 @@ export default function IdeaBoard({
               <div
                 className={
                   viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5"
-                    : "space-y-4 max-w-4xl mx-auto"
+                    ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 w-full"
+                    : "space-y-4 max-w-4xl mx-auto w-full"
                 }
               >
                 {filteredItems.map((item, index) => (
@@ -341,12 +362,12 @@ export default function IdeaBoard({
 
         {/* INCUBATOR TAB */}
         {activeTab === "solidified" && (
-          <div className="space-y-4 max-w-4xl mx-auto mt-4">
+          <div className="space-y-4 max-w-4xl mx-auto mt-4 w-full">
             <SortableContext
               items={filteredItems.map((i) => i.id)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="space-y-4 md:space-y-5">
+              <div className="space-y-4 md:space-y-5 w-full">
                 {filteredItems.map((item, index) => (
                   <SortableItem
                     key={item.id}
@@ -425,13 +446,16 @@ function SparkCard({
   });
   const stopProp = (e: any) => e.stopPropagation();
 
-  const baseCardStyle = `group flex flex-col bg-slate-900/40 backdrop-blur-xl border rounded-3xl p-5 relative overflow-hidden transition-all shadow-md hover:shadow-2xl hover:-translate-y-0.5 ${isFav ? "border-amber-500/50 shadow-amber-900/20" : "border-white/5"} ${viewMode === "grid" ? "h-full" : "w-full"}`;
+  // THE FIX: If isManualSort is true, we apply pt-14 (mobile) or pt-12 (desktop) to make room for the handle.
+  const dynamicPadding = isManualSort ? "px-5 pb-5 pt-14 md:pt-12" : "p-5";
+
+  const baseCardStyle = `group flex flex-col bg-slate-900/40 backdrop-blur-xl border rounded-3xl relative overflow-hidden transition-all shadow-md hover:shadow-2xl hover:-translate-y-0.5 ${isFav ? "border-amber-500/50 shadow-amber-900/20" : "border-white/5"} ${viewMode === "grid" ? "h-full w-full" : "w-full"} ${dynamicPadding}`;
 
   return (
     <div className={baseCardStyle}>
-      {/* THE FIX: Absolute Floating Drag Handle (Zero Layout Shift) */}
+      {/* FLOATING DRAG HANDLE */}
       {isManualSort && (
-        <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 flex items-center bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-white/10 shadow-lg text-slate-500">
+        <DragHandle className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center bg-black/95 backdrop-blur-md px-8 py-2 md:px-3 md:py-1 rounded-full border border-white/10 shadow-xl text-slate-400 active:bg-amber-500/20 active:text-amber-400 transition-all cursor-grab active:cursor-grabbing w-[160px] md:w-auto">
           {onManualMove && viewMode === "grid" && (
             <button
               disabled={isFirst}
@@ -439,14 +463,14 @@ function SparkCard({
                 e.stopPropagation();
                 onManualMove(item.id, "up");
               }}
-              className="hover:text-amber-400 disabled:opacity-0 p-0.5"
+              className="hover:text-amber-400 disabled:opacity-0 p-1"
             >
-              <ArrowLeft size={10} />
+              <ArrowLeft size={14} className="md:w-3 md:h-3" />
             </button>
           )}
-          <GripVertical
-            size={12}
-            className="cursor-grab hover:text-white mx-0.5"
+          <GripHorizontal
+            size={20}
+            className="hover:text-white mx-3 md:mx-1 md:w-4 md:h-4"
           />
           {onManualMove && viewMode === "grid" && (
             <button
@@ -455,24 +479,24 @@ function SparkCard({
                 e.stopPropagation();
                 onManualMove(item.id, "down");
               }}
-              className="hover:text-amber-400 disabled:opacity-0 p-0.5"
+              className="hover:text-amber-400 disabled:opacity-0 p-1"
             >
-              <ArrowRight size={10} />
+              <ArrowRight size={14} className="md:w-3 md:h-3" />
             </button>
           )}
-        </div>
+        </DragHandle>
       )}
 
-      {/* HEADER: Normal Date and Buttons (Uninterrupted by drag handle) */}
-      <div className="flex justify-between items-start mb-4 gap-2 w-full">
+      {/* HEADER */}
+      <div className="flex flex-wrap justify-between items-start mb-4 gap-2 w-full">
         {/* LEFT SIDE: Date */}
         <span className="text-[9px] font-mono text-slate-500 bg-black/40 px-2 py-1 rounded-md flex items-center gap-1 border border-white/5 whitespace-nowrap shrink-0">
-          <Clock size={10} />
+          <Clock size={10} className="shrink-0" />
           {dateStr}
         </span>
 
         {/* RIGHT SIDE: Tools */}
-        <div className="flex gap-1.5 transition-opacity z-10 shrink-0">
+        <div className="flex flex-wrap gap-1.5 transition-opacity z-10 shrink-0">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -510,9 +534,12 @@ function SparkCard({
         </div>
       </div>
 
-      <div className="flex-1 relative min-h-[140px]" onPointerDown={stopProp}>
+      <div
+        className="flex-1 relative min-h-[140px] w-full"
+        onPointerDown={stopProp}
+      >
         {isCode ? (
-          <div className="bg-black/60 rounded-xl p-4 font-mono text-xs text-emerald-400 border border-emerald-500/20 h-full shadow-inner">
+          <div className="bg-black/60 rounded-xl p-4 font-mono text-xs text-emerald-400 border border-emerald-500/20 h-full shadow-inner w-full">
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -532,9 +559,10 @@ function SparkCard({
         )}
       </div>
 
-      <div className="pt-4 mt-auto border-t border-white/5 flex justify-between items-center">
+      {/* FOOTER */}
+      <div className="pt-4 mt-auto border-t border-white/5 flex flex-wrap justify-between items-center gap-3 w-full">
         <div
-          className="flex-1 overflow-x-auto no-scrollbar mask-linear-fade pr-4"
+          className="flex-1 min-w-[100px] overflow-x-auto no-scrollbar mask-linear-fade pr-4"
           onPointerDown={stopProp}
         >
           <TagManager
@@ -548,7 +576,7 @@ function SparkCard({
             e.stopPropagation();
             onSolidify();
           }}
-          className="shrink-0 flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-black px-4 md:px-3 py-2.5 md:py-1.5 rounded-xl transition-all shadow-lg ml-2"
+          className="shrink-0 flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-black px-4 md:px-3 py-2.5 md:py-1.5 rounded-xl transition-all shadow-lg"
         >
           Incubate <ArrowRightCircle size={14} />
         </button>
@@ -586,22 +614,31 @@ function IncubatorCard({
   });
   const stopProp = (e: any) => e.stopPropagation();
 
+  // THE FIX: Dynamic Padding-Top
+  const dynamicPadding = isManualSort
+    ? "px-5 pb-5 pt-16 md:px-6 md:pb-6 md:pt-14"
+    : "p-5 md:p-6";
+
   return (
     <div
-      className={`bg-violet-950/20 backdrop-blur-2xl border ${isFav ? "border-amber-500/50" : "border-violet-500/20"} rounded-3xl p-6 md:p-5 flex flex-col md:flex-row gap-5 relative overflow-hidden group shadow-xl transition-all hover:border-violet-500/40`}
+      className={`bg-violet-950/20 backdrop-blur-2xl border ${isFav ? "border-amber-500/50" : "border-violet-500/20"} rounded-3xl flex flex-col md:flex-row gap-5 relative overflow-hidden group shadow-xl transition-all hover:border-violet-500/40 w-full ${dynamicPadding}`}
     >
-      {/* THE FIX: Absolute Floating Drag Handle (Zero Layout Shift) */}
+      {/* FLOATING DRAG HANDLE */}
       {isManualSort && (
-        <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 flex items-center bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-white/10 shadow-lg text-slate-500">
-          <GripVertical size={14} className="cursor-grab hover:text-white" />
-        </div>
+        <DragHandle className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center bg-black/95 backdrop-blur-md px-10 py-2.5 md:px-4 md:py-1 rounded-full border border-white/10 shadow-xl text-slate-400 active:bg-amber-500/20 active:text-amber-400 transition-all cursor-grab active:cursor-grabbing w-[160px] md:w-auto">
+          <GripHorizontal
+            size={20}
+            className="hover:text-white md:w-4 md:h-4"
+          />
+        </DragHandle>
       )}
 
-      {/* NORMAL LAYOUT (No 'pl-6' shifts anymore) */}
-      <div className="flex-1 min-w-0 space-y-4">
-        <div className="flex justify-between items-start gap-2">
+      {/* NORMAL LAYOUT */}
+      <div className="flex-1 min-w-0 space-y-4 w-full">
+        {/* HEADER */}
+        <div className="flex flex-wrap justify-between items-start gap-2 w-full">
           <input
-            className="bg-transparent text-2xl md:text-xl font-black text-violet-100 w-full min-w-0 focus:outline-none border-b border-transparent focus:border-violet-500/50 pb-1 placeholder:text-violet-900"
+            className="bg-transparent text-2xl md:text-xl font-black text-violet-100 flex-1 min-w-[150px] focus:outline-none border-b border-transparent focus:border-violet-500/50 pb-1 placeholder:text-violet-900"
             defaultValue={item.title === "Quick Note" ? "" : item.title}
             placeholder="Idea Name..."
             onBlur={(e) => onUpdateTitle(item.id, e.target.value)}
@@ -615,7 +652,7 @@ function IncubatorCard({
         </div>
 
         <textarea
-          className="bg-black/40 w-full rounded-2xl p-5 md:p-4 text-base md:text-sm text-slate-200 placeholder:text-slate-600 focus:text-white focus:outline-none resize-y min-h-[120px] border border-white/5 focus:border-violet-500/30 transition-all shadow-inner leading-relaxed"
+          className="bg-black/40 w-full rounded-2xl p-4 md:p-4 text-base md:text-sm text-slate-200 placeholder:text-slate-600 focus:text-white focus:outline-none resize-y min-h-[120px] border border-white/5 focus:border-violet-500/30 transition-all shadow-inner leading-relaxed"
           defaultValue={item.content}
           placeholder="Elaborate on your idea..."
           onBlur={(e) => onUpdateContent(item.id, e.target.value)}
@@ -624,7 +661,7 @@ function IncubatorCard({
         />
 
         <div
-          className="overflow-x-auto no-scrollbar mask-linear-fade"
+          className="overflow-x-auto no-scrollbar mask-linear-fade w-full"
           onPointerDown={stopProp}
         >
           <TagManager
@@ -635,7 +672,8 @@ function IncubatorCard({
         </div>
       </div>
 
-      <div className="flex md:flex-col gap-3 justify-end border-t md:border-t-0 md:border-l border-white/5 pt-5 md:pt-0 md:pl-5 shrink-0 flex-nowrap">
+      {/* FOOTER ACTIONS */}
+      <div className="flex md:flex-col gap-3 justify-end border-t md:border-t-0 md:border-l border-white/5 pt-5 md:pt-0 md:pl-5 shrink-0 flex-wrap w-full md:w-auto">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -652,12 +690,12 @@ function IncubatorCard({
             e.stopPropagation();
             onPromote();
           }}
-          className="bg-emerald-500 hover:bg-emerald-400 text-black px-6 md:px-4 py-4 md:py-3 rounded-xl text-sm md:text-xs font-black uppercase tracking-widest transition-all shadow-lg ml-auto md:ml-0 shrink-0"
+          className="bg-emerald-500 hover:bg-emerald-400 text-black px-6 md:px-4 py-4 md:py-3 rounded-xl text-sm md:text-xs font-black uppercase tracking-widest transition-all shadow-lg md:ml-0 flex-1 md:flex-none text-center"
         >
           Promote
         </button>
 
-        <div className="flex items-center gap-2 mt-auto shrink-0 flex-nowrap">
+        <div className="flex items-center gap-2 mt-auto shrink-0 flex-nowrap md:ml-0 ml-auto">
           {onEdit && (
             <button
               onClick={(e) => {

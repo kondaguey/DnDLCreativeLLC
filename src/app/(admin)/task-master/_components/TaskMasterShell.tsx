@@ -18,7 +18,6 @@ import IdeaBoard from "./IdeaBoard";
 import FilterBar from "./FilterBar";
 import TagManager from "./TagManager";
 
-// --- THE FIX: NEW CORRECT IMPORTS ---
 import {
   Toast,
   ConfirmModal,
@@ -26,9 +25,8 @@ import {
   EditableFields,
   PromoteModal,
 } from "./NotificationUI";
-import EditModal from "./EditModal"; // <--- Imported from its new dedicated file
+import EditModal from "./EditModal";
 
-// --- THE NEW SSR PROPS INTERFACE ---
 interface ShellProps {
   initialItems: TaskItem[];
   initialTags: string[];
@@ -43,7 +41,7 @@ export default function TaskMasterShell({
   const supabase = createClient();
   const router = useRouter();
 
-  // --- STATE (Pre-populated instantly by the Server!) ---
+  // --- STATE ---
   const [items, setItems] = useState<TaskItem[]>(initialItems);
   const [allSystemTags, setAllSystemTags] = useState<string[]>(initialTags);
   const [activeView, setActiveView] = useState<ViewType>("idea_board");
@@ -52,10 +50,8 @@ export default function TaskMasterShell({
   const [sortOption, setSortOption] = useState<SortOption>("manual");
   const [filterTags, setFilterTags] = useState<string[]>([]);
 
-  // STANDARD INPUT STATE
+  // INPUT STATE
   const [newItemInput, setNewItemInput] = useState("");
-
-  // CODEX SPECIFIC INPUT STATE
   const [newCodexTitle, setNewCodexTitle] = useState("");
   const [newCodexNotes, setNewCodexNotes] = useState("");
   const [newCodexCode, setNewCodexCode] = useState("");
@@ -74,7 +70,6 @@ export default function TaskMasterShell({
     setTimeout(() => setToast(null), 4000);
   };
 
-  // --- TAB SWITCHING IS NOW INSTANT (No loading spinner needed) ---
   const handleSwitchView = (view: ViewType) => {
     setActiveView(view);
     setFilterTags([]);
@@ -84,7 +79,6 @@ export default function TaskMasterShell({
     e.preventDefault();
     const isCodex = activeView === "code_snippet";
 
-    // Validation
     if (isCodex && !newCodexCode.trim() && !newCodexTitle.trim()) return;
     if (!isCodex && !newItemInput.trim()) return;
 
@@ -95,23 +89,23 @@ export default function TaskMasterShell({
 
     const payload = isCodex
       ? {
-          type: typeToAdd,
-          title: newCodexTitle || "Untitled Snippet",
-          content: newCodexCode,
-          metadata: { notes: newCodexNotes },
-          status: "active",
-          user_id: userId,
-          position: maxPos + 1024,
-        }
+        type: typeToAdd,
+        title: newCodexTitle || "Untitled Snippet",
+        content: newCodexCode,
+        metadata: { notes: newCodexNotes },
+        status: "active",
+        user_id: userId,
+        position: maxPos + 1024,
+      }
       : {
-          type: typeToAdd,
-          title: newItemInput,
-          content: "",
-          status: "active",
-          user_id: userId,
-          recurrence: activeView === "task" ? activeRecurrence : null,
-          position: maxPos + 1024,
-        };
+        type: typeToAdd,
+        title: newItemInput,
+        content: "",
+        status: "active",
+        user_id: userId,
+        recurrence: activeView === "task" ? activeRecurrence : null,
+        position: maxPos + 1024,
+      };
 
     const { data } = await supabase
       .from("task_master_items")
@@ -130,7 +124,6 @@ export default function TaskMasterShell({
     setIsAdding(false);
   };
 
-  // --- UPDATED FOR FAVORITES LOGIC ---
   const handleAddQuickNote = async (title: string, content: string) => {
     const { data } = await supabase
       .from("task_master_items")
@@ -173,45 +166,66 @@ export default function TaskMasterShell({
     showToast("success", `Promoted to ${newRecurrence}.`);
   };
 
+  // =========================================================================
+  // THE FIX: BULLETPROOF REORDER HANDLER (Synces "position" instantly)
+  // =========================================================================
   const handleReorder = async (draggedId: string, targetId: string) => {
     const draggedIndex = items.findIndex((i) => i.id === draggedId);
     const targetIndex = items.findIndex((i) => i.id === targetId);
-    if (draggedIndex === -1 || targetIndex === -1) return;
+    if (
+      draggedIndex === -1 ||
+      targetIndex === -1 ||
+      draggedIndex === targetIndex
+    )
+      return;
 
+    // 1. Shift the array
     const newItems = [...items];
     const [draggedItem] = newItems.splice(draggedIndex, 1);
     newItems.splice(targetIndex, 0, draggedItem);
-    setItems(newItems);
 
+    // 2. Calculate the exact new numerical position
     const prevPos = newItems[targetIndex - 1]?.position || 0;
     const nextPos = newItems[targetIndex + 1]?.position || prevPos + 2048;
     const newPosition = (prevPos + nextPos) / 2;
 
+    // 3. THE FIX: Update the local item's position BEFORE setting state
+    draggedItem.position = newPosition;
+    setItems(newItems);
+
+    // 4. Save to Database
     await supabase
       .from("task_master_items")
       .update({ position: newPosition })
       .eq("id", draggedId);
   };
 
+  // =========================================================================
+  // THE FIX: BULLETPROOF ARROW HANDLER (Swaps "position" instantly)
+  // =========================================================================
   const handleManualMove = async (id: string, direction: "up" | "down") => {
     const index = items.findIndex((i) => i.id === id);
     if (index === -1) return;
-    const newItems = [...items];
+
     const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newItems.length) return;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
 
-    [newItems[index], newItems[targetIndex]] = [
-      newItems[targetIndex],
-      newItems[index],
-    ];
-    setItems(newItems);
-
+    const newItems = [...items];
     const itemA = newItems[index];
     const itemB = newItems[targetIndex];
-    const tempPos = itemA.position;
-    itemA.position = itemB.position;
+
+    // THE FIX: Swap numerical positions locally BEFORE setting state
+    const tempPos = itemA.position || 0;
+    itemA.position = itemB.position || 0;
     itemB.position = tempPos;
 
+    // Swap indices
+    newItems[index] = itemB;
+    newItems[targetIndex] = itemA;
+
+    setItems(newItems);
+
+    // Save to Database
     await supabase
       .from("task_master_items")
       .update({ position: itemA.position })
@@ -231,7 +245,7 @@ export default function TaskMasterShell({
           return {
             ...item,
             subtasks: item.subtasks.map((s) =>
-              s.id === id ? { ...s, status: newStatus as any } : s,
+              s.id === id ? { ...s, status: newStatus as "active" | "completed" } : s,
             ),
           };
         }
@@ -250,7 +264,6 @@ export default function TaskMasterShell({
       .from("task_master_items")
       .update({ [field]: value })
       .eq("id", id);
-    // Note: We don't fetchSystemTags here anymore, since we can't do it instantly on the client easily. We just use the cached ones.
   };
 
   const handleCodexUpdate = async (
@@ -268,11 +281,11 @@ export default function TaskMasterShell({
       prev.map((i) =>
         i.id === id
           ? {
-              ...i,
-              title: newTitle,
-              content: newContent,
-              metadata: updatedMetadata,
-            }
+            ...i,
+            title: newTitle,
+            content: newContent,
+            metadata: updatedMetadata,
+          }
           : i,
       ),
     );
@@ -332,12 +345,11 @@ export default function TaskMasterShell({
     showToast("success", "Updated.");
   };
 
-  // --- NEW JSONB SUBTASK HANDLERS ---
   const handleAddSubtask = async (parentId: string, title: string) => {
     const parent = items.find((i) => i.id === parentId);
     if (!parent) return;
 
-    const newSubtask = { id: crypto.randomUUID(), title, status: "active" };
+    const newSubtask = { id: crypto.randomUUID(), title, status: "active" as const };
     const updatedSubtasks = [...(parent.subtasks || []), newSubtask];
 
     setItems((prev) =>
@@ -345,7 +357,6 @@ export default function TaskMasterShell({
         i.id === parentId ? { ...i, subtasks: updatedSubtasks } : i,
       ),
     );
-
     await supabase
       .from("task_master_items")
       .update({ subtasks: updatedSubtasks })
@@ -474,11 +485,10 @@ export default function TaskMasterShell({
 
                 <button
                   disabled={isAdding}
-                  className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${
-                    activeView === "code_snippet"
-                      ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
-                      : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
-                  } shadow-lg`}
+                  className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${activeView === "code_snippet"
+                    ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
+                    : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
+                    } shadow-lg`}
                 >
                   {isAdding ? (
                     <Loader2 className="animate-spin" size={20} />
@@ -607,24 +617,24 @@ export default function TaskMasterShell({
             )}
             {(activeView === "social_bookmark" ||
               activeView === "resource") && (
-              <ResourceGrid
-                items={currentViewItems}
-                type={activeView}
-                sortOption={sortOption}
-                filterTags={filterTags}
-                allSystemTags={allSystemTags}
-                onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
-                onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
-                onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
-                onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
-                onDelete={requestDelete}
-                onArchive={(id) => handleUpdate(id, "status", "archived")}
-                onReorder={handleReorder}
-                onManualMove={handleManualMove}
-                onEdit={requestEdit}
-              />
-            )}
+                <ResourceGrid
+                  items={currentViewItems}
+                  type={activeView}
+                  sortOption={sortOption}
+                  filterTags={filterTags}
+                  allSystemTags={allSystemTags}
+                  onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                  onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
+                  onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                  onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
+                  onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
+                  onDelete={requestDelete}
+                  onArchive={(id) => handleUpdate(id, "status", "archived")}
+                  onReorder={handleReorder}
+                  onManualMove={handleManualMove}
+                  onEdit={requestEdit}
+                />
+              )}
           </div>
         </main>
       </div>
@@ -639,7 +649,6 @@ export default function TaskMasterShell({
         isProcessing={isDeleting}
       />
 
-      {/* --- THE FIX: NEW MASTER EDIT MODAL --- */}
       <EditModal
         isOpen={!!editCandidate}
         item={editCandidate}

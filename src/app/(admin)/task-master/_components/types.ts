@@ -47,14 +47,15 @@ export type TaskItem = {
   title: string;
   content?: string;
   status: "active" | "completed" | "archived";
-  recurrence?: string;
+  recurrence?: RecurrenceType; // <--- LOCKED TO TYPE
   due_date?: string | null;
   subtasks?: SubtaskItem[];
   tags?: string[];
   position?: number;
   metadata?: {
-    // Global Feature
-    is_favorite?: boolean; // <--- NEW: FOR ALL ITEMS
+    // Global Features
+    is_favorite?: boolean;
+    url?: string; // <--- ADDED: Crucial for Resource Grid & Codex
 
     // Idea Board
     stage?: "spark" | "solidified";
@@ -67,9 +68,17 @@ export type TaskItem = {
     start_date?: string;
     end_date?: string;
 
-    // Ledger
+    // Ledger (UPDATED to match all 8 UI options)
     app_name?: string;
-    ticket_type?: "bug" | "feature" | "refactor";
+    ticket_type?:
+      | "task"
+      | "bug"
+      | "feature"
+      | "refactor"
+      | "security"
+      | "performance"
+      | "design"
+      | "devops";
     priority?: "critical" | "high" | "normal" | "low";
 
     // Codex

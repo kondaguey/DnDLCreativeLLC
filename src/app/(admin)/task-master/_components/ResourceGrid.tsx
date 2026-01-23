@@ -2,6 +2,18 @@
 
 import { useState, useMemo, useRef } from "react";
 import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortableItem, DragHandle } from "./SortableItem";
+import {
   Share2,
   Trash2,
   Archive,
@@ -24,23 +36,8 @@ import {
   Clock,
   Calendar as CalendarIcon,
 } from "lucide-react";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
 
 import { TaskItem, ViewType, SortOption } from "./types";
-import { SortableItem } from "./SortableItem";
 import TagManager from "./TagManager";
 
 interface ResourceGridProps {
@@ -83,13 +80,6 @@ export default function ResourceGrid({
 }: ResourceGridProps) {
   const [activePeriod, setActivePeriod] = useState<string>("all");
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
   const timeline = useMemo(() => {
     const periods = new Set<string>();
     items.forEach((item) => {
@@ -121,7 +111,14 @@ export default function ResourceGrid({
       return true;
     })
     .sort((a, b) => {
-      if (sortOption === "manual") return (a.position || 0) - (b.position || 0);
+      if (sortOption === "manual") {
+        const posDiff = (a.position || 0) - (b.position || 0);
+        if (posDiff !== 0) return posDiff;
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+
       if (sortOption === "alpha_asc") return a.title.localeCompare(b.title);
       if (sortOption === "alpha_desc") return b.title.localeCompare(a.title);
 
@@ -130,13 +127,6 @@ export default function ResourceGrid({
       if (sortOption === "date_asc") return dateA - dateB;
       return dateB - dateA;
     });
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      onReorder(active.id as string, over.id as string);
-    }
-  };
 
   const formatPeriod = (key: string) => {
     const [year, month] = key.split("-");
@@ -147,21 +137,27 @@ export default function ResourceGrid({
     });
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      onReorder(active.id, over.id);
+    }
+  };
+
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
+    <div className="w-full">
       {/* TIMELINE SCROLLER */}
       <div className="flex items-center gap-2 mb-8 overflow-x-auto no-scrollbar mask-linear-fade pb-2">
         <button
           onClick={() => setActivePeriod("all")}
-          className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${
-            activePeriod === "all"
-              ? "bg-white text-black shadow-lg shadow-white/20"
-              : "bg-white/5 text-slate-400 hover:text-white"
-          }`}
+          className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === "all"
+            ? "bg-white text-black shadow-lg shadow-white/20"
+            : "bg-white/5 text-slate-400 hover:text-white"
+            }`}
         >
           All Time
         </button>
@@ -169,11 +165,10 @@ export default function ResourceGrid({
           <button
             key={period}
             onClick={() => setActivePeriod(period)}
-            className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${
-              activePeriod === period
-                ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
-                : "bg-white/5 text-slate-400 hover:text-white"
-            }`}
+            className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === period
+              ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
+              : "bg-white/5 text-slate-400 hover:text-white"
+              }`}
           >
             {formatPeriod(period)}
           </button>
@@ -181,37 +176,43 @@ export default function ResourceGrid({
       </div>
 
       <div className="pb-24 md:pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <SortableContext
-          items={filteredItems.map((i) => i.id)}
-          strategy={rectSortingStrategy}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6">
-            {filteredItems.map((item, index) => (
-              <SortableItem
-                key={item.id}
-                id={item.id}
-                disabled={sortOption !== "manual"}
-              >
-                <ResourceCard
-                  item={item}
-                  allSystemTags={allSystemTags}
-                  isManualSort={sortOption === "manual"}
-                  isFirst={index === 0}
-                  isLast={index === filteredItems.length - 1}
-                  onUpdateTitle={onUpdateTitle}
-                  onUpdateContent={onUpdateContent}
-                  onUpdateTags={onUpdateTags}
-                  onUpdateDate={onUpdateDate}
-                  onUpdateMetadata={onUpdateMetadata}
-                  onDelete={onDelete}
-                  onArchive={onArchive}
-                  onManualMove={onManualMove}
-                  onEdit={onEdit}
-                />
-              </SortableItem>
-            ))}
-          </div>
-        </SortableContext>
+          <SortableContext
+            items={filteredItems.map((i) => i.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6 w-full">
+              {filteredItems.map((item, index) => (
+                <SortableItem
+                  key={item.id}
+                  id={item.id}
+                  disabled={sortOption !== "manual"}
+                >
+                  <ResourceCard
+                    item={item}
+                    allSystemTags={allSystemTags}
+                    isManualSort={sortOption === "manual"}
+                    isFirst={index === 0}
+                    isLast={index === filteredItems.length - 1}
+                    onUpdateTitle={onUpdateTitle}
+                    onUpdateContent={onUpdateContent}
+                    onUpdateTags={onUpdateTags}
+                    onUpdateDate={onUpdateDate}
+                    onUpdateMetadata={onUpdateMetadata}
+                    onDelete={onDelete}
+                    onArchive={onArchive}
+                    onManualMove={onManualMove}
+                    onEdit={onEdit}
+                  />
+                </SortableItem>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         {filteredItems.length === 0 && (
           <div className="text-center py-20 opacity-30">
@@ -222,7 +223,7 @@ export default function ResourceGrid({
           </div>
         )}
       </div>
-    </DndContext>
+    </div>
   );
 }
 
@@ -311,16 +312,13 @@ function ResourceCard({
   onManualMove,
   onEdit,
 }: any) {
-  // SPLIT STATE
   const [content, setContent] = useState(item.content || "");
   const [title, setTitle] = useState(item.title);
   const [url, setUrl] = useState(item.metadata?.url || "");
 
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  // Platform Detection based on URL field
   const platform = url ? getPlatformConfig(url) : null;
-
   const isBookmark = item.type === "social_bookmark" || !!url;
   const MainIcon = platform ? platform.icon : isBookmark ? Share2 : BookOpen;
   const accentBg = platform
@@ -348,8 +346,6 @@ function ResourceCard({
   });
   const isEdited = !!item.due_date;
 
-  const stopProp = (e: any) => e.stopPropagation();
-
   const handleDateClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (dateInputRef.current) {
@@ -367,56 +363,31 @@ function ResourceCard({
 
   return (
     <div
-      className={`group flex flex-col h-full bg-slate-900/40 backdrop-blur-xl border border-white/5 ${borderHover} rounded-3xl overflow-hidden transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 relative`}
+      className={`group flex flex-col h-full bg-slate-900/40 backdrop-blur-xl border border-white/5 ${borderHover} rounded-3xl overflow-hidden transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 relative w-full`}
     >
       {/* HEADER */}
       <div className="p-5 flex items-start gap-4">
+        {/* THE FIX: PURE CSS CLASS DRAG HANDLE. ZERO EVENT CONFLICTS. */}
         {isManualSort ? (
-          <div className="mt-1 flex items-center gap-1 text-slate-600">
-            <GripVertical size={16} className="cursor-grab hover:text-white" />
-            {onManualMove && (
-              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  disabled={isFirst}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    onManualMove(item.id, "up");
-                  }}
-                  className="hover:text-white disabled:opacity-0 p-1"
-                >
-                  <ArrowUp size={12} />
-                </button>
-                <button
-                  disabled={isLast}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    onManualMove(item.id, "down");
-                  }}
-                  className="hover:text-white disabled:opacity-0 p-1"
-                >
-                  <ArrowDown size={12} />
-                </button>
-              </div>
-            )}
-          </div>
+          <DragHandle className="drag-handle mt-1 flex items-center justify-center bg-white/5 hover:bg-cyan-500/20 text-slate-600 hover:text-cyan-400 p-2 md:p-3 rounded-xl shadow-inner transition-colors cursor-grab active:cursor-grabbing touch-none shrink-0">
+            <GripVertical size={20} />
+          </DragHandle>
         ) : (
           <div
-            className={`mt-1 p-2 md:p-3 rounded-xl ${accentBg} ${accentText} shadow-inner`}
+            className={`mt-1 p-2 md:p-3 rounded-xl ${accentBg} ${accentText} shadow-inner shrink-0`}
           >
             <MainIcon size={20} />
           </div>
         )}
 
         <div className="flex-1 min-w-0 space-y-2">
-          {/* TITLE INPUT (text-xl is safe from iOS zoom) */}
+          {/* TITLE INPUT */}
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={() => {
               if (title !== item.title) onUpdateTitle(item.id, title);
             }}
-            onPointerDown={stopProp}
-            onKeyDown={stopProp}
             className="bg-transparent text-xl md:text-lg font-black text-slate-100 w-full focus:outline-none placeholder:text-slate-600 truncate"
             placeholder="Resource Title..."
           />
@@ -427,7 +398,6 @@ function ResourceCard({
               className={`flex items-center gap-1 cursor-pointer transition-colors px-2 py-1 rounded-md -ml-2 ${isEdited ? "text-cyan-400 bg-cyan-500/10" : "hover:text-white hover:bg-white/10"}`}
               title="Change Date"
               onClick={handleDateClick}
-              onPointerDown={stopProp}
             >
               {isEdited ? <CalendarIcon size={12} /> : <Clock size={12} />}
               <span className="whitespace-nowrap">{displayDate}</span>
@@ -453,15 +423,14 @@ function ResourceCard({
         </div>
       </div>
 
-      {/* URL INPUT FIELD (text-base for mobile) */}
-      <div className="px-5 pb-3" onPointerDown={stopProp}>
+      {/* URL INPUT FIELD */}
+      <div className="px-5 pb-3">
         <div className="flex items-center gap-2 bg-black/40 rounded-xl px-3 py-2 border border-white/5 focus-within:border-cyan-500/50 transition-colors shadow-inner">
           <LinkIcon size={14} className="text-slate-500 shrink-0" />
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onBlur={handleUrlBlur}
-            onKeyDown={stopProp}
             placeholder="Paste URL..."
             className="bg-transparent w-full text-base md:text-sm text-cyan-400 font-mono placeholder:text-slate-700 focus:outline-none truncate"
           />
@@ -470,7 +439,7 @@ function ResourceCard({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-500 hover:text-cyan-400 p-1"
+              className="text-slate-500 hover:text-cyan-400 p-1 shrink-0"
               title="Open Link"
             >
               <ExternalLink size={16} />
@@ -479,11 +448,8 @@ function ResourceCard({
         </div>
       </div>
 
-      {/* TAGS (Thumb Scrollable) */}
-      <div
-        className="px-5 py-2 overflow-x-auto no-scrollbar mask-linear-fade pr-4"
-        onPointerDown={stopProp}
-      >
+      {/* TAGS */}
+      <div className="px-5 py-2 overflow-x-auto no-scrollbar mask-linear-fade pr-4">
         <TagManager
           selectedTags={item.tags || []}
           allSystemTags={allSystemTags}
@@ -491,7 +457,7 @@ function ResourceCard({
         />
       </div>
 
-      {/* NOTES BODY (text-base for mobile) */}
+      {/* NOTES BODY */}
       <div className="flex-1 p-5 pt-3 min-h-[120px] relative">
         <textarea
           value={content}
@@ -499,31 +465,64 @@ function ResourceCard({
           onBlur={() => {
             if (content !== item.content) onUpdateContent(item.id, content);
           }}
-          onPointerDown={stopProp}
-          onKeyDown={stopProp}
           className="w-full h-full bg-black/40 rounded-xl p-4 text-base md:text-sm text-slate-300 focus:text-white focus:outline-none resize-none transition-colors border border-transparent focus:border-white/10 shadow-inner leading-relaxed"
           placeholder="Add context, takeaways, or research..."
         />
       </div>
 
-      {/* FOOTER ACTIONS (Supersized on Mobile) */}
-      <div
-        className="p-3 md:p-3 border-t border-white/5 flex justify-between items-center bg-black/40"
-        onPointerDown={stopProp}
-      >
-        {/* FIXED: No more md:size prop. Just size={18} */}
-        <button
-          onClick={() => onDelete(item.id)}
-          className="text-slate-600 hover:text-rose-400 p-3 md:p-2 rounded-xl hover:bg-rose-500/10 transition-colors"
-          title="Delete"
-        >
-          <Trash2 size={18} />
-        </button>
+      {/* FOOTER ACTIONS (ARROWS ARE 100% BULLETPROOF) */}
+      <div className="p-3 md:p-3 border-t border-white/5 flex justify-between items-center bg-black/40">
+        <div className="flex items-center gap-2">
+          {/* THE WORKING ARROWS */}
+          {isManualSort && onManualMove && (
+            <div className="flex items-center bg-white/5 rounded-xl border border-white/10 shadow-inner mr-1">
+              <button
+                disabled={isFirst}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onManualMove(item.id, "up");
+                }}
+                className="p-3 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
+                title="Move Up"
+              >
+                <ArrowUp size={16} />
+              </button>
+              <div className="w-px h-6 bg-white/10" />
+              <button
+                disabled={isLast}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onManualMove(item.id, "down");
+                }}
+                className="p-3 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
+                title="Move Down"
+              >
+                <ArrowDown size={16} />
+              </button>
+            </div>
+          )}
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item.id);
+            }}
+            className="text-slate-600 hover:text-rose-400 p-3 md:p-2 rounded-xl hover:bg-rose-500/10 transition-colors"
+            title="Delete"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+
         <div className="flex gap-2">
-          {/* THE MASTER EDIT CONNECTOR */}
           {onEdit && (
             <button
-              onClick={() => onEdit(item)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(item);
+              }}
               className="text-slate-600 hover:text-cyan-400 p-3 md:p-2 rounded-xl hover:bg-cyan-500/10 transition-colors"
               title="Edit in Master Modal"
             >
@@ -531,7 +530,10 @@ function ResourceCard({
             </button>
           )}
           <button
-            onClick={() => onArchive(item.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onArchive(item.id);
+            }}
             className="text-slate-600 hover:text-purple-400 p-3 md:p-2 rounded-xl hover:bg-purple-500/10 transition-colors"
             title="Archive"
           >

@@ -18,6 +18,18 @@ import {
   Loader2,
   GripVertical,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortableItem, DragHandle } from "./SortableItem";
 import { TaskItem, SortOption } from "./types";
 import TagManager from "./TagManager";
 
@@ -49,8 +61,6 @@ export default function TechCodex({
   onReorder,
   onManualMove,
 }: TechCodexProps) {
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-
   const filteredItems = items
     .filter((item) => {
       if (item.status === "archived") return false;
@@ -62,14 +72,25 @@ export default function TechCodex({
       return true;
     })
     .sort((a, b) => {
-      if (sortOption === "manual") return 0;
-      if (sortOption === "alpha_asc") return a.title.localeCompare(b.title);
-      if (sortOption === "alpha_desc") return b.title.localeCompare(a.title);
-      if (sortOption === "created_desc")
+      // 1. STRICT MANUAL SORT (Uses exact database position)
+      if (sortOption === "manual") {
+        const posDiff = (a.position || 0) - (b.position || 0);
+        if (posDiff !== 0) return posDiff;
         return (
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
-      return 0;
+      }
+
+      // 2. ALPHABETICAL
+      if (sortOption === "alpha_asc")
+        return (a.title || "").localeCompare(b.title || "");
+      if (sortOption === "alpha_desc")
+        return (b.title || "").localeCompare(a.title || "");
+
+      // 3. NEWEST FIRST (Fallback)
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     });
 
   if (filteredItems.length === 0) {
@@ -95,46 +116,50 @@ export default function TechCodex({
     );
   }
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    if (sortOption !== "manual") return;
-    setDraggedId(id);
-    e.dataTransfer.effectAllowed = "move";
-  };
-  const handleDragOver = (e: React.DragEvent) => {
-    if (sortOption === "manual") e.preventDefault();
-  };
-  const handleDrop = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    if (sortOption !== "manual" || !draggedId || draggedId === targetId) return;
-    onReorder(draggedId, targetId);
-    setDraggedId(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      onReorder(active.id, over.id);
+    }
   };
 
   return (
-    <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-20 max-w-4xl mx-auto">
-      {filteredItems.map((item, index) => (
-        <div
-          key={item.id}
-          draggable={sortOption === "manual"}
-          onDragStart={(e) => handleDragStart(e, item.id)}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, item.id)}
-          className={`transition-all duration-300 ${draggedId === item.id ? "opacity-30 scale-95" : "opacity-100"}`}
-        >
-          <CodexCard
-            item={item}
-            isManualSort={sortOption === "manual"}
-            isFirst={index === 0}
-            isLast={index === filteredItems.length - 1}
-            allSystemTags={allSystemTags}
-            onUpdateTags={onUpdateTags}
-            onUpdateCodexData={onUpdateCodexData}
-            onDelete={onDelete}
-            onManualMove={onManualMove}
-          />
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext
+        items={filteredItems.map((i) => i.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-20 max-w-4xl mx-auto w-full">
+          {filteredItems.map((item, index) => (
+            <SortableItem
+              key={item.id}
+              id={item.id}
+              disabled={sortOption !== "manual"}
+            >
+              <CodexCard
+                item={item}
+                isManualSort={sortOption === "manual"}
+                isFirst={index === 0}
+                isLast={index === filteredItems.length - 1}
+                allSystemTags={allSystemTags}
+                onUpdateTags={onUpdateTags}
+                onUpdateCodexData={onUpdateCodexData}
+                onDelete={onDelete}
+                onManualMove={onManualMove}
+              />
+            </SortableItem>
+          ))}
         </div>
-      ))}
-    </div>
+      </SortableContext>
+    </DndContext>
   );
 }
 
@@ -149,19 +174,14 @@ function CodexCard({
   onDelete,
   onManualMove,
 }: any) {
-  // Field States
   const [title, setTitle] = useState(item.title || "");
   const [code, setCode] = useState(item.content || "");
   const [notes, setNotes] = useState(item.metadata?.notes || "");
 
-  // UI States
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  // SIMPLE 2-STATE TOGGLE: True = Expanded, False = Collapsed
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Track if changes are unsaved
   const isChanged =
     title !== (item.title || "") ||
     code !== (item.content || "") ||
@@ -177,13 +197,15 @@ function CodexCard({
     setNotes(item.metadata?.notes || "");
   }, [item.metadata]);
 
-  const handleExplicitSave = async () => {
+  const handleExplicitSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     setIsSaving(true);
     await onUpdateCodexData(item.id, title, code, notes);
     setTimeout(() => setIsSaving(false), 500);
   };
 
-  const handleCopy = () => {
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -195,24 +217,25 @@ function CodexCard({
     <div
       className={`relative bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl ${isExpanded ? "shadow-2xl" : "shadow-lg h-[72px] md:h-16 hover:border-white/20"}`}
     >
-      {/* 1. TOP HEADER */}
+      {/* 1. TOP HEADER (Bulletproof Flexbox) */}
       <div
-        className="w-full bg-black/40 px-5 md:px-6 h-[72px] md:h-16 flex items-center justify-between shrink-0 shadow-inner"
+        className="w-full bg-black/40 px-4 md:px-5 h-[72px] md:h-16 flex items-center justify-between shrink-0 shadow-inner gap-3"
         onDoubleClick={() => setIsExpanded(!isExpanded)}
       >
+        {/* Left Side: Icon + Input */}
         <div className="flex-1 flex items-center gap-3 min-w-0">
-          {isManualSort ? (
-            <div className="text-slate-600 cursor-grab hover:text-white transition-colors">
-              <GripVertical size={16} />
-            </div>
-          ) : (
-            <FileText
-              size={18}
-              className={!isExpanded ? "text-slate-600" : "text-emerald-500"}
-            />
+          {/* DRAG HANDLE */}
+          {isManualSort && (
+            <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
+              <GripVertical size={20} />
+            </DragHandle>
           )}
 
-          {/* TITLE INPUT (text-base for mobile, text-lg for desktop) */}
+          <FileText
+            size={18}
+            className={`shrink-0 ${!isExpanded ? "text-slate-600" : "text-emerald-500"}`}
+          />
+
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -221,16 +244,14 @@ function CodexCard({
             className={`bg-transparent text-white font-black tracking-tight focus:outline-none flex-1 min-w-0 truncate ${!isExpanded ? "text-base text-slate-300" : "text-xl md:text-2xl"}`}
           />
 
-          {/* THE BIG SAVE BUTTON */}
           {isChanged && isExpanded && (
             <button
               onClick={handleExplicitSave}
               disabled={isSaving}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg ${
-                isSaving
-                  ? "bg-slate-700 text-slate-300"
-                  : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 animate-pulse"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shrink-0 ${isSaving
+                ? "bg-slate-700 text-slate-300"
+                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 animate-pulse"
+                }`}
             >
               {isSaving ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -242,41 +263,57 @@ function CodexCard({
           )}
         </div>
 
-        {/* Action Controls (Supersized on mobile) */}
-        <div className="flex items-center gap-1 shrink-0 ml-3">
-          {/* Movement */}
+        {/* Right Side: Action Controls (No Wrapping, No Shrinking) */}
+        <div className="flex items-center gap-1.5 shrink-0 flex-nowrap">
+          {/* UP/DOWN ARROWS */}
           {isManualSort && onManualMove && (
-            <div className="flex bg-white/5 rounded-xl overflow-hidden mr-1 hidden md:flex">
+            <div className="flex items-center bg-white/5 rounded-xl border border-white/10 shadow-inner mr-1">
               <button
                 disabled={isFirst}
-                onClick={() => onManualMove(item.id, "up")}
-                className="p-2 text-slate-500 hover:text-white disabled:opacity-20 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onManualMove(item.id, "up");
+                }}
+                className="p-2 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
+                title="Move Up"
               >
-                <ArrowUp size={12} />
+                <ArrowUp size={16} />
               </button>
+              <div className="w-px h-6 bg-white/10" />
               <button
                 disabled={isLast}
-                onClick={() => onManualMove(item.id, "down")}
-                className="p-2 text-slate-500 hover:text-white disabled:opacity-20 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onManualMove(item.id, "down");
+                }}
+                className="p-2 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
+                title="Move Down"
               >
-                <ArrowDown size={12} />
+                <ArrowDown size={16} />
               </button>
             </div>
           )}
 
           <button
-            onClick={() => onDelete(item.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item.id);
+            }}
             className="p-3 md:p-2 rounded-xl text-slate-600 hover:text-rose-400 hover:bg-white/5 transition-colors"
             title="Delete"
           >
             <Trash2 size={18} />
           </button>
 
-          <div className="w-px h-6 bg-white/10 mx-1"></div>
+          <div className="w-px h-6 bg-white/10 mx-1 shrink-0"></div>
 
-          {/* SIMPLE TOGGLE */}
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
             className="p-3 md:p-2 rounded-xl text-slate-400 hover:text-cyan-400 hover:bg-white/5 transition-colors"
             title={isExpanded ? "Collapse" : "Expand"}
           >
@@ -288,7 +325,6 @@ function CodexCard({
       {/* ONLY RENDER BELOW IF EXPANDED */}
       {isExpanded && (
         <div className="animate-in slide-in-from-top-2 duration-300">
-          {/* Tags */}
           <div className="px-5 py-3 bg-black/20 border-t border-b border-white/5 overflow-x-auto no-scrollbar mask-linear-fade pr-4">
             <TagManager
               selectedTags={item.tags || []}
@@ -297,13 +333,11 @@ function CodexCard({
             />
           </div>
 
-          {/* 2. DOCUMENTATION / CONTEXT */}
           <div className="w-full bg-black/40 px-5 md:px-6 py-4 flex flex-col gap-3 border-b border-white/5 shrink-0 shadow-inner">
             <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
               <MessageSquare size={14} />
               <span>Documentation / Context</span>
             </div>
-            {/* iOS FIX: text-base */}
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -313,7 +347,6 @@ function CodexCard({
             />
           </div>
 
-          {/* 3. CODE BLOCK (Sleek Terminal Look) */}
           <div className="flex flex-col bg-[#050505] max-h-[500px]">
             <div className="h-10 bg-black/80 border-b border-white/5 px-5 md:px-6 flex items-center justify-between shrink-0 shadow-inner">
               <span className="text-[10px] text-emerald-500 font-mono font-bold flex items-center gap-1.5">
@@ -327,7 +360,6 @@ function CodexCard({
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
-            {/* iOS FIX: text-base */}
             <textarea
               value={code}
               onChange={(e) => setCode(e.target.value)}
