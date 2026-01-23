@@ -13,7 +13,7 @@ interface SortableItemProps {
 export function SortableItem({
   id,
   children,
-  className,
+  className = "",
   disabled = false,
 }: SortableItemProps) {
   const {
@@ -26,19 +26,21 @@ export function SortableItem({
   } = useSortable({ id, disabled });
 
   const style = {
-    // USE TRANSLATE instead of TRANSFORM for smoother sorting without scaling artifacts
     transform: CSS.Translate.toString(transform),
     transition,
-    opacity: isDragging ? 0.4 : 1,
-    zIndex: isDragging ? 999 : "auto",
-    touchAction: "none",
-  };
+    pointerEvents: isDragging ? "none" : "auto",
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 999 : 1,
+    // THE FIX: "pan-y" allows the user to scroll the page vertically on mobile.
+    // If disabled is true, it returns full standard touch control ("auto").
+    touchAction: disabled ? "auto" : "pan-y",
+  } as React.CSSProperties;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={className}
+      className={`relative outline-none ${!disabled && isDragging ? "cursor-grabbing" : ""} ${className}`}
       {...attributes}
       {...listeners}
     >

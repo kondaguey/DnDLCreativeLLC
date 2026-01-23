@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Code, AlignLeft, FileText } from "lucide-react";
 import styles from "../task-master.module.css";
 import { TaskItem, ViewType, RecurrenceType, SortOption } from "./types";
 
@@ -16,32 +16,50 @@ import LevelUpView from "./LevelUpView";
 import LedgerView from "./LedgerView";
 import IdeaBoard from "./IdeaBoard";
 import FilterBar from "./FilterBar";
+import TagManager from "./TagManager";
+
+// --- THE FIX: NEW CORRECT IMPORTS ---
 import {
   Toast,
   ConfirmModal,
   ToastType,
-  EditModal,
   EditableFields,
   PromoteModal,
 } from "./NotificationUI";
-import TagManager from "./TagManager";
+import EditModal from "./EditModal"; // <--- Imported from its new dedicated file
 
-export default function TaskMasterShell() {
+// --- THE NEW SSR PROPS INTERFACE ---
+interface ShellProps {
+  initialItems: TaskItem[];
+  initialTags: string[];
+  userId: string;
+}
+
+export default function TaskMasterShell({
+  initialItems,
+  initialTags,
+  userId,
+}: ShellProps) {
   const supabase = createClient();
   const router = useRouter();
 
-  // --- STATE ---
-  const [activeView, setActiveView] = useState<ViewType>("task");
+  // --- STATE (Pre-populated instantly by the Server!) ---
+  const [items, setItems] = useState<TaskItem[]>(initialItems);
+  const [allSystemTags, setAllSystemTags] = useState<string[]>(initialTags);
+  const [activeView, setActiveView] = useState<ViewType>("idea_board");
   const [activeRecurrence, setActiveRecurrence] =
     useState<RecurrenceType>("daily");
   const [sortOption, setSortOption] = useState<SortOption>("manual");
   const [filterTags, setFilterTags] = useState<string[]>([]);
-  const [allSystemTags, setAllSystemTags] = useState<string[]>([]);
-  const [items, setItems] = useState<TaskItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
 
-  const [newItemTitle, setNewItemTitle] = useState("");
+  // STANDARD INPUT STATE
+  const [newItemInput, setNewItemInput] = useState("");
+
+  // CODEX SPECIFIC INPUT STATE
+  const [newCodexTitle, setNewCodexTitle] = useState("");
+  const [newCodexNotes, setNewCodexNotes] = useState("");
+  const [newCodexCode, setNewCodexCode] = useState("");
+
   const [isAdding, setIsAdding] = useState(false);
   const [toast, setToast] = useState<ToastType | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
@@ -56,107 +74,64 @@ export default function TaskMasterShell() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) router.push("/login");
-      else {
-        setUser(user);
-        fetchItems(user.id, activeView);
-        fetchSystemTags();
-      }
-    };
-    checkUser();
-  }, []);
-
-  const fetchSystemTags = async () => {
-    const { data } = await supabase.from("distinct_tags").select("tag_name");
-    if (data) setAllSystemTags(data.map((r: any) => r.tag_name));
-  };
-
-  const fetchItems = useCallback(
-    async (userId: string, view: ViewType) => {
-      setLoading(true);
-
-      let query = supabase
-        .from("task_master_items")
-        .select("*")
-        .eq("user_id", userId)
-        .order("position", { ascending: true });
-
-      // MERGED VIEW LOGIC
-      if (view === "resource") {
-        query = query.in("type", ["resource", "social_bookmark"]);
-      } else {
-        query = query.eq("type", view);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        const allItems = data as TaskItem[];
-        if (view === "task") {
-          const parents = allItems.filter((i) => !i.parent_id);
-          const children = allItems.filter((i) => i.parent_id);
-          const nestedItems = parents.map((parent) => ({
-            ...parent,
-            subtasks: children
-              .filter((child) => child.parent_id === parent.id)
-              .sort((a, b) => (a.position || 0) - (b.position || 0)),
-          }));
-          setItems(nestedItems);
-        } else {
-          setItems(allItems);
-        }
-      }
-      setLoading(false);
-    },
-    [supabase],
-  );
-
+  // --- TAB SWITCHING IS NOW INSTANT (No loading spinner needed) ---
   const handleSwitchView = (view: ViewType) => {
     setActiveView(view);
     setFilterTags([]);
-    if (user) fetchItems(user.id, view);
   };
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newItemTitle.trim() || !user) return;
+    const isCodex = activeView === "code_snippet";
+
+    // Validation
+    if (isCodex && !newCodexCode.trim() && !newCodexTitle.trim()) return;
+    if (!isCodex && !newItemInput.trim()) return;
+
     setIsAdding(true);
     const maxPos =
       items.length > 0 ? Math.max(...items.map((i) => i.position || 0)) : 0;
-
     const typeToAdd = activeView === "resource" ? "resource" : activeView;
+
+    const payload = isCodex
+      ? {
+          type: typeToAdd,
+          title: newCodexTitle || "Untitled Snippet",
+          content: newCodexCode,
+          metadata: { notes: newCodexNotes },
+          status: "active",
+          user_id: userId,
+          position: maxPos + 1024,
+        }
+      : {
+          type: typeToAdd,
+          title: newItemInput,
+          content: "",
+          status: "active",
+          user_id: userId,
+          recurrence: activeView === "task" ? activeRecurrence : null,
+          position: maxPos + 1024,
+        };
 
     const { data } = await supabase
       .from("task_master_items")
-      .insert([
-        {
-          type: typeToAdd,
-          title: newItemTitle,
-          status: "active",
-          user_id: user.id,
-          recurrence: activeView === "task" ? activeRecurrence : null,
-          content: "",
-          position: maxPos + 1024,
-        },
-      ])
+      .insert([payload])
       .select()
       .single();
 
     if (data) {
       setItems([...items, { ...data, subtasks: [] }]);
-      setNewItemTitle("");
-      showToast("success", "Added.");
+      setNewItemInput("");
+      setNewCodexTitle("");
+      setNewCodexNotes("");
+      setNewCodexCode("");
+      showToast("success", isCodex ? "Codex updated." : "Added.");
     }
     setIsAdding(false);
   };
 
+  // --- UPDATED FOR FAVORITES LOGIC ---
   const handleAddQuickNote = async (title: string, content: string) => {
-    if (!user) return;
     const { data } = await supabase
       .from("task_master_items")
       .insert([
@@ -165,13 +140,12 @@ export default function TaskMasterShell() {
           title,
           content,
           status: "active",
-          user_id: user.id,
-          metadata: { stage: "spark" },
+          user_id: userId,
+          metadata: { stage: "spark", is_favorite: false },
         },
       ])
       .select()
       .single();
-
     if (data) {
       setItems([data, ...items]);
       showToast("success", "Spark captured.");
@@ -179,7 +153,6 @@ export default function TaskMasterShell() {
   };
 
   const requestPromote = (item: TaskItem) => setPromoteCandidate(item);
-
   const handleConfirmPromote = async (
     id: string,
     newTitle: string,
@@ -249,48 +222,72 @@ export default function TaskMasterShell() {
       .eq("id", itemB.id);
   };
 
-  // --- RESTORED FUNCTION ---
   const handleToggleStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "completed" : "active";
-
-    // Optimistic Update (Handles Top Level and Subtasks)
     setItems((prevItems) =>
       prevItems.map((item) => {
-        // 1. Check Top Level
-        if (item.id === id) {
-          return { ...item, status: newStatus as any };
-        }
-        // 2. Check Subtasks
+        if (item.id === id) return { ...item, status: newStatus as any };
         if (item.subtasks && item.subtasks.length > 0) {
-          const subtaskExists = item.subtasks.find((s) => s.id === id);
-          if (subtaskExists) {
-            return {
-              ...item,
-              subtasks: item.subtasks.map((s) =>
-                s.id === id ? { ...s, status: newStatus as any } : s,
-              ),
-            };
-          }
+          return {
+            ...item,
+            subtasks: item.subtasks.map((s) =>
+              s.id === id ? { ...s, status: newStatus as any } : s,
+            ),
+          };
         }
         return item;
       }),
     );
-
-    // DB Update
     await supabase
       .from("task_master_items")
       .update({ status: newStatus })
       .eq("id", id);
   };
 
-  // GENERIC UPDATE HANDLER
   const handleUpdate = async (id: string, field: string, value: any) => {
     setItems(items.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
     await supabase
       .from("task_master_items")
       .update({ [field]: value })
       .eq("id", id);
-    if (field === "tags") fetchSystemTags();
+    // Note: We don't fetchSystemTags here anymore, since we can't do it instantly on the client easily. We just use the cached ones.
+  };
+
+  const handleCodexUpdate = async (
+    id: string,
+    newTitle: string,
+    newContent: string,
+    newNotes: string,
+  ) => {
+    const targetItem = items.find((i) => i.id === id);
+    if (!targetItem) return;
+
+    const updatedMetadata = { ...targetItem.metadata, notes: newNotes };
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              title: newTitle,
+              content: newContent,
+              metadata: updatedMetadata,
+            }
+          : i,
+      ),
+    );
+
+    const { error } = await supabase
+      .from("task_master_items")
+      .update({
+        title: newTitle,
+        content: newContent,
+        metadata: updatedMetadata,
+      })
+      .eq("id", id);
+
+    if (!error) showToast("success", "Saved.");
+    else showToast("error", "Failed to save.");
   };
 
   const requestEdit = (item: TaskItem) => setEditCandidate(item);
@@ -299,10 +296,12 @@ export default function TaskMasterShell() {
   const confirmDelete = async () => {
     if (!deleteCandidate) return;
     setIsDeleting(true);
+
     const { error } = await supabase
       .from("task_master_items")
       .delete()
       .eq("id", deleteCandidate);
+
     if (!error) {
       setItems((prev) =>
         prev.filter(
@@ -315,6 +314,7 @@ export default function TaskMasterShell() {
     } else {
       showToast("error", "Delete failed.");
     }
+
     setIsDeleting(false);
     setDeleteCandidate(null);
   };
@@ -329,9 +329,78 @@ export default function TaskMasterShell() {
 
     setItems(items.map((i) => (i.id === id ? { ...i, ...updates } : i)));
     await supabase.from("task_master_items").update(updates).eq("id", id);
-    if (fields.tags) fetchSystemTags();
     showToast("success", "Updated.");
   };
+
+  // --- NEW JSONB SUBTASK HANDLERS ---
+  const handleAddSubtask = async (parentId: string, title: string) => {
+    const parent = items.find((i) => i.id === parentId);
+    if (!parent) return;
+
+    const newSubtask = { id: crypto.randomUUID(), title, status: "active" };
+    const updatedSubtasks = [...(parent.subtasks || []), newSubtask];
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === parentId ? { ...i, subtasks: updatedSubtasks } : i,
+      ),
+    );
+
+    await supabase
+      .from("task_master_items")
+      .update({ subtasks: updatedSubtasks })
+      .eq("id", parentId);
+  };
+
+  const handleToggleSubtask = async (
+    parentId: string,
+    subtaskId: string,
+    currentStatus: string,
+  ) => {
+    const parent = items.find((i) => i.id === parentId);
+    if (!parent || !parent.subtasks) return;
+
+    const newStatus = currentStatus === "active" ? "completed" : "active";
+    const updatedSubtasks = parent.subtasks.map((sub: any) =>
+      sub.id === subtaskId ? { ...sub, status: newStatus } : sub,
+    );
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === parentId ? { ...i, subtasks: updatedSubtasks } : i,
+      ),
+    );
+    await supabase
+      .from("task_master_items")
+      .update({ subtasks: updatedSubtasks })
+      .eq("id", parentId);
+  };
+
+  const handleDeleteSubtask = async (parentId: string, subtaskId: string) => {
+    const parent = items.find((i) => i.id === parentId);
+    if (!parent || !parent.subtasks) return;
+
+    const updatedSubtasks = parent.subtasks.filter(
+      (sub: any) => sub.id !== subtaskId,
+    );
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === parentId ? { ...i, subtasks: updatedSubtasks } : i,
+      ),
+    );
+    await supabase
+      .from("task_master_items")
+      .update({ subtasks: updatedSubtasks })
+      .eq("id", parentId);
+  };
+
+  // --- VIEW FILTERING ---
+  const currentViewItems = items.filter((item) => {
+    if (activeView === "resource")
+      return item.type === "resource" || item.type === "social_bookmark";
+    return item.type === activeView;
+  });
 
   return (
     <>
@@ -355,23 +424,68 @@ export default function TaskMasterShell() {
                           : "Resources"}
               </h1>
             </div>
+
+            {/* --- SMART HEADER FORM --- */}
             {activeView !== "idea_board" && (
-              <form onSubmit={handleAddItem} className={styles.headerForm}>
-                <input
-                  type="text"
-                  value={newItemTitle}
-                  onChange={(e) => setNewItemTitle(e.target.value)}
-                  placeholder={`+ Add entry...`}
-                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white w-full focus:outline-none focus:border-purple-500"
-                />
+              <form
+                onSubmit={handleAddItem}
+                className="flex flex-col md:flex-row gap-2 w-full md:max-w-2xl items-stretch md:items-start bg-white/5 p-2 rounded-2xl border border-white/10 backdrop-blur-md"
+              >
+                {activeView === "code_snippet" ? (
+                  <div className="flex-1 flex flex-col gap-2 p-1">
+                    <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+                      <FileText size={16} className="text-slate-500" />
+                      <input
+                        type="text"
+                        value={newCodexTitle}
+                        onChange={(e) => setNewCodexTitle(e.target.value)}
+                        placeholder="Snippet Title..."
+                        className="bg-transparent text-sm font-bold text-white w-full focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex items-start gap-2 border-b border-white/10 pb-2">
+                      <AlignLeft size={16} className="text-slate-500 mt-1" />
+                      <textarea
+                        value={newCodexNotes}
+                        onChange={(e) => setNewCodexNotes(e.target.value)}
+                        placeholder="Context / Notes..."
+                        className="bg-transparent text-xs text-slate-300 w-full focus:outline-none resize-none h-12 scrollbar-thin"
+                      />
+                    </div>
+                    <div className="flex items-start gap-2 pt-1">
+                      <Code size={16} className="text-emerald-500 mt-1" />
+                      <textarea
+                        value={newCodexCode}
+                        onChange={(e) => setNewCodexCode(e.target.value)}
+                        placeholder="Paste system code..."
+                        className="bg-black/20 text-xs font-mono text-emerald-400 w-full p-2 rounded-lg focus:outline-none min-h-[100px] max-h-[300px] resize-y scrollbar-thin"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={newItemInput}
+                    onChange={(e) => setNewItemInput(e.target.value)}
+                    placeholder={`+ Add entry...`}
+                    className="bg-transparent px-3 py-3 text-sm text-white w-full focus:outline-none"
+                  />
+                )}
+
                 <button
                   disabled={isAdding}
-                  className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white p-3 rounded-xl transition-all shadow-lg shadow-purple-500/20 shrink-0 flex items-center justify-center aspect-square"
+                  className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${
+                    activeView === "code_snippet"
+                      ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
+                      : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
+                  } shadow-lg`}
                 >
                   {isAdding ? (
-                    <Loader2 className="animate-spin" size={24} />
+                    <Loader2 className="animate-spin" size={20} />
+                  ) : activeView === "code_snippet" ? (
+                    <Code size={20} />
                   ) : (
-                    <Plus size={24} />
+                    <Plus size={20} />
                   )}
                 </button>
               </form>
@@ -379,160 +493,137 @@ export default function TaskMasterShell() {
           </header>
 
           <div className={styles.panel}>
-            {loading ? (
-              <div className="flex h-full items-center justify-center text-slate-500 gap-2">
-                <Loader2 className="animate-spin" /> Retrieving Data...
-              </div>
-            ) : (
-              <>
-                <FilterBar
-                  currentSort={sortOption}
-                  onSortChange={setSortOption}
-                  availableTags={allSystemTags}
-                  activeTags={filterTags}
-                  onToggleTagFilter={(tag) =>
-                    filterTags.includes(tag)
-                      ? setFilterTags(filterTags.filter((t) => t !== tag))
-                      : setFilterTags([...filterTags, tag])
-                  }
-                />
+            <FilterBar
+              currentSort={sortOption}
+              onSortChange={setSortOption}
+              availableTags={allSystemTags}
+              activeTags={filterTags}
+              onToggleTagFilter={(tag) =>
+                filterTags.includes(tag)
+                  ? setFilterTags(filterTags.filter((t) => t !== tag))
+                  : setFilterTags([...filterTags, tag])
+              }
+            />
 
-                {activeView === "task" && (
-                  <TaskView
-                    items={items}
-                    activeRecurrence={activeRecurrence}
-                    sortOption={sortOption}
-                    filterTags={filterTags}
-                    allSystemTags={allSystemTags}
-                    onRecurrenceChange={setActiveRecurrence}
-                    onToggleStatus={(id, status) =>
-                      handleToggleStatus(id, status)
-                    }
-                    onDelete={requestDelete}
-                    onArchive={(id) => handleUpdate(id, "status", "archived")}
-                    onRestore={(id) => handleUpdate(id, "status", "active")}
-                    onReorder={handleReorder}
-                    onAddSubtask={(pid, title) => {}}
-                    onUpdateDate={(id, date) =>
-                      handleUpdate(id, "due_date", date)
-                    }
-                    onUpdateTags={(id, tags) => handleUpdate(id, "tags", tags)}
-                    onUpdateContent={(id, content) =>
-                      handleUpdate(id, "content", content)
-                    }
-                    onManualMove={handleManualMove}
-                    onEdit={requestEdit}
-                  />
-                )}
-
-                {activeView === "idea_board" && (
-                  <IdeaBoard
-                    items={items}
-                    sortOption={sortOption}
-                    filterTags={filterTags}
-                    allSystemTags={allSystemTags}
-                    onAdd={handleAddQuickNote}
-                    onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
-                    onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
-                    onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                    onUpdateMetadata={(id, m) =>
-                      handleUpdate(id, "metadata", m)
-                    }
-                    onDelete={requestDelete}
-                    onPromoteToTask={requestPromote}
-                    onReorder={handleReorder}
-                    onManualMove={handleManualMove}
-                  />
-                )}
-
-                {activeView === "code_snippet" && (
-                  <TechCodex
-                    items={items}
-                    sortOption={sortOption}
-                    filterTags={filterTags}
-                    allSystemTags={allSystemTags}
-                    onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
-                    onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                    onDelete={requestDelete}
-                    onReorder={handleReorder}
-                    onManualMove={handleManualMove}
-                    onEdit={requestEdit}
-                  />
-                )}
-
-                {activeView === "ledger" && (
-                  <LedgerView
-                    items={items}
-                    sortOption={sortOption}
-                    filterTags={filterTags}
-                    allSystemTags={allSystemTags}
-                    onUpdateMetadata={(id, m) =>
-                      handleUpdate(id, "metadata", m)
-                    }
-                    onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
-                    onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                    onDelete={requestDelete}
-                    onToggleStatus={(id, s) =>
-                      handleUpdate(
-                        id,
-                        "status",
-                        s === "active" ? "completed" : "active",
-                      )
-                    }
-                    onReorder={handleReorder}
-                    onArchive={(id) => handleUpdate(id, "status", "archived")}
-                    onManualMove={handleManualMove}
-                    onEdit={requestEdit}
-                  />
-                )}
-
-                {activeView === "level_up" && (
-                  <LevelUpView
-                    items={items}
-                    sortOption={sortOption}
-                    filterTags={filterTags}
-                    allSystemTags={allSystemTags}
-                    onUpdateMetadata={(id, m) =>
-                      handleUpdate(id, "metadata", m)
-                    }
-                    onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                    onDelete={requestDelete}
-                    onReorder={handleReorder}
-                    onToggleStatus={(id, s) =>
-                      handleUpdate(
-                        id,
-                        "status",
-                        s === "active" ? "completed" : "active",
-                      )
-                    }
-                    onManualMove={handleManualMove}
-                    onEdit={requestEdit}
-                  />
-                )}
-
-                {(activeView === "social_bookmark" ||
-                  activeView === "resource") && (
-                  <ResourceGrid
-                    items={items}
-                    type={activeView}
-                    sortOption={sortOption}
-                    filterTags={filterTags}
-                    allSystemTags={allSystemTags}
-                    onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
-                    onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
-                    onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                    onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
-                    onUpdateMetadata={(id, m) =>
-                      handleUpdate(id, "metadata", m)
-                    }
-                    onDelete={requestDelete}
-                    onArchive={(id) => handleUpdate(id, "status", "archived")}
-                    onReorder={handleReorder}
-                    onManualMove={handleManualMove}
-                    onEdit={requestEdit}
-                  />
-                )}
-              </>
+            {activeView === "task" && (
+              <TaskView
+                items={currentViewItems}
+                activeRecurrence={activeRecurrence}
+                sortOption={sortOption}
+                filterTags={filterTags}
+                allSystemTags={allSystemTags}
+                onRecurrenceChange={setActiveRecurrence}
+                onToggleStatus={handleToggleStatus}
+                onDelete={requestDelete}
+                onArchive={(id) => handleUpdate(id, "status", "archived")}
+                onRestore={(id) => handleUpdate(id, "status", "active")}
+                onReorder={handleReorder}
+                onAddSubtask={handleAddSubtask}
+                onUpdateDate={(id, date) => handleUpdate(id, "due_date", date)}
+                onUpdateTags={(id, tags) => handleUpdate(id, "tags", tags)}
+                onUpdateContent={(id, content) =>
+                  handleUpdate(id, "content", content)
+                }
+                onManualMove={handleManualMove}
+                onEdit={requestEdit}
+                onToggleSubtask={handleToggleSubtask}
+                onDeleteSubtask={handleDeleteSubtask}
+              />
+            )}
+            {activeView === "idea_board" && (
+              <IdeaBoard
+                items={currentViewItems}
+                sortOption={sortOption}
+                filterTags={filterTags}
+                allSystemTags={allSystemTags}
+                onAdd={handleAddQuickNote}
+                onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
+                onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
+                onDelete={requestDelete}
+                onPromoteToTask={requestPromote}
+                onReorder={handleReorder}
+                onManualMove={handleManualMove}
+                onEdit={requestEdit}
+              />
+            )}
+            {activeView === "code_snippet" && (
+              <TechCodex
+                items={currentViewItems}
+                sortOption={sortOption}
+                filterTags={filterTags}
+                allSystemTags={allSystemTags}
+                onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                onUpdateCodexData={handleCodexUpdate}
+                onDelete={requestDelete}
+                onReorder={handleReorder}
+                onManualMove={handleManualMove}
+              />
+            )}
+            {activeView === "ledger" && (
+              <LedgerView
+                items={currentViewItems}
+                sortOption={sortOption}
+                filterTags={filterTags}
+                allSystemTags={allSystemTags}
+                onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
+                onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                onDelete={requestDelete}
+                onToggleStatus={(id, s) =>
+                  handleUpdate(
+                    id,
+                    "status",
+                    s === "active" ? "completed" : "active",
+                  )
+                }
+                onReorder={handleReorder}
+                onArchive={(id) => handleUpdate(id, "status", "archived")}
+                onManualMove={handleManualMove}
+                onEdit={requestEdit}
+              />
+            )}
+            {activeView === "level_up" && (
+              <LevelUpView
+                items={currentViewItems}
+                sortOption={sortOption}
+                filterTags={filterTags}
+                allSystemTags={allSystemTags}
+                onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
+                onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                onDelete={requestDelete}
+                onReorder={handleReorder}
+                onToggleStatus={(id, s) =>
+                  handleUpdate(
+                    id,
+                    "status",
+                    s === "active" ? "completed" : "active",
+                  )
+                }
+                onManualMove={handleManualMove}
+                onEdit={requestEdit}
+              />
+            )}
+            {(activeView === "social_bookmark" ||
+              activeView === "resource") && (
+              <ResourceGrid
+                items={currentViewItems}
+                type={activeView}
+                sortOption={sortOption}
+                filterTags={filterTags}
+                allSystemTags={allSystemTags}
+                onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
+                onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
+                onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
+                onDelete={requestDelete}
+                onArchive={(id) => handleUpdate(id, "status", "archived")}
+                onReorder={handleReorder}
+                onManualMove={handleManualMove}
+                onEdit={requestEdit}
+              />
             )}
           </div>
         </main>
@@ -547,6 +638,8 @@ export default function TaskMasterShell() {
         onCancel={() => setDeleteCandidate(null)}
         isProcessing={isDeleting}
       />
+
+      {/* --- THE FIX: NEW MASTER EDIT MODAL --- */}
       <EditModal
         isOpen={!!editCandidate}
         item={editCandidate}
@@ -556,6 +649,7 @@ export default function TaskMasterShell() {
         TagManagerComponent={TagManager}
         allSystemTags={allSystemTags}
       />
+
       <PromoteModal
         isOpen={!!promoteCandidate}
         item={promoteCandidate}

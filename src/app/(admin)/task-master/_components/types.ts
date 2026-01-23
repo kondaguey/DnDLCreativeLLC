@@ -23,7 +23,6 @@ export type SortOption =
   | "alpha_asc"
   | "alpha_desc";
 
-// --- SINGLE SOURCE OF TRUTH FOR TAGS ---
 export const SYSTEM_TAGS = [
   "CineSonic",
   "Design",
@@ -36,6 +35,12 @@ export const SYSTEM_TAGS = [
   "Urgent",
 ];
 
+export type SubtaskItem = {
+  id: string;
+  title: string;
+  status: "active" | "completed";
+};
+
 export type TaskItem = {
   id: string;
   type: ViewType;
@@ -44,14 +49,15 @@ export type TaskItem = {
   status: "active" | "completed" | "archived";
   recurrence?: string;
   due_date?: string | null;
-  parent_id?: string | null;
-  subtasks?: TaskItem[];
+  subtasks?: SubtaskItem[];
   tags?: string[];
   position?: number;
   metadata?: {
+    // Global Feature
+    is_favorite?: boolean; // <--- NEW: FOR ALL ITEMS
+
     // Idea Board
     stage?: "spark" | "solidified";
-    label?: { name: string; color: string; border: string; text: string };
 
     // Level Up
     platform?: string;
@@ -65,6 +71,9 @@ export type TaskItem = {
     app_name?: string;
     ticket_type?: "bug" | "feature" | "refactor";
     priority?: "critical" | "high" | "normal" | "low";
+
+    // Codex
+    notes?: string;
   };
   created_at: string;
   user_id: string;

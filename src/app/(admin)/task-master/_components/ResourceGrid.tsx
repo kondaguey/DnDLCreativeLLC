@@ -3,7 +3,6 @@
 import { useState, useMemo, useRef } from "react";
 import {
   Share2,
-  Library,
   Trash2,
   Archive,
   ExternalLink,
@@ -24,7 +23,6 @@ import {
   CalendarDays,
   Clock,
   Calendar as CalendarIcon,
-  Copy,
 } from "lucide-react";
 import {
   DndContext,
@@ -55,7 +53,7 @@ interface ResourceGridProps {
   onUpdateContent: (id: string, content: string) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
   onUpdateDate?: (id: string, date: string) => void;
-  onUpdateMetadata: (id: string, meta: any) => void; // <--- NEW PROP
+  onUpdateMetadata: (id: string, meta: any) => void;
   onDelete: (id: string) => void;
   onArchive: (id: string) => void;
   onReorder: (draggedId: string, targetId: string) => void;
@@ -155,13 +153,14 @@ export default function ResourceGrid({
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar pb-2 mask-linear-fade">
+      {/* TIMELINE SCROLLER */}
+      <div className="flex items-center gap-2 mb-8 overflow-x-auto no-scrollbar mask-linear-fade pb-2">
         <button
           onClick={() => setActivePeriod("all")}
-          className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-all ${
+          className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${
             activePeriod === "all"
-              ? "bg-purple-500 text-white border-purple-500 shadow-lg shadow-purple-500/20"
-              : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+              ? "bg-white text-black shadow-lg shadow-white/20"
+              : "bg-white/5 text-slate-400 hover:text-white"
           }`}
         >
           All Time
@@ -170,10 +169,10 @@ export default function ResourceGrid({
           <button
             key={period}
             onClick={() => setActivePeriod(period)}
-            className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-all ${
+            className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${
               activePeriod === period
-                ? "bg-cyan-500 text-white border-cyan-500 shadow-lg shadow-cyan-500/20"
-                : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
+                : "bg-white/5 text-slate-400 hover:text-white"
             }`}
           >
             {formatPeriod(period)}
@@ -181,12 +180,12 @@ export default function ResourceGrid({
         ))}
       </div>
 
-      <div className="pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="pb-24 md:pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <SortableContext
           items={filteredItems.map((i) => i.id)}
           strategy={rectSortingStrategy}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6">
             {filteredItems.map((item, index) => (
               <SortableItem
                 key={item.id}
@@ -216,8 +215,8 @@ export default function ResourceGrid({
 
         {filteredItems.length === 0 && (
           <div className="text-center py-20 opacity-30">
-            <CalendarDays size={48} className="mx-auto mb-4" />
-            <p className="text-sm font-bold uppercase tracking-widest">
+            <CalendarDays size={48} className="mx-auto mb-4 text-cyan-500" />
+            <p className="text-sm font-bold uppercase tracking-widest text-white">
               No signals in this era
             </p>
           </div>
@@ -235,7 +234,7 @@ const getPlatformConfig = (url: string) => {
       icon: Instagram,
       color: "text-pink-500",
       bg: "bg-pink-500/10",
-      border: "hover:border-pink-500/30",
+      border: "border-pink-500/20",
       name: "Instagram",
     };
   if (lowerUrl.includes("linkedin.com"))
@@ -243,7 +242,7 @@ const getPlatformConfig = (url: string) => {
       icon: Linkedin,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
-      border: "hover:border-blue-500/30",
+      border: "border-blue-500/20",
       name: "LinkedIn",
     };
   if (lowerUrl.includes("twitter.com") || lowerUrl.includes("x.com"))
@@ -251,7 +250,7 @@ const getPlatformConfig = (url: string) => {
       icon: Twitter,
       color: "text-sky-500",
       bg: "bg-sky-500/10",
-      border: "hover:border-sky-500/30",
+      border: "border-sky-500/20",
       name: "X / Twitter",
     };
   if (lowerUrl.includes("tiktok.com"))
@@ -259,7 +258,7 @@ const getPlatformConfig = (url: string) => {
       icon: Music2,
       color: "text-rose-500",
       bg: "bg-rose-500/10",
-      border: "hover:border-rose-500/30",
+      border: "border-rose-500/20",
       name: "TikTok",
     };
   if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be"))
@@ -267,7 +266,7 @@ const getPlatformConfig = (url: string) => {
       icon: Youtube,
       color: "text-red-500",
       bg: "bg-red-500/10",
-      border: "hover:border-red-500/30",
+      border: "border-red-500/20",
       name: "YouTube",
     };
   if (lowerUrl.includes("github.com"))
@@ -275,7 +274,7 @@ const getPlatformConfig = (url: string) => {
       icon: Github,
       color: "text-slate-200",
       bg: "bg-slate-700/50",
-      border: "hover:border-slate-500/30",
+      border: "border-slate-500/20",
       name: "GitHub",
     };
   if (lowerUrl.includes("twitch.tv"))
@@ -283,18 +282,19 @@ const getPlatformConfig = (url: string) => {
       icon: Video,
       color: "text-purple-500",
       bg: "bg-purple-500/10",
-      border: "hover:border-purple-500/30",
+      border: "border-purple-500/20",
       name: "Twitch",
     };
   return {
     icon: LinkIcon,
     color: "text-emerald-400",
     bg: "bg-emerald-500/10",
-    border: "hover:border-emerald-500/30",
+    border: "border-emerald-500/20",
     name: "Link Detected",
   };
 };
 
+// --- RESOURCE CARD COMPONENT ---
 function ResourceCard({
   item,
   allSystemTags,
@@ -333,7 +333,9 @@ function ResourceCard({
     : isBookmark
       ? "text-purple-400"
       : "text-cyan-400";
-  const borderHover = platform ? platform.border : "hover:border-purple-500/30";
+  const borderHover = platform
+    ? `hover:${platform.border}`
+    : "hover:border-purple-500/30";
 
   const effectiveDate = item.due_date
     ? new Date(item.due_date)
@@ -365,12 +367,12 @@ function ResourceCard({
 
   return (
     <div
-      className={`group flex flex-col h-full bg-white/5 border border-white/10 ${borderHover} rounded-2xl overflow-hidden transition-all shadow-lg hover:shadow-2xl relative`}
+      className={`group flex flex-col h-full bg-slate-900/40 backdrop-blur-xl border border-white/5 ${borderHover} rounded-3xl overflow-hidden transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 relative`}
     >
       {/* HEADER */}
-      <div className="p-4 pb-2 flex items-start gap-3">
+      <div className="p-5 flex items-start gap-4">
         {isManualSort ? (
-          <div className="mt-1.5 flex items-center gap-1 text-slate-600">
+          <div className="mt-1 flex items-center gap-1 text-slate-600">
             <GripVertical size={16} className="cursor-grab hover:text-white" />
             {onManualMove && (
               <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -380,9 +382,9 @@ function ResourceCard({
                     e.stopPropagation();
                     onManualMove(item.id, "up");
                   }}
-                  className="hover:text-white disabled:opacity-0"
+                  className="hover:text-white disabled:opacity-0 p-1"
                 >
-                  <ArrowUp size={10} />
+                  <ArrowUp size={12} />
                 </button>
                 <button
                   disabled={isLast}
@@ -390,21 +392,23 @@ function ResourceCard({
                     e.stopPropagation();
                     onManualMove(item.id, "down");
                   }}
-                  className="hover:text-white disabled:opacity-0"
+                  className="hover:text-white disabled:opacity-0 p-1"
                 >
-                  <ArrowDown size={10} />
+                  <ArrowDown size={12} />
                 </button>
               </div>
             )}
           </div>
         ) : (
-          <div className={`mt-1 p-2 rounded-lg ${accentBg} ${accentText}`}>
-            <MainIcon size={16} />
+          <div
+            className={`mt-1 p-2 md:p-3 rounded-xl ${accentBg} ${accentText} shadow-inner`}
+          >
+            <MainIcon size={20} />
           </div>
         )}
 
-        <div className="flex-1 min-w-0 space-y-1">
-          {/* TITLE INPUT */}
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* TITLE INPUT (text-xl is safe from iOS zoom) */}
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -413,20 +417,20 @@ function ResourceCard({
             }}
             onPointerDown={stopProp}
             onKeyDown={stopProp}
-            className="bg-transparent font-bold text-slate-200 w-full focus:outline-none focus:text-white placeholder:text-slate-600 truncate"
+            className="bg-transparent text-xl md:text-lg font-black text-slate-100 w-full focus:outline-none placeholder:text-slate-600 truncate"
             placeholder="Resource Title..."
           />
 
-          {/* DATE & PLATFORM LABEL */}
-          <div className="text-[10px] text-slate-500 font-mono flex items-center gap-2">
+          {/* DATE & PLATFORM METADATA */}
+          <div className="text-[10px] md:text-[9px] text-slate-500 font-mono flex items-center gap-2 flex-wrap">
             <div
-              className={`flex items-center gap-1 cursor-pointer transition-colors p-1 rounded -ml-1 ${isEdited ? "text-cyan-400 hover:bg-cyan-500/10" : "hover:text-white hover:bg-white/10"}`}
+              className={`flex items-center gap-1 cursor-pointer transition-colors px-2 py-1 rounded-md -ml-2 ${isEdited ? "text-cyan-400 bg-cyan-500/10" : "hover:text-white hover:bg-white/10"}`}
               title="Change Date"
               onClick={handleDateClick}
               onPointerDown={stopProp}
             >
-              {isEdited ? <CalendarIcon size={10} /> : <Clock size={10} />}
-              <span>{displayDate}</span>
+              {isEdited ? <CalendarIcon size={12} /> : <Clock size={12} />}
+              <span className="whitespace-nowrap">{displayDate}</span>
               <input
                 ref={dateInputRef}
                 type="date"
@@ -439,42 +443,47 @@ function ResourceCard({
               />
             </div>
             {platform && (
-              <span className={`flex items-center gap-1 ${platform.color}`}>
-                <Globe size={10} /> {platform.name}
+              <span
+                className={`flex items-center gap-1.5 px-2 py-1 bg-black/40 rounded-md whitespace-nowrap ${platform.color}`}
+              >
+                <Globe size={12} /> {platform.name}
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* URL INPUT FIELD (NEW) */}
-      <div className="px-4 pb-2" onPointerDown={stopProp}>
-        <div className="flex items-center gap-2 bg-black/30 rounded-lg px-2 py-1.5 border border-white/5 focus-within:border-purple-500/50 transition-colors">
-          <LinkIcon size={12} className="text-slate-500 shrink-0" />
+      {/* URL INPUT FIELD (text-base for mobile) */}
+      <div className="px-5 pb-3" onPointerDown={stopProp}>
+        <div className="flex items-center gap-2 bg-black/40 rounded-xl px-3 py-2 border border-white/5 focus-within:border-cyan-500/50 transition-colors shadow-inner">
+          <LinkIcon size={14} className="text-slate-500 shrink-0" />
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onBlur={handleUrlBlur}
             onKeyDown={stopProp}
             placeholder="Paste URL..."
-            className="bg-transparent w-full text-xs text-emerald-400 font-mono placeholder:text-slate-700 focus:outline-none truncate"
+            className="bg-transparent w-full text-base md:text-sm text-cyan-400 font-mono placeholder:text-slate-700 focus:outline-none truncate"
           />
           {url && (
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-500 hover:text-emerald-400"
+              className="text-slate-500 hover:text-cyan-400 p-1"
               title="Open Link"
             >
-              <ExternalLink size={12} />
+              <ExternalLink size={16} />
             </a>
           )}
         </div>
       </div>
 
-      {/* TAGS */}
-      <div className="px-4 py-1" onPointerDown={stopProp}>
+      {/* TAGS (Thumb Scrollable) */}
+      <div
+        className="px-5 py-2 overflow-x-auto no-scrollbar mask-linear-fade pr-4"
+        onPointerDown={stopProp}
+      >
         <TagManager
           selectedTags={item.tags || []}
           allSystemTags={allSystemTags}
@@ -482,8 +491,8 @@ function ResourceCard({
         />
       </div>
 
-      {/* NOTES BODY */}
-      <div className="flex-1 p-4 pt-2 min-h-[80px] relative">
+      {/* NOTES BODY (text-base for mobile) */}
+      <div className="flex-1 p-5 pt-3 min-h-[120px] relative">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -492,36 +501,41 @@ function ResourceCard({
           }}
           onPointerDown={stopProp}
           onKeyDown={stopProp}
-          className="w-full h-full bg-black/20 rounded-lg p-3 text-sm text-slate-300 focus:outline-none resize-none transition-colors focus:bg-black/40"
-          placeholder="Add notes, summaries, or context..."
+          className="w-full h-full bg-black/40 rounded-xl p-4 text-base md:text-sm text-slate-300 focus:text-white focus:outline-none resize-none transition-colors border border-transparent focus:border-white/10 shadow-inner leading-relaxed"
+          placeholder="Add context, takeaways, or research..."
         />
       </div>
 
-      {/* FOOTER ACTIONS */}
+      {/* FOOTER ACTIONS (Supersized on Mobile) */}
       <div
-        className="p-2 border-t border-white/5 flex justify-between items-center bg-black/20"
+        className="p-3 md:p-3 border-t border-white/5 flex justify-between items-center bg-black/40"
         onPointerDown={stopProp}
       >
+        {/* FIXED: No more md:size prop. Just size={18} */}
         <button
           onClick={() => onDelete(item.id)}
-          className="text-slate-600 hover:text-rose-400 p-2 rounded hover:bg-white/5 transition-colors"
+          className="text-slate-600 hover:text-rose-400 p-3 md:p-2 rounded-xl hover:bg-rose-500/10 transition-colors"
+          title="Delete"
         >
-          <Trash2 size={14} />
+          <Trash2 size={18} />
         </button>
-        <div className="flex gap-1">
+        <div className="flex gap-2">
+          {/* THE MASTER EDIT CONNECTOR */}
           {onEdit && (
             <button
               onClick={() => onEdit(item)}
-              className="text-slate-600 hover:text-cyan-400 p-2 rounded hover:bg-white/5 transition-colors"
+              className="text-slate-600 hover:text-cyan-400 p-3 md:p-2 rounded-xl hover:bg-cyan-500/10 transition-colors"
+              title="Edit in Master Modal"
             >
-              <Edit2 size={14} />
+              <Edit2 size={18} />
             </button>
           )}
           <button
             onClick={() => onArchive(item.id)}
-            className="text-slate-600 hover:text-purple-400 p-2 rounded hover:bg-white/5 transition-colors"
+            className="text-slate-600 hover:text-purple-400 p-3 md:p-2 rounded-xl hover:bg-purple-500/10 transition-colors"
+            title="Archive"
           >
-            <Archive size={14} />
+            <Archive size={18} />
           </button>
         </div>
       </div>
