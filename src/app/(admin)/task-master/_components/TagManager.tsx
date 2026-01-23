@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Tag, Plus, X, Check } from "lucide-react";
-import { SYSTEM_TAGS } from "./types";
+import { createPortal } from "react-dom"; // <--- THE FIX: Allows us to escape the card
+import {
+  Tag,
+  Plus,
+  X,
+  Check,
+  Loader2,
+  Search,
+  ChevronDown,
+} from "lucide-react";
+import { addGlobalTag } from "../actions";
 
 interface TagManagerProps {
   selectedTags: string[];
@@ -17,26 +26,70 @@ export default function TagManager({
 }: TagManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
-  // Combine System Defaults + DB Tags + Current Selection
+  // Refs for portal positioning
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [dropdownCoords, setDropdownCoords] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
+
   const AVAILABLE_TAGS = useMemo(() => {
-    const set = new Set([...SYSTEM_TAGS, ...allSystemTags, ...selectedTags]);
+    const set = new Set([...allSystemTags, ...selectedTags]);
     return Array.from(set).sort();
   }, [allSystemTags, selectedTags]);
 
+  const filteredTags = useMemo(() => {
+    return AVAILABLE_TAGS.filter((tag) =>
+      tag.toLowerCase().includes(inputValue.toLowerCase()),
+    );
+  }, [AVAILABLE_TAGS, inputValue]);
+
+  const exactMatchFound = AVAILABLE_TAGS.some(
+    (tag) => tag.toLowerCase() === inputValue.trim().toLowerCase(),
+  );
+
+  // --- THE FIX: CALCULATE EXACT SCREEN POSITION FOR THE PORTAL ---
+  const openDropdown = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownCoords({
+        top: rect.bottom + 8, // 8px below the button
+        left: rect.left,
+        width: 240, // Fixed width for the dropdown
+      });
+    }
+    setIsOpen(true);
+  };
+
+  // Close on outside click or scroll (since scrolling detaches the portal)
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleInteraction(event: Event) {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        isOpen &&
+        triggerRef.current &&
+        !triggerRef.current.contains(event.target as Node)
       ) {
+        // If the click is inside the portal itself, don't close
+        const dropdown = document.getElementById("tag-portal-menu");
+        if (dropdown && dropdown.contains(event.target as Node)) return;
+
         setIsOpen(false);
+        setInputValue("");
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
+    document.addEventListener("mousedown", handleInteraction);
+    // Auto-close on scroll to prevent the floating menu from detaching
+    window.addEventListener("scroll", () => setIsOpen(false), true);
+
+    return () => {
+      document.removeEventListener("mousedown", handleInteraction);
+      window.removeEventListener("scroll", () => setIsOpen(false), true);
+    };
+  }, [isOpen]);
 
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -46,28 +99,33 @@ export default function TagManager({
     }
   };
 
-  const handleCreateTag = (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleCreateTag = async () => {
     const clean = inputValue.trim();
-    if (!clean) return;
-    if (!selectedTags.includes(clean)) {
-      onUpdateTags([...selectedTags, clean]);
+    if (!clean || isCreating) return;
+
+    onUpdateTags([...selectedTags, clean]);
+    setIsCreating(true);
+    try {
+      await addGlobalTag(clean);
+    } catch (err) {
+      console.error("Failed to create global tag:", err);
+    } finally {
+      setIsCreating(false);
+      setInputValue("");
     }
-    setInputValue("");
   };
 
   return (
     <div
-      className="relative"
-      ref={dropdownRef}
+      className="relative flex items-center"
+      ref={triggerRef}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex flex-wrap items-center gap-1.5">
         {selectedTags.map((tag) => (
           <span
             key={tag}
-            className="flex items-center gap-1 text-xs md:text-[9px] font-black uppercase tracking-widest px-2 py-1 md:px-1.5 md:py-0.5 rounded-lg md:rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 select-none shadow-inner"
+            className="flex items-center gap-1 text-xs md:text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 md:px-2 md:py-1 rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/20 shadow-inner"
           >
             {tag}
             <button
@@ -75,67 +133,115 @@ export default function TagManager({
                 e.stopPropagation();
                 onUpdateTags(selectedTags.filter((t) => t !== tag));
               }}
-              className="hover:text-white cursor-pointer p-0.5 transition-colors"
+              className="hover:text-white transition-colors"
             >
-              <X size={12} className="md:w-2.5 md:h-2.5" />
+              <X size={12} />
             </button>
           </span>
         ))}
+
         <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-1.5 text-xs md:text-[9px] font-black uppercase tracking-widest px-2 py-1 md:px-1.5 md:py-0.5 rounded-lg md:rounded-md border transition-all ${
+          onClick={(e) => {
+            e.stopPropagation();
+            isOpen ? setIsOpen(false) : openDropdown();
+          }}
+          className={`flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 md:px-2 md:py-1 rounded-lg border transition-all shadow-inner ${
             isOpen
-              ? "bg-purple-500/10 border-purple-500/50 text-purple-300"
-              : "border-white/10 text-slate-500 hover:text-white hover:border-white/20"
+              ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+              : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
           }`}
         >
-          <Tag size={12} className="md:w-2.5 md:h-2.5" />{" "}
-          {selectedTags.length === 0 ? "Tag" : "+"}
+          <Tag size={12} />
+          {selectedTags.length === 0 ? "Add Tag" : "Add"}
+          <ChevronDown
+            size={12}
+            className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+          />
         </button>
       </div>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-56 max-h-[300px] overflow-y-auto bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-[70] p-2 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="mb-2 space-y-1">
-            {AVAILABLE_TAGS.map((tag) => {
-              const isSelected = selectedTags.includes(tag);
-              return (
+      {/* --- THE FIX: RENDER DROP DOWN IN A REACT PORTAL --- */}
+      {isOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            id="tag-portal-menu"
+            style={{
+              position: "fixed",
+              top: `${dropdownCoords.top}px`,
+              left: `${dropdownCoords.left}px`,
+              width: `${dropdownCoords.width}px`,
+            }}
+            className="flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl z-[99999] p-2 animate-in fade-in zoom-in-95 duration-100"
+            onClick={(e) => e.stopPropagation()} // Prevent card expansion
+          >
+            <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-xl px-3 py-2.5 mb-2 shadow-inner">
+              <Search size={14} className="text-slate-500 shrink-0" />
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Search or add..."
+                className="w-full bg-transparent text-base md:text-xs font-bold text-white placeholder:text-slate-600 focus:outline-none"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (exactMatchFound) toggleTag(inputValue.trim());
+                    else handleCreateTag();
+                  }
+                }}
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-1 max-h-[220px]">
+              {filteredTags.length === 0 && !inputValue && (
+                <div className="px-3 py-4 text-xs font-bold text-slate-600 text-center uppercase tracking-widest">
+                  No tags yet. Type to create.
+                </div>
+              )}
+
+              {filteredTags.map((tag) => {
+                const isSelected = selectedTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleTag(tag);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${
+                      isSelected
+                        ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+                        : "hover:bg-white/5 text-slate-300 hover:text-white"
+                    }`}
+                  >
+                    {tag} {isSelected && <Check size={14} />}
+                  </button>
+                );
+              })}
+
+              {inputValue.trim() !== "" && !exactMatchFound && (
                 <button
-                  key={tag}
-                  onClick={() => toggleTag(tag)}
-                  className={`w-full text-left px-3 py-2 md:py-1.5 rounded-xl text-xs md:text-[10px] font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${
-                    isSelected
-                      ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
-                      : "hover:bg-white/10 text-slate-300"
-                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCreateTag();
+                  }}
+                  disabled={isCreating}
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 mt-2 border border-emerald-500/20"
                 >
-                  {tag}{" "}
-                  {isSelected && <Check size={14} className="md:w-3 md:h-3" />}
+                  {isCreating ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Plus size={14} />
+                  )}
+                  Create "{inputValue.trim()}"
                 </button>
-              );
-            })}
-          </div>
-          <div className="h-px bg-white/10 my-2" />
-          <form onSubmit={handleCreateTag} className="flex gap-2 p-1">
-            {/* iOS FIX: text-base ensures no zooming, shrinks to text-xs on desktop */}
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="New tag..."
-              className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-base md:text-xs text-white focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={!inputValue.trim()}
-              className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-xl px-3 py-2 flex items-center justify-center transition-all shadow-lg"
-            >
-              <Plus size={16} />
-            </button>
-          </form>
-        </div>
-      )}
+              )}
+            </div>
+          </div>,
+          document.body, // <-- Teleports HTML directly to the end of the webpage
+        )}
     </div>
   );
 }

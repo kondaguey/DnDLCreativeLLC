@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Filter, SortAsc, ChevronDown, Check, X } from "lucide-react";
-import { SortOption, SYSTEM_TAGS } from "./types";
+import { SortOption } from "./types";
 
 interface FilterBarProps {
   currentSort: SortOption;
@@ -22,9 +22,9 @@ export default function FilterBar({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Merge DB tags with System Defaults
+  // Merge DB tags (No more System Defaults)
   const allTags = useMemo(() => {
-    const unique = new Set([...SYSTEM_TAGS, ...(availableTags || [])]);
+    const unique = new Set([...(availableTags || [])]);
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [availableTags]);
 
@@ -73,11 +73,10 @@ export default function FilterBar({
 
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`flex-1 md:flex-none flex items-center justify-between gap-3 px-3 py-2.5 md:py-2 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all min-w-0 ${
-              activeTags.length > 0
+            className={`flex-1 md:flex-none flex items-center justify-between gap-3 px-3 py-2.5 md:py-2 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all min-w-0 ${activeTags.length > 0
                 ? "bg-purple-500/20 border-purple-500/50 text-purple-300"
                 : "bg-black/40 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-            }`}
+              }`}
           >
             <span className="truncate">
               {activeTags.length === 0
@@ -86,9 +85,8 @@ export default function FilterBar({
             </span>
             <ChevronDown
               size={14}
-              className={`shrink-0 transition-transform duration-200 ${
-                isDropdownOpen ? "rotate-180" : ""
-              }`}
+              className={`shrink-0 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""
+                }`}
             />
           </button>
 
@@ -118,11 +116,10 @@ export default function FilterBar({
                     <button
                       key={tag}
                       onClick={() => onToggleTagFilter(tag)}
-                      className={`w-full text-left px-4 py-3 md:py-2 rounded-xl text-xs font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${
-                        isActive
+                      className={`w-full text-left px-4 py-3 md:py-2 rounded-xl text-xs font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${isActive
                           ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
                           : "text-slate-300 hover:bg-white/10 hover:text-white"
-                      }`}
+                        }`}
                     >
                       {tag}
                       {isActive && <Check size={14} />}

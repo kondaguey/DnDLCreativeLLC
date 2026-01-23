@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Terminal,
   Save,
@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Loader2,
   GripVertical,
+  GripHorizontal,
 } from "lucide-react";
 import {
   DndContext,
@@ -182,6 +183,12 @@ function CodexCard({
   const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Resize State for Split Pane (Notes Height %)
+  const [splitRatio, setSplitRatio] = useState(30); // Default 30% notes, 70% code
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDraggingSplit = useRef(false);
+
+  // Auto-save refs to prevent stale closures if we use debouncing (optional, keeping explicit save for now)
   const isChanged =
     title !== (item.title || "") ||
     code !== (item.content || "") ||
@@ -197,6 +204,35 @@ function CodexCard({
     setNotes(item.metadata?.notes || "");
   }, [item.metadata]);
 
+  // --- RESIZE HANDLERS ---
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isDraggingSplit.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDraggingSplit.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const relativeY = e.clientY - rect.top;
+      const percentage = (relativeY / rect.height) * 100;
+      // Clamp between 10% and 90%
+      const newRatio = Math.max(10, Math.min(90, percentage));
+      setSplitRatio(newRatio);
+    },
+    [],
+  );
+
+  const handleMouseUp = useCallback(() => {
+    isDraggingSplit.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  }, [handleMouseMove]);
+
+  // --- ACTIONS ---
   const handleExplicitSave = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsSaving(true);
@@ -213,18 +249,90 @@ function CodexCard({
 
   const stopProp = (e: any) => e.stopPropagation();
 
+  // --- RENDER CONTENT (Split Pane) ---
+  const renderSplitPane = () => (
+    <div
+      ref={containerRef}
+      className="flex flex-col w-full h-full relative"
+    >
+      {/* 1. NOTES SECTION (Resizable Height) */}
+      <div
+        style={{ height: `${splitRatio}%` }}
+        className="flex flex-col min-h-[100px] shrink-0"
+      >
+        <div className="px-5 py-3 bg-black/20 border-t border-b border-white/5 overflow-x-auto no-scrollbar mask-linear-fade pr-4 text-xs shrink-0">
+          <TagManager
+            selectedTags={item.tags || []}
+            allSystemTags={allSystemTags}
+            onUpdateTags={(tags) => onUpdateTags(item.id, tags)}
+          />
+        </div>
+
+        <div className="flex-1 bg-black/40 px-5 md:px-6 py-4 flex flex-col gap-3 min-h-0 border-b border-white/5">
+          <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0">
+            <MessageSquare size={14} />
+            <span>Context & Notes</span>
+          </div>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onPointerDown={stopProp}
+            placeholder="Add context..."
+            className="w-full h-full bg-transparent text-base md:text-sm text-slate-300 focus:outline-none resize-none scrollbar-thin scrollbar-thumb-slate-700 leading-relaxed"
+          />
+        </div>
+      </div>
+
+      {/* 2. RESIZE HANDLE */}
+      <div
+        onMouseDown={handleMouseDown}
+        className="h-2 bg-black/60 border-y border-white/5 cursor-row-resize flex items-center justify-center hover:bg-emerald-500/20 transition-colors shrink-0 z-10"
+      >
+        <GripHorizontal size={12} className="text-slate-600" />
+      </div>
+
+      {/* 3. CODE SECTION (Remaining Height) */}
+      <div className="flex-1 flex flex-col min-h-[100px] bg-[#0c0c0c] relative overflow-hidden">
+        <div className="h-10 bg-black/80 border-b border-white/5 px-5 md:px-6 flex items-center justify-between shrink-0 shadow-inner">
+          <span className="text-[10px] text-emerald-500 font-mono font-bold flex items-center gap-1.5">
+            <FileCode size={12} /> SYSTEM.CODE
+          </span>
+          <button
+            onClick={handleCopy}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all active:scale-95 ${copied
+                ? "text-emerald-400 bg-emerald-500/10 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                : "text-slate-500 hover:text-white bg-white/5"
+              }`}
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}{" "}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+        <textarea
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          onPointerDown={stopProp}
+          className="flex-1 w-full bg-transparent p-5 md:p-6 font-mono text-base md:text-sm text-emerald-400 leading-relaxed selection:bg-emerald-500/30 placeholder:text-slate-800 focus:outline-none resize-none scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent shadow-inner"
+          spellCheck={false}
+          placeholder="// Paste system code here..."
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div
-      className={`relative bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl ${isExpanded ? "shadow-2xl" : "shadow-lg h-[72px] md:h-16 hover:border-white/20"}`}
+      className={`relative bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl ${isExpanded
+          ? "shadow-2xl h-[600px]" // Fixed height when expanded to allow internal resizing
+          : "shadow-lg h-[72px] md:h-16 hover:border-white/20"
+        }`}
     >
-      {/* 1. TOP HEADER (Bulletproof Flexbox) */}
       <div
-        className="w-full bg-black/40 px-4 md:px-5 h-[72px] md:h-16 flex items-center justify-between shrink-0 shadow-inner gap-3"
+        className="w-full bg-black/40 px-4 md:px-5 h-[72px] md:h-16 flex items-center justify-between shrink-0 shadow-inner gap-3 z-20 relative"
         onDoubleClick={() => setIsExpanded(!isExpanded)}
       >
         {/* Left Side: Icon + Input */}
         <div className="flex-1 flex items-center gap-3 min-w-0">
-          {/* DRAG HANDLE */}
           {isManualSort && (
             <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
               <GripVertical size={20} />
@@ -233,7 +341,8 @@ function CodexCard({
 
           <FileText
             size={18}
-            className={`shrink-0 ${!isExpanded ? "text-slate-600" : "text-emerald-500"}`}
+            className={`shrink-0 ${!isExpanded ? "text-slate-600" : "text-emerald-500"
+              }`}
           />
 
           <input
@@ -241,16 +350,17 @@ function CodexCard({
             onChange={(e) => setTitle(e.target.value)}
             onPointerDown={stopProp}
             placeholder="Snippet Title"
-            className={`bg-transparent text-white font-black tracking-tight focus:outline-none flex-1 min-w-0 truncate ${!isExpanded ? "text-base text-slate-300" : "text-xl md:text-2xl"}`}
+            className={`bg-transparent text-white font-black tracking-tight focus:outline-none flex-1 min-w-0 truncate ${!isExpanded ? "text-base text-slate-300" : "text-xl md:text-2xl"
+              }`}
           />
 
-          {isChanged && isExpanded && (
+          {isChanged && (
             <button
               onClick={handleExplicitSave}
               disabled={isSaving}
               className={`flex items-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shrink-0 ${isSaving
-                ? "bg-slate-700 text-slate-300"
-                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 animate-pulse"
+                  ? "bg-slate-700 text-slate-300"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 animate-pulse"
                 }`}
             >
               {isSaving ? (
@@ -258,12 +368,12 @@ function CodexCard({
               ) : (
                 <Save size={14} />
               )}
-              {isSaving ? "SAVING..." : "SAVE"}
+              <span className="hidden md:inline">{isSaving ? "SAVING..." : "SAVE"}</span>
             </button>
           )}
         </div>
 
-        {/* Right Side: Action Controls (No Wrapping, No Shrinking) */}
+        {/* Right Side Controls */}
         <div className="flex items-center gap-1.5 shrink-0 flex-nowrap">
           {/* UP/DOWN ARROWS */}
           {isManualSort && onManualMove && (
@@ -322,53 +432,9 @@ function CodexCard({
         </div>
       </div>
 
-      {/* ONLY RENDER BELOW IF EXPANDED */}
       {isExpanded && (
-        <div className="animate-in slide-in-from-top-2 duration-300">
-          <div className="px-5 py-3 bg-black/20 border-t border-b border-white/5 overflow-x-auto no-scrollbar mask-linear-fade pr-4">
-            <TagManager
-              selectedTags={item.tags || []}
-              allSystemTags={allSystemTags}
-              onUpdateTags={(tags) => onUpdateTags(item.id, tags)}
-            />
-          </div>
-
-          <div className="w-full bg-black/40 px-5 md:px-6 py-4 flex flex-col gap-3 border-b border-white/5 shrink-0 shadow-inner">
-            <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-              <MessageSquare size={14} />
-              <span>Documentation / Context</span>
-            </div>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              onPointerDown={stopProp}
-              placeholder="Add context, terminal commands, or instructions here..."
-              className="w-full bg-transparent text-base md:text-sm text-slate-300 focus:outline-none resize-none min-h-[60px] scrollbar-thin scrollbar-thumb-slate-700 leading-relaxed"
-            />
-          </div>
-
-          <div className="flex flex-col bg-[#050505] max-h-[500px]">
-            <div className="h-10 bg-black/80 border-b border-white/5 px-5 md:px-6 flex items-center justify-between shrink-0 shadow-inner">
-              <span className="text-[10px] text-emerald-500 font-mono font-bold flex items-center gap-1.5">
-                <FileCode size={12} /> SYSTEM.CODE
-              </span>
-              <button
-                onClick={handleCopy}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all active:scale-95 ${copied ? "text-emerald-400 bg-emerald-500/10 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "text-slate-500 hover:text-white bg-white/5"}`}
-              >
-                {copied ? <Check size={14} /> : <Copy size={14} />}{" "}
-                {copied ? "Copied" : "Copy"}
-              </button>
-            </div>
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              onPointerDown={stopProp}
-              className="w-full min-h-[250px] bg-transparent p-5 md:p-6 font-mono text-base md:text-sm text-emerald-400 leading-relaxed selection:bg-emerald-500/30 placeholder:text-slate-800 focus:outline-none resize-y scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent shadow-inner"
-              spellCheck={false}
-              placeholder="// Paste system code here..."
-            />
-          </div>
+        <div className="flex-1 min-h-0 animate-in fade-in slide-in-from-top-2 duration-300 flex flex-col">
+          {renderSplitPane()}
         </div>
       )}
     </div>

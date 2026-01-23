@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, Plus, Code, AlignLeft, FileText } from "lucide-react";
@@ -44,6 +44,18 @@ export default function TaskMasterShell({
   // --- STATE ---
   const [items, setItems] = useState<TaskItem[]>(initialItems);
   const [allSystemTags, setAllSystemTags] = useState<string[]>(initialTags);
+
+  // Sync state with server updates
+  // This ensures that when addGlobalTag revalidates the page, the new tag list propagates down
+  useEffect(() => {
+    setAllSystemTags(initialTags);
+  }, [initialTags]);
+
+  // Sync items as well if needed (optional but good practice for server revalidation)
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
   const [activeView, setActiveView] = useState<ViewType>("idea_board");
   const [activeRecurrence, setActiveRecurrence] =
     useState<RecurrenceType>("daily");
@@ -89,23 +101,23 @@ export default function TaskMasterShell({
 
     const payload = isCodex
       ? {
-        type: typeToAdd,
-        title: newCodexTitle || "Untitled Snippet",
-        content: newCodexCode,
-        metadata: { notes: newCodexNotes },
-        status: "active",
-        user_id: userId,
-        position: maxPos + 1024,
-      }
+          type: typeToAdd,
+          title: newCodexTitle || "Untitled Snippet",
+          content: newCodexCode,
+          metadata: { notes: newCodexNotes },
+          status: "active",
+          user_id: userId,
+          position: maxPos + 1024,
+        }
       : {
-        type: typeToAdd,
-        title: newItemInput,
-        content: "",
-        status: "active",
-        user_id: userId,
-        recurrence: activeView === "task" ? activeRecurrence : null,
-        position: maxPos + 1024,
-      };
+          type: typeToAdd,
+          title: newItemInput,
+          content: "",
+          status: "active",
+          user_id: userId,
+          recurrence: activeView === "task" ? activeRecurrence : null,
+          position: maxPos + 1024,
+        };
 
     const { data } = await supabase
       .from("task_master_items")
@@ -245,7 +257,9 @@ export default function TaskMasterShell({
           return {
             ...item,
             subtasks: item.subtasks.map((s) =>
-              s.id === id ? { ...s, status: newStatus as "active" | "completed" } : s,
+              s.id === id
+                ? { ...s, status: newStatus as "active" | "completed" }
+                : s,
             ),
           };
         }
@@ -281,11 +295,11 @@ export default function TaskMasterShell({
       prev.map((i) =>
         i.id === id
           ? {
-            ...i,
-            title: newTitle,
-            content: newContent,
-            metadata: updatedMetadata,
-          }
+              ...i,
+              title: newTitle,
+              content: newContent,
+              metadata: updatedMetadata,
+            }
           : i,
       ),
     );
@@ -349,7 +363,11 @@ export default function TaskMasterShell({
     const parent = items.find((i) => i.id === parentId);
     if (!parent) return;
 
-    const newSubtask = { id: crypto.randomUUID(), title, status: "active" as const };
+    const newSubtask = {
+      id: crypto.randomUUID(),
+      title,
+      status: "active" as const,
+    };
     const updatedSubtasks = [...(parent.subtasks || []), newSubtask];
 
     setItems((prev) =>
@@ -485,10 +503,11 @@ export default function TaskMasterShell({
 
                 <button
                   disabled={isAdding}
-                  className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${activeView === "code_snippet"
-                    ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
-                    : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
-                    } shadow-lg`}
+                  className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${
+                    activeView === "code_snippet"
+                      ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
+                      : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
+                  } shadow-lg`}
                 >
                   {isAdding ? (
                     <Loader2 className="animate-spin" size={20} />
@@ -533,6 +552,9 @@ export default function TaskMasterShell({
                 onUpdateTags={(id, tags) => handleUpdate(id, "tags", tags)}
                 onUpdateContent={(id, content) =>
                   handleUpdate(id, "content", content)
+                }
+                onUpdateRecurrence={(id, rec) =>
+                  handleUpdate(id, "recurrence", rec)
                 }
                 onManualMove={handleManualMove}
                 onEdit={requestEdit}
@@ -617,24 +639,24 @@ export default function TaskMasterShell({
             )}
             {(activeView === "social_bookmark" ||
               activeView === "resource") && (
-                <ResourceGrid
-                  items={currentViewItems}
-                  type={activeView}
-                  sortOption={sortOption}
-                  filterTags={filterTags}
-                  allSystemTags={allSystemTags}
-                  onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
-                  onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
-                  onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                  onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
-                  onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
-                  onDelete={requestDelete}
-                  onArchive={(id) => handleUpdate(id, "status", "archived")}
-                  onReorder={handleReorder}
-                  onManualMove={handleManualMove}
-                  onEdit={requestEdit}
-                />
-              )}
+              <ResourceGrid
+                items={currentViewItems}
+                type={activeView}
+                sortOption={sortOption}
+                filterTags={filterTags}
+                allSystemTags={allSystemTags}
+                onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
+                onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
+                onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
+                onDelete={requestDelete}
+                onArchive={(id) => handleUpdate(id, "status", "archived")}
+                onReorder={handleReorder}
+                onManualMove={handleManualMove}
+                onEdit={requestEdit}
+              />
+            )}
           </div>
         </main>
       </div>

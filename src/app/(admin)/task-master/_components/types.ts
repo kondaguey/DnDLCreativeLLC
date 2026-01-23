@@ -23,18 +23,6 @@ export type SortOption =
   | "alpha_asc"
   | "alpha_desc";
 
-export const SYSTEM_TAGS = [
-  "CineSonic",
-  "Design",
-  "Dev",
-  "Finance",
-  "Marketing",
-  "Money",
-  "Ops",
-  "Strategy",
-  "Urgent",
-];
-
 export type SubtaskItem = {
   id: string;
   title: string;
@@ -71,14 +59,14 @@ export type TaskItem = {
     // Ledger (UPDATED to match all 8 UI options)
     app_name?: string;
     ticket_type?:
-      | "task"
-      | "bug"
-      | "feature"
-      | "refactor"
-      | "security"
-      | "performance"
-      | "design"
-      | "devops";
+    | "task"
+    | "bug"
+    | "feature"
+    | "refactor"
+    | "security"
+    | "performance"
+    | "design"
+    | "devops";
     priority?: "critical" | "high" | "normal" | "low";
 
     // Codex
