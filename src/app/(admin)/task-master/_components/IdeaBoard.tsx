@@ -449,7 +449,7 @@ function SparkCard({
   // THE FIX: If isManualSort is true, we apply pt-14 (mobile) or pt-12 (desktop) to make room for the handle.
   const dynamicPadding = isManualSort ? "px-5 pb-5 pt-14 md:pt-12" : "p-5";
 
-  const baseCardStyle = `group flex flex-col bg-slate-900/40 backdrop-blur-xl border rounded-3xl relative overflow-hidden transition-all shadow-md hover:shadow-2xl hover:-translate-y-0.5 ${isFav ? "border-amber-500/50 shadow-amber-900/20" : "border-white/5"} ${viewMode === "grid" ? "h-full w-full" : "w-full"} ${dynamicPadding}`;
+  const baseCardStyle = `group flex flex-col bg-slate-900/60 backdrop-blur-2xl border rounded-3xl relative overflow-hidden transition-all shadow-md hover:shadow-2xl hover:-translate-y-0.5 ${isFav ? "border-amber-500/50 shadow-amber-900/20" : "border-white/5"} ${viewMode === "grid" ? "h-full w-full" : "w-full"} ${dynamicPadding}`;
 
   return (
     <div className={baseCardStyle}>

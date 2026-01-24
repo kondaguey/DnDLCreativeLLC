@@ -26,6 +26,7 @@ import {
   PromoteModal,
 } from "./NotificationUI";
 import EditModal from "./EditModal";
+import RecurringModal from "./RecurringModal";
 
 interface ShellProps {
   initialItems: TaskItem[];
@@ -45,13 +46,10 @@ export default function TaskMasterShell({
   const [items, setItems] = useState<TaskItem[]>(initialItems);
   const [allSystemTags, setAllSystemTags] = useState<string[]>(initialTags);
 
-  // Sync state with server updates
-  // This ensures that when addGlobalTag revalidates the page, the new tag list propagates down
   useEffect(() => {
     setAllSystemTags(initialTags);
   }, [initialTags]);
 
-  // Sync items as well if needed (optional but good practice for server revalidation)
   useEffect(() => {
     setItems(initialItems);
   }, [initialItems]);
@@ -77,6 +75,12 @@ export default function TaskMasterShell({
     null,
   );
 
+  // =========================================================================
+  // THE FIX: Only store the ID, so the modal always gets the LIVE data.
+  // =========================================================================
+  const [recurringItemId, setRecurringItemId] = useState<string | null>(null);
+  const activeRecurringItem = items.find(i => i.id === recurringItemId) || null;
+
   const showToast = (type: "success" | "error", message: string) => {
     setToast({ id: Date.now().toString(), type, message });
     setTimeout(() => setToast(null), 4000);
@@ -101,23 +105,23 @@ export default function TaskMasterShell({
 
     const payload = isCodex
       ? {
-          type: typeToAdd,
-          title: newCodexTitle || "Untitled Snippet",
-          content: newCodexCode,
-          metadata: { notes: newCodexNotes },
-          status: "active",
-          user_id: userId,
-          position: maxPos + 1024,
-        }
+        type: typeToAdd,
+        title: newCodexTitle || "Untitled Snippet",
+        content: newCodexCode,
+        metadata: { notes: newCodexNotes },
+        status: "active",
+        user_id: userId,
+        position: maxPos + 1024,
+      }
       : {
-          type: typeToAdd,
-          title: newItemInput,
-          content: "",
-          status: "active",
-          user_id: userId,
-          recurrence: activeView === "task" ? activeRecurrence : null,
-          position: maxPos + 1024,
-        };
+        type: typeToAdd,
+        title: newItemInput,
+        content: "",
+        status: "active",
+        user_id: userId,
+        recurrence: activeView === "task" ? activeRecurrence : null,
+        position: maxPos + 1024,
+      };
 
     const { data } = await supabase
       .from("task_master_items")
@@ -178,9 +182,6 @@ export default function TaskMasterShell({
     showToast("success", `Promoted to ${newRecurrence}.`);
   };
 
-  // =========================================================================
-  // THE FIX: BULLETPROOF REORDER HANDLER (Synces "position" instantly)
-  // =========================================================================
   const handleReorder = async (draggedId: string, targetId: string) => {
     const draggedIndex = items.findIndex((i) => i.id === draggedId);
     const targetIndex = items.findIndex((i) => i.id === targetId);
@@ -191,30 +192,23 @@ export default function TaskMasterShell({
     )
       return;
 
-    // 1. Shift the array
     const newItems = [...items];
     const [draggedItem] = newItems.splice(draggedIndex, 1);
     newItems.splice(targetIndex, 0, draggedItem);
 
-    // 2. Calculate the exact new numerical position
     const prevPos = newItems[targetIndex - 1]?.position || 0;
     const nextPos = newItems[targetIndex + 1]?.position || prevPos + 2048;
     const newPosition = (prevPos + nextPos) / 2;
 
-    // 3. THE FIX: Update the local item's position BEFORE setting state
     draggedItem.position = newPosition;
     setItems(newItems);
 
-    // 4. Save to Database
     await supabase
       .from("task_master_items")
       .update({ position: newPosition })
       .eq("id", draggedId);
   };
 
-  // =========================================================================
-  // THE FIX: BULLETPROOF ARROW HANDLER (Swaps "position" instantly)
-  // =========================================================================
   const handleManualMove = async (id: string, direction: "up" | "down") => {
     const index = items.findIndex((i) => i.id === id);
     if (index === -1) return;
@@ -226,18 +220,15 @@ export default function TaskMasterShell({
     const itemA = newItems[index];
     const itemB = newItems[targetIndex];
 
-    // THE FIX: Swap numerical positions locally BEFORE setting state
     const tempPos = itemA.position || 0;
     itemA.position = itemB.position || 0;
     itemB.position = tempPos;
 
-    // Swap indices
     newItems[index] = itemB;
     newItems[targetIndex] = itemA;
 
     setItems(newItems);
 
-    // Save to Database
     await supabase
       .from("task_master_items")
       .update({ position: itemA.position })
@@ -248,7 +239,52 @@ export default function TaskMasterShell({
       .eq("id", itemB.id);
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
+  const handleSmartComplete = async (id: string, currentStatus: string) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+
+    // 1. IS THIS A RECURRING TASK?
+    if (
+      item.recurrence &&
+      item.recurrence !== "one_off" &&
+      currentStatus === "active"
+    ) {
+      // --- UNIFIED RECURRENCE LOGIC (Log & Roll) ---
+      const { getTodayString, calcNextDueDate } = await import("./dateUtils");
+
+      const todayVal = getTodayString();
+      const currentLog = (item.metadata?.completed_dates as string[]) || [];
+
+      // Prevent double-logging for the same day
+      if (currentLog.includes(todayVal)) {
+        showToast("success", "Already checked in today!");
+        return;
+      }
+
+      const newLog = [...currentLog, todayVal];
+      const nextDate = calcNextDueDate(item.due_date || null, item.recurrence);
+
+      const newMeta = {
+        ...item.metadata,
+        completed_dates: newLog,
+      };
+
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === id ? { ...i, due_date: nextDate, metadata: newMeta } : i,
+        ),
+      );
+
+      await supabase
+        .from("task_master_items")
+        .update({ due_date: nextDate, metadata: newMeta })
+        .eq("id", id);
+
+      showToast("success", `Nice! Next due: ${nextDate}`);
+      return;
+    }
+
+    // 2. ONE-OFF / SUBTASK / ALREADY COMPLETED -> STANDARD TOGGLE
     const newStatus = currentStatus === "active" ? "completed" : "active";
     setItems((prevItems) =>
       prevItems.map((item) => {
@@ -280,6 +316,28 @@ export default function TaskMasterShell({
       .eq("id", id);
   };
 
+  // =========================================================================
+  // PRIORITY UPDATE HANDLER
+  // =========================================================================
+  const handleUpdatePriority = async (id: string, priority: string) => {
+    const targetItem = items.find((i) => i.id === id);
+    if (!targetItem) return;
+
+    const updatedMetadata = {
+      ...targetItem.metadata,
+      priority: priority as "critical" | "high" | "normal" | "low",
+    };
+
+    setItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, metadata: updatedMetadata } : i)),
+    );
+
+    await supabase
+      .from("task_master_items")
+      .update({ metadata: updatedMetadata })
+      .eq("id", id);
+  };
+
   const handleCodexUpdate = async (
     id: string,
     newTitle: string,
@@ -295,11 +353,11 @@ export default function TaskMasterShell({
       prev.map((i) =>
         i.id === id
           ? {
-              ...i,
-              title: newTitle,
-              content: newContent,
-              metadata: updatedMetadata,
-            }
+            ...i,
+            title: newTitle,
+            content: newContent,
+            metadata: updatedMetadata,
+          }
           : i,
       ),
     );
@@ -503,11 +561,10 @@ export default function TaskMasterShell({
 
                 <button
                   disabled={isAdding}
-                  className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${
-                    activeView === "code_snippet"
-                      ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
-                      : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
-                  } shadow-lg`}
+                  className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${activeView === "code_snippet"
+                    ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
+                    : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
+                    } shadow-lg`}
                 >
                   {isAdding ? (
                     <Loader2 className="animate-spin" size={20} />
@@ -542,7 +599,7 @@ export default function TaskMasterShell({
                 filterTags={filterTags}
                 allSystemTags={allSystemTags}
                 onRecurrenceChange={setActiveRecurrence}
-                onToggleStatus={handleToggleStatus}
+                onToggleStatus={handleSmartComplete}
                 onDelete={requestDelete}
                 onArchive={(id) => handleUpdate(id, "status", "archived")}
                 onRestore={(id) => handleUpdate(id, "status", "active")}
@@ -556,10 +613,16 @@ export default function TaskMasterShell({
                 onUpdateRecurrence={(id, rec) =>
                   handleUpdate(id, "recurrence", rec)
                 }
+                onUpdatePriority={handleUpdatePriority}
+                onUpdateMetadata={(id, meta) =>
+                  handleUpdate(id, "metadata", meta)
+                }
                 onManualMove={handleManualMove}
                 onEdit={requestEdit}
                 onToggleSubtask={handleToggleSubtask}
                 onDeleteSubtask={handleDeleteSubtask}
+                // --- PASSING THE ID INSTEAD OF THE OBJECT ---
+                onOpenRecurring={(item) => setRecurringItemId(item.id)}
               />
             )}
             {activeView === "idea_board" && (
@@ -639,24 +702,24 @@ export default function TaskMasterShell({
             )}
             {(activeView === "social_bookmark" ||
               activeView === "resource") && (
-              <ResourceGrid
-                items={currentViewItems}
-                type={activeView}
-                sortOption={sortOption}
-                filterTags={filterTags}
-                allSystemTags={allSystemTags}
-                onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
-                onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
-                onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
-                onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
-                onDelete={requestDelete}
-                onArchive={(id) => handleUpdate(id, "status", "archived")}
-                onReorder={handleReorder}
-                onManualMove={handleManualMove}
-                onEdit={requestEdit}
-              />
-            )}
+                <ResourceGrid
+                  items={currentViewItems}
+                  type={activeView}
+                  sortOption={sortOption}
+                  filterTags={filterTags}
+                  allSystemTags={allSystemTags}
+                  onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                  onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
+                  onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                  onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
+                  onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
+                  onDelete={requestDelete}
+                  onArchive={(id) => handleUpdate(id, "status", "archived")}
+                  onReorder={handleReorder}
+                  onManualMove={handleManualMove}
+                  onEdit={requestEdit}
+                />
+              )}
           </div>
         </main>
       </div>
@@ -687,6 +750,16 @@ export default function TaskMasterShell({
         onConfirm={handleConfirmPromote}
         onCancel={() => setPromoteCandidate(null)}
       />
+
+      {/* --- THE FIX: Pass the LIVE item derived from the state array --- */}
+      {activeRecurringItem && (
+        <RecurringModal
+          isOpen={!!recurringItemId}
+          onClose={() => setRecurringItemId(null)}
+          item={activeRecurringItem}
+          onUpdateMetadata={(id, meta) => handleUpdate(id, "metadata", meta)}
+        />
+      )}
     </>
   );
 }

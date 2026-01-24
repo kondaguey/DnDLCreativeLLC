@@ -55,6 +55,8 @@ export default function FilterBar({
         >
           <option value="manual">Manual / Custom</option>
           <option value="created_desc">Newest Added</option>
+          <option value="priority_desc">Priority (High first)</option>
+          <option value="priority_asc">Priority (Low first)</option>
           <option value="date_asc">Due Soonest</option>
           <option value="date_desc">Due Latest</option>
           <option value="alpha_asc">A-Z (Alpha)</option>

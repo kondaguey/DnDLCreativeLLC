@@ -21,7 +21,9 @@ export type SortOption =
   | "date_desc"
   | "created_desc"
   | "alpha_asc"
-  | "alpha_desc";
+  | "alpha_desc"
+  | "priority_desc"
+  | "priority_asc";
 
 export type SubtaskItem = {
   id: string;
@@ -68,6 +70,10 @@ export type TaskItem = {
     | "design"
     | "devops";
     priority?: "critical" | "high" | "normal" | "low";
+    completed_dates?: string[]; // Date Strings YYYY-MM-DD
+    history?: string[]; // ISO Timestamps
+    preferred_weekday?: string; // "Monday"
+    preferred_day_num?: number; // 1-31
 
     // Codex
     notes?: string;
