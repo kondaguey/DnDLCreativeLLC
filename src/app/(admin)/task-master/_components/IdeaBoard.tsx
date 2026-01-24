@@ -590,10 +590,28 @@ function IncubatorCard({
       {/* --- GRID VIEW --- */}
       {viewMode === "grid" && (
         <>
-          <div className="flex justify-between items-start mb-3">
-            <h3 className="font-black text-lg text-violet-100 leading-tight line-clamp-2">{item.title}</h3>
-            <span className="text-[9px] font-mono text-slate-500 whitespace-nowrap">{dateStr}</span>
+          <div className="flex flex-col gap-1 mb-3">
+            <div className="flex justify-between items-start gap-2">
+              <h3 className="font-black text-xl text-violet-100 leading-tight line-clamp-2 break-words mr-auto">
+                {item.title}
+              </h3>
+              {/* Metadata Pills in Top Right */}
+              {item.metadata?.incubator_metadata && (
+                <div className="flex gap-1 shrink-0">
+                  {item.metadata.incubator_metadata.effort && (
+                    <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${item.metadata.incubator_metadata.effort === 'high' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                        item.metadata.incubator_metadata.effort === 'low' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                          'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      }`}>
+                      Eff: {item.metadata.incubator_metadata.effort}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <span className="text-[10px] font-mono text-slate-500">{dateStr}</span>
           </div>
+
           <div className="flex-1 text-sm text-slate-400 overflow-hidden relative mb-4">
             <p className="line-clamp-6">{item.content}</p>
             <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/0 to-transparent" />
@@ -604,7 +622,10 @@ function IncubatorCard({
               <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={() => { }} />
             </div>
             <div className="flex gap-2">
-              <button onClick={(e) => { e.stopPropagation(); onPromote() }} className="flex-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-black py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+              <button
+                onClick={(e) => { e.stopPropagation(); onPromote() }}
+                className="flex-1 bg-emerald-500 text-black hover:bg-emerald-400 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-emerald-500/20"
+              >
                 Promote
               </button>
             </div>
@@ -616,39 +637,71 @@ function IncubatorCard({
       {viewMode === "list" && (
         <>
           <div className="flex-1 min-w-0 flex flex-col gap-4">
-            <div className="flex justify-between items-start">
-              <div>
+            <div className="flex flex-col md:flex-row md:items-start gap-4">
+              <div className="flex-1 min-w-0 w-full">
                 <input
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent text-2xl font-black text-violet-100 focus:outline-none placeholder:text-violet-900 border-b border-transparent focus:border-violet-500/50"
+                  className="bg-transparent text-2xl md:text-3xl font-black text-violet-100 focus:outline-none placeholder:text-violet-900/50 border-b border-white/5 focus:border-violet-500/50 w-full pb-2"
                   defaultValue={item.title}
                   onBlur={(e) => onUpdateTitle(item.id, e.target.value)}
                 />
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] font-mono text-slate-500">{dateStr}</span>
-                  {item.metadata?.incubator_metadata?.effort && <span className="text-[9px] uppercase font-bold text-slate-600 border border-white/5 px-1.5 rounded">Effort: {item.metadata.incubator_metadata.effort}</span>}
+
+                {/* METADATA BAR */}
+                <div className="flex flex-wrap items-center gap-4 mt-3">
+                  <div className="flex items-center gap-2 text-xs font-mono text-slate-500 bg-white/5 px-2 py-1 rounded-md">
+                    <Clock size={12} /> {dateStr}
+                  </div>
+
+                  {/* BEAUTIFUL METADATA BADGES */}
+                  {item.metadata?.incubator_metadata && (
+                    <div className="flex items-center gap-2">
+                      {item.metadata.incubator_metadata.effort && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5">
+                          <span className="text-[10px] uppercase font-bold text-slate-500">Effort</span>
+                          <span className={`text-[10px] font-black uppercase ${item.metadata.incubator_metadata.effort === 'high' ? 'text-rose-400' :
+                              item.metadata.incubator_metadata.effort === 'low' ? 'text-emerald-400' : 'text-amber-400'
+                            }`}>
+                            {item.metadata.incubator_metadata.effort}
+                          </span>
+                        </div>
+                      )}
+                      {item.metadata.incubator_metadata.impact && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5">
+                          <span className="text-[10px] uppercase font-bold text-slate-500">Impact</span>
+                          <span className={`text-[10px] font-black uppercase ${item.metadata.incubator_metadata.impact === 'high' ? 'text-emerald-400' :
+                              item.metadata.incubator_metadata.impact === 'low' ? 'text-slate-400' : 'text-cyan-400'
+                            }`}>
+                            {item.metadata.incubator_metadata.impact}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); onToggleFavorite() }} className={`p-2 rounded-xl border ${isFav ? "bg-amber-500/20 border-amber-500 text-amber-500" : "border-white/5 text-slate-500"}`}>
-                <Star size={16} fill={isFav ? "currentColor" : "none"} />
+
+              <button onClick={(e) => { e.stopPropagation(); onToggleFavorite() }} className={`p-3 rounded-xl border shrink-0 ${isFav ? "bg-amber-500/20 border-amber-500 text-amber-500" : "border-white/5 text-slate-500 hover:text-white"}`}>
+                <Star size={20} fill={isFav ? "currentColor" : "none"} />
               </button>
             </div>
 
             <textarea
               onClick={(e) => e.stopPropagation()}
-              className="bg-black/20 w-full rounded-xl p-4 text-sm text-slate-300 resize-y min-h-[100px] focus:outline-none border border-white/5 focus:border-violet-500/30"
+              className="bg-black/20 w-full rounded-2xl p-6 text-base text-slate-300 resize-y min-h-[140px] focus:outline-none border border-white/5 focus:border-violet-500/30 leading-relaxed shadow-inner"
               defaultValue={item.content}
               onBlur={(e) => onUpdateContent(item.id, e.target.value)}
             />
 
-            <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={(t) => onUpdateTags(item.id, t)} />
+            <div className="h-8">
+              <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={(t) => onUpdateTags(item.id, t)} />
+            </div>
           </div>
 
-          <div className="flex flex-col gap-2 border-l border-white/5 pl-5 shrink-0 min-w-[140px] justify-center">
-            <button onClick={(e) => { e.stopPropagation(); onPromote() }} className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl font-black text-xs uppercase tracking-widest shadow-lg flex flex-col items-center gap-1 transition-all">
-              <ArrowRightCircle size={18} /> Promote
+          <div className="flex flex-col gap-3 border-l border-white/5 pl-6 shrink-0 md:w-[180px] justify-center">
+            <button onClick={(e) => { e.stopPropagation(); onPromote() }} className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-emerald-500/20 flex flex-col items-center gap-2 transition-all hover:-translate-y-1">
+              <ArrowRightCircle size={24} /> Promote
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(item.id) }} className="w-full py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl font-bold text-xs uppercase tracking-widest transition-all">
+            <button onClick={(e) => { e.stopPropagation(); onDelete(item.id) }} className="w-full py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border border-rose-500/20 hover:border-rose-500/40">
               Delete
             </button>
           </div>
