@@ -70,10 +70,13 @@ export type TaskItem = {
     | "design"
     | "devops";
     priority?: "critical" | "high" | "normal" | "low";
+
+    // --- RECURRENCE TRACKING ---
     completed_dates?: string[]; // Date Strings YYYY-MM-DD
     history?: string[]; // ISO Timestamps
     preferred_weekday?: string; // "Monday"
     preferred_day_num?: number; // 1-31
+    active_days?: string[]; // <--- THE FIX FOR VERCEL (e.g., ["Mon", "Tue"])
 
     // Codex
     notes?: string;
