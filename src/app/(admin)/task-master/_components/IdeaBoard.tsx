@@ -7,16 +7,14 @@ import {
   Trash2,
   ArrowRightCircle,
   GripHorizontal,
-  ArrowUp,
-  ArrowDown,
   ArrowLeft,
   ArrowRight,
   Code,
   Type,
   LayoutGrid,
   List,
+  StretchVertical, // Changed from List to StretchVertical for 'Expanded'
   Clock,
-  Edit2,
   Send,
   Sparkles,
   Star,
@@ -91,7 +89,7 @@ export default function IdeaBoard({
 }: IdeaBoardProps) {
   const [activeTab, setActiveTab] = useState<"sparks" | "solidified">("sparks");
   const [activePeriod, setActivePeriod] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "compact">("grid");
 
   const [quickNote, setQuickNote] = useState("");
   const [noteFormat, setNoteFormat] = useState<"text" | "code">("text");
@@ -197,62 +195,48 @@ export default function IdeaBoard({
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-20 w-full overflow-hidden">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-32 w-full">
       {/* 1. TOP CONTROL BAR */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 w-full">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 w-full sticky top-0 z-10 py-2 bg-[#020617]/50 backdrop-blur-md -mx-4 px-4 md:-mx-6 md:px-6 border-b border-white/5">
         {/* TABS */}
-        <div className="flex items-center gap-4 border-b border-white/10 px-2 w-full md:w-auto md:max-w-sm">
+        <div className="flex items-center gap-4 bg-black/20 p-1 rounded-xl border border-white/5">
           <button
             onClick={() => setActiveTab("sparks")}
-            className={`pb-3 text-sm md:text-xs font-black uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${activeTab === "sparks" ? "text-amber-400 border-amber-400" : "text-slate-500 border-transparent hover:text-white"}`}
+            className={`px-4 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all ${activeTab === "sparks" ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "text-slate-500 hover:text-white"}`}
           >
-            <Zap size={16} /> Sparks
+            <Zap size={14} fill={activeTab === "sparks" ? "currentColor" : "none"} /> Sparks
           </button>
           <button
             onClick={() => setActiveTab("solidified")}
-            className={`pb-3 text-sm md:text-xs font-black uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${activeTab === "solidified" ? "text-violet-400 border-violet-400" : "text-slate-500 border-transparent hover:text-white"}`}
+            className={`px-4 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all ${activeTab === "solidified" ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" : "text-slate-500 hover:text-white"}`}
           >
-            <BrainCircuit size={16} /> Incubator
+            <BrainCircuit size={14} /> Incubator
           </button>
         </div>
 
         {/* TIMELINE & VIEW TOGGLE */}
         <div className="flex items-center gap-3 w-full md:w-auto min-w-0">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade flex-1 min-w-0 pr-4 md:pr-0">
+          <div className="hidden sm:flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner shrink-0">
             <button
-              onClick={() => setActivePeriod("all")}
-              className={`shrink-0 px-4 py-2.5 md:px-3 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === "all" ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"}`}
+              onClick={() => setViewMode("compact")}
+              className={`p-2 rounded-lg transition-all ${viewMode === "compact" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+              title="Thin Line (Compact)"
             >
-              All Time
-            </button>
-            {timeline.map((period) => (
-              <button
-                key={period}
-                onClick={() => setActivePeriod(period)}
-                className={`shrink-0 px-4 py-2.5 md:px-3 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === period ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"}`}
-              >
-                {formatPeriod(period)}
-              </button>
-            ))}
-          </div>
-
-          <div className="w-px h-6 bg-white/10 hidden md:block shrink-0" />
-
-          {/* VIEW TOGGLE */}
-          <div className="hidden sm:flex bg-white/5 p-1 rounded-xl border border-white/5 shadow-inner shrink-0">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-2.5 md:p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
-              title="Grid View"
-            >
-              <LayoutGrid size={16} />
+              <List size={16} />
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-2.5 md:p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
-              title="List View"
+              className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+              title="Expanded Line"
             >
-              <List size={16} />
+              <StretchVertical size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+              title="Grid View"
+            >
+              <LayoutGrid size={16} />
             </button>
           </div>
         </div>
@@ -265,10 +249,10 @@ export default function IdeaBoard({
       >
         {activeTab === "sparks" && (
           <div className="space-y-6 md:space-y-8 w-full">
-            {/* 2. QUICK ADD BAR */}
+            {/* 2. QUICK ADD BAR (Only in Sparks) */}
             <form
               onSubmit={handleQuickAdd}
-              className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 focus-within:border-amber-500/50 focus-within:shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)] transition-all max-w-4xl mx-auto shadow-2xl w-full"
+              className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 focus-within:border-amber-500/50 focus-within:shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)] transition-all max-w-4xl mx-auto shadow-2xl w-full sticky top-[68px] z-10 mb-8"
             >
               <button
                 type="button"
@@ -306,7 +290,6 @@ export default function IdeaBoard({
               </button>
             </form>
 
-            {/* 3. NOTE GRID */}
             <SortableContext
               items={filteredItems.map((i) => i.id)}
               strategy={
@@ -319,7 +302,7 @@ export default function IdeaBoard({
                 className={
                   viewMode === "grid"
                     ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 w-full"
-                    : "space-y-4 max-w-4xl mx-auto w-full"
+                    : "flex flex-col gap-3 w-full max-w-5xl mx-auto"
                 }
               >
                 {filteredItems.map((item, index) => (
@@ -360,14 +343,23 @@ export default function IdeaBoard({
           </div>
         )}
 
-        {/* INCUBATOR TAB */}
         {activeTab === "solidified" && (
-          <div className="space-y-4 max-w-4xl mx-auto mt-4 w-full">
+          <div className="space-y-4 max-w-5xl mx-auto mt-4 w-full">
             <SortableContext
               items={filteredItems.map((i) => i.id)}
-              strategy={verticalListSortingStrategy}
+              strategy={
+                viewMode === "grid"
+                  ? rectSortingStrategy // Use Rect for Grid
+                  : verticalListSortingStrategy
+              }
             >
-              <div className="space-y-4 md:space-y-5 w-full">
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
+                    : "flex flex-col gap-3 w-full"
+                }
+              >
                 {filteredItems.map((item, index) => (
                   <SortableItem
                     key={item.id}
@@ -393,6 +385,7 @@ export default function IdeaBoard({
                         })
                       }
                       onPromote={() => onPromoteToTask(item)}
+                      viewMode={viewMode}
                     />
                   </SortableItem>
                 ))}
@@ -419,7 +412,7 @@ export default function IdeaBoard({
 // ==========================================
 function SparkCard({
   item,
-  viewMode,
+  viewMode, // "grid" | "list" | "compact"
   isManualSort,
   isFirst,
   isLast,
@@ -446,141 +439,90 @@ function SparkCard({
   });
   const stopProp = (e: any) => e.stopPropagation();
 
-  // THE FIX: If isManualSort is true, we apply pt-14 (mobile) or pt-12 (desktop) to make room for the handle.
-  const dynamicPadding = isManualSort ? "px-5 pb-5 pt-14 md:pt-12" : "p-5";
+  // DYNAMIC STYLES BASED ON VIEW MODE
+  let dynamicPadding = "p-5";
+  let containerClasses = `group flex bg-slate-900/60 backdrop-blur-2xl border rounded-2xl relative overflow-hidden transition-all shadow-md hover:shadow-2xl hover:-translate-y-0.5 ${isFav ? "border-amber-500/50 shadow-amber-900/20" : "border-white/5"} cursor-pointer hover:bg-white/5 `;
 
-  const baseCardStyle = `group flex flex-col bg-slate-900/60 backdrop-blur-2xl border rounded-3xl relative overflow-hidden transition-all shadow-md hover:shadow-2xl hover:-translate-y-0.5 ${isFav ? "border-amber-500/50 shadow-amber-900/20" : "border-white/5"} ${viewMode === "grid" ? "h-full w-full" : "w-full"} ${dynamicPadding}`;
+  if (viewMode === "grid") {
+    containerClasses += " flex-col h-full w-full aspect-square";
+    dynamicPadding = "p-5";
+  } else if (viewMode === "compact") {
+    containerClasses += " flex-row items-center w-full h-14 md:h-12 border-b border-r-0 border-l-0 border-t-0 rounded-none bg-transparent hover:bg-white/5";
+    // Compact: Remove rounding/borders to look like a list
+    dynamicPadding = "px-4";
+  } else { // LIST (Expanded)
+    containerClasses += " flex-col w-full min-h-[140px]";
+    dynamicPadding = "p-5";
+  }
+
+  const baseCardStyle = containerClasses + " " + dynamicPadding;
 
   return (
-    <div className={baseCardStyle}>
+    <div className={baseCardStyle} onClick={() => onEdit && onEdit(item)}>
       {/* FLOATING DRAG HANDLE */}
-      {isManualSort && (
-        <DragHandle className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center bg-black/95 backdrop-blur-md px-8 py-2 md:px-3 md:py-1 rounded-full border border-white/10 shadow-xl text-slate-400 active:bg-amber-500/20 active:text-amber-400 transition-all cursor-grab active:cursor-grabbing w-[160px] md:w-auto">
-          {onManualMove && viewMode === "grid" && (
-            <button
-              disabled={isFirst}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                onManualMove(item.id, "up");
-              }}
-              className="hover:text-amber-400 disabled:opacity-0 p-1"
-            >
-              <ArrowLeft size={14} className="md:w-3 md:h-3" />
-            </button>
-          )}
-          <GripHorizontal
-            size={20}
-            className="hover:text-white mx-3 md:mx-1 md:w-4 md:h-4"
-          />
-          {onManualMove && viewMode === "grid" && (
-            <button
-              disabled={isLast}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                onManualMove(item.id, "down");
-              }}
-              className="hover:text-amber-400 disabled:opacity-0 p-1"
-            >
-              <ArrowRight size={14} className="md:w-3 md:h-3" />
-            </button>
-          )}
+      {isManualSort && viewMode !== "compact" && (
+        <DragHandle className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center bg-black/95 backdrop-blur-md px-8 py-2 md:px-3 md:py-1 rounded-full border border-white/10 shadow-xl text-slate-400 active:bg-amber-500/20 active:text-amber-400 transition-all cursor-grab active:cursor-grabbing">
+          <GripHorizontal size={14} />
         </DragHandle>
       )}
 
-      {/* HEADER */}
-      <div className="flex flex-wrap justify-between items-start mb-4 gap-2 w-full">
-        {/* LEFT SIDE: Date */}
-        <span className="text-[9px] font-mono text-slate-500 bg-black/40 px-2 py-1 rounded-md flex items-center gap-1 border border-white/5 whitespace-nowrap shrink-0">
-          <Clock size={10} className="shrink-0" />
-          {dateStr}
-        </span>
-
-        {/* RIGHT SIDE: Tools */}
-        <div className="flex flex-wrap gap-1.5 transition-opacity z-10 shrink-0">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            onPointerDown={stopProp}
-            className={`p-2.5 md:p-1.5 rounded-lg transition-all ${isFav ? "text-amber-400 bg-amber-500/10 shadow-inner" : "text-slate-600 hover:text-amber-400 hover:bg-white/5"}`}
-            title="Favorite"
-          >
-            <Star size={16} fill={isFav ? "currentColor" : "none"} />
-          </button>
-          {onEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(item);
-              }}
-              onPointerDown={stopProp}
-              className="p-2.5 md:p-1.5 hover:bg-cyan-500/10 text-slate-600 hover:text-cyan-400 rounded-lg transition-colors"
-              title="Edit Note"
-            >
-              <Edit2 size={16} />
-            </button>
+      {/* --- COMPACT VIEW --- */}
+      {viewMode === "compact" && (
+        <>
+          {isManualSort && (
+            <DragHandle className="mr-3 text-slate-600 hover:text-white cursor-grab active:cursor-grabbing">
+              <GripHorizontal size={14} />
+            </DragHandle>
           )}
-          <button
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              onDelete(item.id);
-            }}
-            className="p-2.5 md:p-1.5 hover:bg-rose-500/10 text-slate-600 hover:text-rose-400 rounded-lg transition-colors"
-            title="Delete"
-          >
-            <Trash2 size={16} />
+          <span className="text-[10px] font-mono text-slate-600 shrink-0 w-[80px]">{dateStr}</span>
+          <div className="flex-1 truncate text-xs md:text-sm text-slate-300 font-medium">
+            {isCode && <span className="text-emerald-500 mr-2 font-mono">//</span>}
+            {item.content || "Empty Note"}
+          </div>
+          <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={() => { }} />
+          <button onClick={(e) => { e.stopPropagation(); onDelete(item.id) }} className="p-2 text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Trash2 size={14} />
           </button>
-        </div>
-      </div>
+        </>
+      )}
 
-      <div
-        className="flex-1 relative min-h-[140px] w-full"
-        onPointerDown={stopProp}
-      >
-        {isCode ? (
-          <div className="bg-black/60 rounded-xl p-4 font-mono text-xs text-emerald-400 border border-emerald-500/20 h-full shadow-inner w-full">
+      {/* --- GRID & EXPANDED VIEW --- */}
+      {viewMode !== "compact" && (
+        <>
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-[9px] font-mono text-slate-500 bg-black/40 px-2 py-1 rounded border border-white/5">{dateStr}</span>
+            <div className="flex gap-1">
+              <button onClick={(e) => { e.stopPropagation(); onToggleFavorite() }} className={`p-1.5 rounded hover:bg-white/10 ${isFav ? "text-amber-400" : "text-slate-600"}`}>
+                <Star size={14} fill={isFav ? "currentColor" : "none"} />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onDelete(item.id) }} className="p-1.5 rounded hover:bg-rose-500/10 text-slate-600 hover:text-rose-400">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 relative min-h-0">
             <textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onBlur={() => onUpdateContent(item.id, content)}
-              className="bg-transparent w-full h-full resize-none focus:outline-none scrollbar-thin scrollbar-thumb-emerald-500/20"
-              placeholder="// Code snippet..."
+              readOnly
+              className="w-full h-full bg-transparent resize-none text-sm text-slate-300 focus:outline-none cursor-pointer"
+              placeholder="Empty..."
             />
           </div>
-        ) : (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onBlur={() => onUpdateContent(item.id, content)}
-            className="bg-transparent w-full h-full resize-none text-base md:text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none leading-relaxed tracking-wide"
-            placeholder="Empty note..."
-          />
-        )}
-      </div>
 
-      {/* FOOTER */}
-      <div className="pt-4 mt-auto border-t border-white/5 flex flex-wrap justify-between items-center gap-3 w-full">
-        <div
-          className="flex-1 min-w-[100px] overflow-x-auto no-scrollbar mask-linear-fade pr-4"
-          onPointerDown={stopProp}
-        >
-          <TagManager
-            selectedTags={item.tags || []}
-            allSystemTags={allSystemTags}
-            onUpdateTags={(t) => onUpdateTags(item.id, t)}
-          />
-        </div>
-        <button
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            onSolidify();
-          }}
-          className="shrink-0 flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-black px-4 md:px-3 py-2.5 md:py-1.5 rounded-xl transition-all shadow-lg"
-        >
-          Incubate <ArrowRightCircle size={14} />
-        </button>
-      </div>
+          <div className="pt-3 mt-auto border-t border-white/5 flex justify-between items-center">
+            <div className="max-w-[70%] overflow-hidden h-6">
+              <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={(t) => onUpdateTags(item.id, t)} />
+            </div>
+            <button
+              onPointerDown={(e) => { e.stopPropagation(); onSolidify(); }}
+              className="text-[9px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-300 flex items-center gap-1"
+            >
+              Incubate <ArrowRightCircle size={10} />
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -590,15 +532,13 @@ function SparkCard({
 // ==========================================
 function IncubatorCard({
   item,
+  viewMode, // "grid" | "list" | "compact"
   isManualSort,
-  isFirst,
-  isLast,
   allSystemTags,
   onUpdateTitle,
   onUpdateContent,
   onUpdateTags,
   onDelete,
-  onManualMove,
   onEdit,
   onToggleFavorite,
   onPromote,
@@ -614,112 +554,106 @@ function IncubatorCard({
   });
   const stopProp = (e: any) => e.stopPropagation();
 
-  // THE FIX: Dynamic Padding-Top
-  const dynamicPadding = isManualSort
-    ? "px-5 pb-5 pt-16 md:px-6 md:pb-6 md:pt-14"
-    : "p-5 md:p-6";
+  // DYNAMIC STYLES BASED ON VIEW MODE
+  let dynamicPadding = "p-6";
+  let containerClasses = `group flex bg-violet-900/10 backdrop-blur-2xl border ${isFav ? "border-amber-500/50" : "border-violet-500/20"} rounded-3xl relative overflow-hidden transition-all shadow-xl hover:border-violet-500/40 cursor-pointer hover:bg-violet-900/20 `;
+
+  if (viewMode === "grid") {
+    containerClasses += " flex-col h-full w-full aspect-[4/5]";
+    dynamicPadding = "p-5";
+  } else if (viewMode === "compact") {
+    containerClasses += " flex-row items-center w-full h-16 rounded-lg mb-1";
+    dynamicPadding = "px-4";
+  } else { // LIST (Expanded)
+    containerClasses += " flex-col md:flex-row gap-6 w-full"; // Standard wide card
+    dynamicPadding = "p-6";
+  }
+
+  const baseCardStyle = containerClasses + " " + dynamicPadding;
 
   return (
-    <div
-      className={`bg-violet-950/20 backdrop-blur-2xl border ${isFav ? "border-amber-500/50" : "border-violet-500/20"} rounded-3xl flex flex-col md:flex-row gap-5 relative overflow-hidden group shadow-xl transition-all hover:border-violet-500/40 w-full ${dynamicPadding}`}
-    >
-      {/* FLOATING DRAG HANDLE */}
-      {isManualSort && (
-        <DragHandle className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center bg-black/95 backdrop-blur-md px-10 py-2.5 md:px-4 md:py-1 rounded-full border border-white/10 shadow-xl text-slate-400 active:bg-amber-500/20 active:text-amber-400 transition-all cursor-grab active:cursor-grabbing w-[160px] md:w-auto">
-          <GripHorizontal
-            size={20}
-            className="hover:text-white md:w-4 md:h-4"
-          />
-        </DragHandle>
+    <div className={baseCardStyle} onClick={() => onEdit && onEdit(item)}>
+      {/* --- COMPACT VIEW --- */}
+      {viewMode === "compact" && (
+        <>
+          <div className="flex flex-col min-w-[200px]">
+            <span className="font-bold text-violet-100 truncate text-sm">{item.title}</span>
+            <span className="text-[10px] text-slate-500 font-mono">{dateStr}</span>
+          </div>
+          <div className="flex-1 px-4 text-xs text-slate-400 truncate hidden md:block">
+            {item.content || "No description..."}
+          </div>
+          <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={() => { }} />
+        </>
       )}
 
-      {/* NORMAL LAYOUT */}
-      <div className="flex-1 min-w-0 space-y-4 w-full">
-        {/* HEADER */}
-        <div className="flex flex-wrap justify-between items-start gap-2 w-full">
-          <input
-            className="bg-transparent text-2xl md:text-xl font-black text-violet-100 flex-1 min-w-[150px] focus:outline-none border-b border-transparent focus:border-violet-500/50 pb-1 placeholder:text-violet-900"
-            defaultValue={item.title === "Quick Note" ? "" : item.title}
-            placeholder="Idea Name..."
-            onBlur={(e) => onUpdateTitle(item.id, e.target.value)}
-            onPointerDown={stopProp}
-            onKeyDown={stopProp}
-          />
-          <span className="text-[9px] bg-black/40 px-2 py-1 rounded-md text-slate-500 font-mono mt-1 flex items-center gap-1 whitespace-nowrap shrink-0 border border-white/5">
-            <Clock size={10} />
-            {dateStr}
-          </span>
-        </div>
+      {/* --- GRID VIEW --- */}
+      {viewMode === "grid" && (
+        <>
+          <div className="flex justify-between items-start mb-3">
+            <h3 className="font-black text-lg text-violet-100 leading-tight line-clamp-2">{item.title}</h3>
+            <span className="text-[9px] font-mono text-slate-500 whitespace-nowrap">{dateStr}</span>
+          </div>
+          <div className="flex-1 text-sm text-slate-400 overflow-hidden relative mb-4">
+            <p className="line-clamp-6">{item.content}</p>
+            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/0 to-transparent" />
+          </div>
 
-        <textarea
-          className="bg-black/40 w-full rounded-2xl p-4 md:p-4 text-base md:text-sm text-slate-200 placeholder:text-slate-600 focus:text-white focus:outline-none resize-y min-h-[120px] border border-white/5 focus:border-violet-500/30 transition-all shadow-inner leading-relaxed"
-          defaultValue={item.content}
-          placeholder="Elaborate on your idea..."
-          onBlur={(e) => onUpdateContent(item.id, e.target.value)}
-          onPointerDown={stopProp}
-          onKeyDown={stopProp}
-        />
+          <div className="mt-auto pt-3 border-t border-white/5 space-y-3">
+            <div className="h-6 overflow-hidden">
+              <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={() => { }} />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={(e) => { e.stopPropagation(); onPromote() }} className="flex-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-black py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                Promote
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
-        <div
-          className="overflow-x-auto no-scrollbar mask-linear-fade w-full"
-          onPointerDown={stopProp}
-        >
-          <TagManager
-            selectedTags={item.tags || []}
-            allSystemTags={allSystemTags}
-            onUpdateTags={(t) => onUpdateTags(item.id, t)}
-          />
-        </div>
-      </div>
+      {/* --- LIST (EXPANDED) VIEW --- */}
+      {viewMode === "list" && (
+        <>
+          <div className="flex-1 min-w-0 flex flex-col gap-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <input
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent text-2xl font-black text-violet-100 focus:outline-none placeholder:text-violet-900 border-b border-transparent focus:border-violet-500/50"
+                  defaultValue={item.title}
+                  onBlur={(e) => onUpdateTitle(item.id, e.target.value)}
+                />
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-mono text-slate-500">{dateStr}</span>
+                  {item.metadata?.incubator_metadata?.effort && <span className="text-[9px] uppercase font-bold text-slate-600 border border-white/5 px-1.5 rounded">Effort: {item.metadata.incubator_metadata.effort}</span>}
+                </div>
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); onToggleFavorite() }} className={`p-2 rounded-xl border ${isFav ? "bg-amber-500/20 border-amber-500 text-amber-500" : "border-white/5 text-slate-500"}`}>
+                <Star size={16} fill={isFav ? "currentColor" : "none"} />
+              </button>
+            </div>
 
-      {/* FOOTER ACTIONS */}
-      <div className="flex md:flex-col gap-3 justify-end border-t md:border-t-0 md:border-l border-white/5 pt-5 md:pt-0 md:pl-5 shrink-0 flex-wrap w-full md:w-auto">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite();
-          }}
-          onPointerDown={stopProp}
-          className={`flex items-center justify-center p-4 md:p-3 rounded-xl border transition-all ${isFav ? "bg-amber-500/20 text-amber-400 border-amber-500/30 shadow-inner" : "bg-white/5 text-slate-500 border-white/10 hover:text-amber-400"}`}
-        >
-          <Star size={18} fill={isFav ? "currentColor" : "none"} />
-        </button>
+            <textarea
+              onClick={(e) => e.stopPropagation()}
+              className="bg-black/20 w-full rounded-xl p-4 text-sm text-slate-300 resize-y min-h-[100px] focus:outline-none border border-white/5 focus:border-violet-500/30"
+              defaultValue={item.content}
+              onBlur={(e) => onUpdateContent(item.id, e.target.value)}
+            />
 
-        <button
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            onPromote();
-          }}
-          className="bg-emerald-500 hover:bg-emerald-400 text-black px-6 md:px-4 py-4 md:py-3 rounded-xl text-sm md:text-xs font-black uppercase tracking-widest transition-all shadow-lg md:ml-0 flex-1 md:flex-none text-center"
-        >
-          Promote
-        </button>
+            <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={(t) => onUpdateTags(item.id, t)} />
+          </div>
 
-        <div className="flex items-center gap-2 mt-auto shrink-0 flex-nowrap md:ml-0 ml-auto">
-          {onEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(item);
-              }}
-              onPointerDown={stopProp}
-              className="p-4 md:p-3 bg-cyan-500/10 hover:bg-cyan-500 text-cyan-500 hover:text-white rounded-xl flex justify-center transition-all"
-            >
-              <Edit2 size={18} />
+          <div className="flex flex-col gap-2 border-l border-white/5 pl-5 shrink-0 min-w-[140px] justify-center">
+            <button onClick={(e) => { e.stopPropagation(); onPromote() }} className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl font-black text-xs uppercase tracking-widest shadow-lg flex flex-col items-center gap-1 transition-all">
+              <ArrowRightCircle size={18} /> Promote
             </button>
-          )}
-
-          <button
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              onDelete(item.id);
-            }}
-            className="p-4 md:p-3 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl flex justify-center transition-all"
-          >
-            <Trash2 size={18} />
-          </button>
-        </div>
-      </div>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(item.id) }} className="w-full py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl font-bold text-xs uppercase tracking-widest transition-all">
+              Delete
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -205,7 +205,9 @@ const RainSystem = ({ theme, intensity, windVector }) => {
   const meshRef = useRef();
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  const count = 20000;
+  // Mobile optimization: reduce particle count significantly
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const count = isMobile ? 4000 : 20000;
   const xBound = 60;
   const yBound = 50;
   const zMin = -80;

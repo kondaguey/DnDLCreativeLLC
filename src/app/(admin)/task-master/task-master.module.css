@@ -101,7 +101,7 @@
 .panel {
   @apply flex-grow overflow-y-auto rounded-xl md:rounded-[2rem] border relative;
   /* Tablet: Smaller padding (p-4). Desktop: Larger (p-6) */
-  @apply p-4 xl:p-6;
+  @apply p-4 pb-24 xl:p-6 xl:pb-32;
   background: rgba(255, 255, 255, 0.02);
   border-color: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);

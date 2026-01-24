@@ -55,10 +55,18 @@ export default function TagManager({
   const openDropdown = () => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
+      const MENU_HEIGHT = 240;
+      const spaceBelow = window.innerHeight - rect.bottom;
+
+      // FLIP UP if not enough space
+      const topPos = spaceBelow < MENU_HEIGHT + 20
+        ? rect.top - MENU_HEIGHT - 8
+        : rect.bottom + 8;
+
       setDropdownCoords({
-        top: rect.bottom + 8, // 8px below the button
+        top: topPos,
         left: rect.left,
-        width: 240, // Fixed width for the dropdown
+        width: 240,
       });
     }
     setIsOpen(true);
@@ -145,11 +153,10 @@ export default function TagManager({
             e.stopPropagation();
             isOpen ? setIsOpen(false) : openDropdown();
           }}
-          className={`flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 md:px-2 md:py-1 rounded-lg border transition-all shadow-inner ${
-            isOpen
+          className={`flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 md:px-2 md:py-1 rounded-lg border transition-all shadow-inner ${isOpen
               ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
               : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-          }`}
+            }`}
         >
           <Tag size={12} />
           {selectedTags.length === 0 ? "Add Tag" : "Add"}
@@ -210,11 +217,10 @@ export default function TagManager({
                       e.stopPropagation();
                       toggleTag(tag);
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${
-                      isSelected
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${isSelected
                         ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
                         : "hover:bg-white/5 text-slate-300 hover:text-white"
-                    }`}
+                      }`}
                   >
                     {tag} {isSelected && <Check size={14} />}
                   </button>

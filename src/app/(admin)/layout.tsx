@@ -20,7 +20,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 relative">
+    <div className="min-h-screen bg-slate-950 text-white relative">
       {/* 🚨 SINGLE EXIT BUTTON - BOTTOM LEFT */}
       <div className="fixed bottom-14 left-4 z-[100] flex items-center justify-center p-1.5 bg-slate-900/90 backdrop-blur-md rounded-full border border-slate-700/50 shadow-2xl opacity-40 hover:opacity-100 transition-all duration-300">
         <Link

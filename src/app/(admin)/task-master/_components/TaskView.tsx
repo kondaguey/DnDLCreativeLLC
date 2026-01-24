@@ -197,7 +197,7 @@ export default function TaskView({
   };
 
   return (
-    <div className="flex flex-col h-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="shrink-0 flex overflow-x-auto gap-2 mb-6 no-scrollbar pb-2 mask-linear-fade snap-x snap-mandatory px-1">
         {["daily", "weekly", "monthly", "quarterly", "one_off"].map((tab) => (
           <TimeframeTab
@@ -218,7 +218,7 @@ export default function TaskView({
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar px-1 pt-2 pb-32">
+      <div className="flex-1 px-1 pt-2">
         {filteredItems.length === 0 && (
           <EmptyState context={activeRecurrence} />
         )}
@@ -1378,10 +1378,10 @@ function RecurringSummary({
         onClick={handleStreakClick}
         title={isTodayDone ? "Undo Completion" : "Check In for Today"}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 ${isTodayDone
-            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-            : isTargetToday
-              ? "bg-amber-500 text-black border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse"
-              : "bg-white/5 text-slate-200 border border-white/10 hover:bg-emerald-500 hover:text-black hover:border-emerald-500"
+          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+          : isTargetToday
+            ? "bg-amber-500 text-black border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse"
+            : "bg-white/5 text-slate-200 border border-white/10 hover:bg-emerald-500 hover:text-black hover:border-emerald-500"
           }`}
       >
         {isTodayDone ? (

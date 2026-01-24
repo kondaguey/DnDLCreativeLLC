@@ -47,8 +47,13 @@ export type TaskItem = {
     is_favorite?: boolean;
     url?: string; // <--- ADDED: Crucial for Resource Grid & Codex
 
-    // Idea Board
+    // Incubator
     stage?: "spark" | "solidified";
+    incubator_metadata?: {
+      effort: "low" | "medium" | "high";
+      impact: "low" | "medium" | "high";
+      status: "raw" | "incubating" | "ready" | "archived";
+    };
 
     // Level Up
     platform?: string;

@@ -27,6 +27,7 @@ import {
 } from "./NotificationUI";
 import EditModal from "./EditModal";
 import RecurringModal from "./RecurringModal";
+import IdeaDetailModal from "./IdeaDetailModal";
 
 interface ShellProps {
   initialItems: TaskItem[];
@@ -734,15 +735,27 @@ export default function TaskMasterShell({
         isProcessing={isDeleting}
       />
 
-      <EditModal
-        isOpen={!!editCandidate}
-        item={editCandidate}
-        itemType={activeView}
-        onSave={handleEditSave}
-        onClose={() => setEditCandidate(null)}
-        TagManagerComponent={TagManager}
-        allSystemTags={allSystemTags}
-      />
+      {activeView === "idea_board" ? (
+        <IdeaDetailModal
+          isOpen={!!editCandidate}
+          item={editCandidate!}
+          allSystemTags={allSystemTags}
+          TagManagerComponent={TagManager}
+          onSave={handleEditSave}
+          onClose={() => setEditCandidate(null)}
+          onPromote={setPromoteCandidate}
+        />
+      ) : (
+        <EditModal
+          isOpen={!!editCandidate}
+          item={editCandidate}
+          itemType={activeView}
+          onSave={handleEditSave}
+          onClose={() => setEditCandidate(null)}
+          TagManagerComponent={TagManager}
+          allSystemTags={allSystemTags}
+        />
+      )}
 
       <PromoteModal
         isOpen={!!promoteCandidate}
