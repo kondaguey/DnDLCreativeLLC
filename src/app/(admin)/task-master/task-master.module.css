@@ -38,14 +38,16 @@
   height: 50rem;
 }
 
-/* --- GRID LAYOUT --- */
+/* --- GRID LAYOUT -> FLEX LAYOUT --- */
 .container {
-  @apply max-w-[1920px] w-full mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 h-full;
+  /* Changed from grid to flex to support dynamic sidebar width without overlap */
+  @apply max-w-[1920px] w-full mx-auto relative z-10 flex flex-col lg:flex-row gap-4 lg:gap-6 h-full;
 }
 
 /* --- SIDEBAR NAV (Left Col) --- */
 .sidebar {
-  @apply hidden lg:flex lg:col-span-2 flex-col gap-4 overflow-y-auto pr-2 pb-10;
+  /* Removed col-span-2 */
+  @apply hidden lg:flex flex-col gap-4 overflow-y-auto pr-2 pb-10;
 }
 
 .navButton {
@@ -66,12 +68,13 @@
 
 /* --- MAIN WORKSPACE (Center Col) --- */
 .workspace {
-  @apply lg:col-span-10 flex flex-col gap-4 h-full overflow-hidden;
+  /* Replaced col-span-10 with flex-1 w-full min-w-0 to handle flex items properly */
+  @apply flex-1 w-full min-w-0 flex flex-col gap-3 lg:gap-4 h-full overflow-hidden;
 }
 
 /* --- HEADER --- */
 .header {
-  @apply flex flex-col md:flex-row md:justify-between md:items-end gap-4 pb-4 border-b border-white/10 shrink-0;
+  @apply flex flex-col md:flex-row md:justify-between md:items-end gap-3 md:gap-4 pb-3 md:pb-4 border-b border-white/10 shrink-0;
 }
 
 .headerTitleBlock {
@@ -83,7 +86,8 @@
 }
 
 .title {
-  @apply text-3xl md:text-5xl font-black uppercase tracking-tight;
+  /* Tablet (md/lg): 3xl. Desktop (2xl): 5xl. */
+  @apply text-3xl xl:text-5xl font-black uppercase tracking-tight;
   /* Fix 3: Relaxed line-height and added vertical padding to prevent font clipping */
   @apply leading-normal py-1;
   @apply text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-indigo-300;
@@ -96,7 +100,8 @@
 /* --- CONTENT PANEL --- */
 .panel {
   @apply flex-grow overflow-y-auto rounded-xl md:rounded-[2rem] border relative;
-  @apply p-3 md:p-6;
+  /* Tablet: Smaller padding (p-4). Desktop: Larger (p-6) */
+  @apply p-4 xl:p-6;
   background: rgba(255, 255, 255, 0.02);
   border-color: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);
@@ -106,6 +111,7 @@
 .itemCard {
   @apply p-3 md:p-4 mb-3 rounded-xl border border-white/5 bg-white/5 transition-all flex items-start gap-3 md:gap-4;
 }
+
 .itemCard:hover {
   @apply border-purple-500/30 bg-white/10;
 }
@@ -114,6 +120,7 @@
 .checkbox {
   @apply w-5 h-5 md:w-6 md:h-6 rounded md:rounded-md border-2 border-slate-600 flex items-center justify-center cursor-pointer transition-colors mt-0.5;
 }
+
 .checkboxChecked {
   @apply bg-purple-500 border-purple-500;
 }
@@ -126,4 +133,66 @@
 /* Code Editor overrides */
 .codeBlock {
   @apply font-mono text-xs md:text-sm bg-slate-950/50 p-3 md:p-4 rounded-lg border border-white/10 text-emerald-400 w-full overflow-x-auto;
+}
+
+/* task-master.module.css */
+
+.sidebar {
+  /* Base styles for the sidebar container */
+  height: 100vh;
+  position: sticky;
+  top: 0;
+
+  /* NEW: Prevents the parent shell from arbitrarily cutting the sidebar off */
+  flex-shrink: 0;
+
+  transition:
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.3s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: rgba(15, 23, 42, 0.8);
+  /* Slate 900 with transparency */
+  backdrop-filter: blur(12px);
+}
+
+/* --- UPDATED: Slimmer Expanded Mode --- */
+.expanded {
+  /* Tablet: 220px to save space. Desktop: 260px */
+  width: 220px;
+  padding: 1.5rem 0.75rem;
+  /* Tightened horizontal padding */
+}
+
+@media (min-width: 1536px) {
+  .expanded {
+    width: 280px;
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* --- UPDATED: Slimmer Collapsed Mode --- */
+.collapsed {
+  width: 80px;
+  /* Reduced from 88px */
+  padding: 1.5rem 0.5rem;
+}
+
+/* Scrollbar styling for the sidebar */
+.sidebar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

@@ -318,7 +318,7 @@ export default function IdeaBoard({
               <div
                 className={
                   viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 w-full"
+                    ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 w-full"
                     : "space-y-4 max-w-4xl mx-auto w-full"
                 }
               >
