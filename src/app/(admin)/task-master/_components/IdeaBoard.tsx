@@ -23,11 +23,13 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
+
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -114,7 +116,13 @@ export default function IdeaBoard({
   };
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
       keyboardCodes: {
@@ -197,18 +205,18 @@ export default function IdeaBoard({
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-32 w-full">
       {/* 1. TOP CONTROL BAR */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 w-full sticky top-0 z-10 py-2 bg-[#020617]/50 backdrop-blur-md -mx-4 px-4 md:-mx-6 md:px-6 border-b border-white/5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 w-full py-2 md:bg-[#020617]/50 md:backdrop-blur-md -mx-4 px-4 md:-mx-6 md:px-6 md:border-b border-white/5">
         {/* TABS */}
-        <div className="flex items-center gap-4 bg-black/20 p-1 rounded-xl border border-white/5">
+        <div className="flex items-center gap-2 md:gap-4 bg-black/20 p-1 rounded-xl border border-white/5 overflow-x-auto no-scrollbar max-w-full">
           <button
             onClick={() => setActiveTab("sparks")}
-            className={`px-4 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all ${activeTab === "sparks" ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "text-slate-500 hover:text-white"}`}
+            className={`px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "sparks" ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "text-slate-500 hover:text-white"}`}
           >
             <Zap size={14} fill={activeTab === "sparks" ? "currentColor" : "none"} /> Sparks
           </button>
           <button
             onClick={() => setActiveTab("solidified")}
-            className={`px-4 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all ${activeTab === "solidified" ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" : "text-slate-500 hover:text-white"}`}
+            className={`px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "solidified" ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" : "text-slate-500 hover:text-white"}`}
           >
             <BrainCircuit size={14} /> Incubator
           </button>
@@ -252,7 +260,7 @@ export default function IdeaBoard({
             {/* 2. QUICK ADD BAR (Only in Sparks) */}
             <form
               onSubmit={handleQuickAdd}
-              className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 focus-within:border-amber-500/50 focus-within:shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)] transition-all max-w-4xl mx-auto shadow-2xl w-full sticky top-[68px] z-10 mb-8"
+              className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 focus-within:border-amber-500/50 focus-within:shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)] transition-all max-w-4xl mx-auto shadow-2xl w-full mb-8"
             >
               <button
                 type="button"
@@ -510,13 +518,13 @@ function SparkCard({
             />
           </div>
 
-          <div className="pt-3 mt-auto border-t border-white/5 flex justify-between items-center">
-            <div className="max-w-[70%] overflow-hidden h-6">
+          <div className="pt-3 mt-auto border-t border-white/5 flex flex-col gap-2">
+            <div className="w-full">
               <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={(t) => onUpdateTags(item.id, t)} />
             </div>
             <button
               onPointerDown={(e) => { e.stopPropagation(); onSolidify(); }}
-              className="text-[9px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-300 flex items-center gap-1"
+              className="self-end text-[9px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-300 flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded hover:bg-amber-500/20 transition-colors"
             >
               Incubate <ArrowRightCircle size={10} />
             </button>
@@ -600,8 +608,8 @@ function IncubatorCard({
                 <div className="flex gap-1 shrink-0">
                   {item.metadata.incubator_metadata.effort && (
                     <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${item.metadata.incubator_metadata.effort === 'high' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                        item.metadata.incubator_metadata.effort === 'low' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                          'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      item.metadata.incubator_metadata.effort === 'low' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        'bg-amber-500/10 text-amber-400 border-amber-500/20'
                       }`}>
                       Eff: {item.metadata.incubator_metadata.effort}
                     </span>
@@ -659,7 +667,7 @@ function IncubatorCard({
                         <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5">
                           <span className="text-[10px] uppercase font-bold text-slate-500">Effort</span>
                           <span className={`text-[10px] font-black uppercase ${item.metadata.incubator_metadata.effort === 'high' ? 'text-rose-400' :
-                              item.metadata.incubator_metadata.effort === 'low' ? 'text-emerald-400' : 'text-amber-400'
+                            item.metadata.incubator_metadata.effort === 'low' ? 'text-emerald-400' : 'text-amber-400'
                             }`}>
                             {item.metadata.incubator_metadata.effort}
                           </span>
@@ -669,7 +677,7 @@ function IncubatorCard({
                         <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5">
                           <span className="text-[10px] uppercase font-bold text-slate-500">Impact</span>
                           <span className={`text-[10px] font-black uppercase ${item.metadata.incubator_metadata.impact === 'high' ? 'text-emerald-400' :
-                              item.metadata.incubator_metadata.impact === 'low' ? 'text-slate-400' : 'text-cyan-400'
+                            item.metadata.incubator_metadata.impact === 'low' ? 'text-slate-400' : 'text-cyan-400'
                             }`}>
                             {item.metadata.incubator_metadata.impact}
                           </span>

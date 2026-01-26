@@ -16,10 +16,13 @@
 .atmosphereBlob {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(8rem);
+  filter: blur(4rem);
+  /* Reduced from 8rem for Safari performance */
   pointer-events: none;
-  opacity: 0.15;
+  opacity: 0.1;
   z-index: 0;
+  will-change: transform;
+  /* Force GPU layer */
 }
 
 .blobPrimary {
@@ -89,7 +92,7 @@
   /* Tablet (md/lg): 3xl. Desktop (2xl): 5xl. */
   @apply text-3xl xl:text-5xl font-black uppercase tracking-tight;
   /* Fix 3: Relaxed line-height and added vertical padding to prevent font clipping */
-  @apply leading-normal py-1;
+  @apply leading-normal py-1 break-words;
   @apply text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-indigo-300;
 }
 

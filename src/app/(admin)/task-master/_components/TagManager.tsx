@@ -18,7 +18,6 @@ interface TagManagerProps {
   allSystemTags: string[];
   onUpdateTags: (newTags: string[]) => void;
 }
-
 export default function TagManager({
   selectedTags = [],
   allSystemTags = [],
@@ -27,6 +26,7 @@ export default function TagManager({
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Refs for portal positioning
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -35,6 +35,14 @@ export default function TagManager({
     left: 0,
     width: 0,
   });
+
+  // Check mobile status
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const AVAILABLE_TAGS = useMemo(() => {
     const set = new Set([...allSystemTags, ...selectedTags]);
@@ -51,9 +59,8 @@ export default function TagManager({
     (tag) => tag.toLowerCase() === inputValue.trim().toLowerCase(),
   );
 
-  // --- THE FIX: CALCULATE EXACT SCREEN POSITION FOR THE PORTAL ---
   const openDropdown = () => {
-    if (triggerRef.current) {
+    if (triggerRef.current && !isMobile) {
       const rect = triggerRef.current.getBoundingClientRect();
       const MENU_HEIGHT = 240;
       const spaceBelow = window.innerHeight - rect.bottom;
@@ -70,9 +77,14 @@ export default function TagManager({
       });
     }
     setIsOpen(true);
+    // iOS fix: Give a tiny delay before focusing to let the layout settle
+    setTimeout(() => {
+      const input = document.getElementById("tag-search-input");
+      if (input) input.focus();
+    }, 50);
   };
 
-  // Close on outside click or scroll (since scrolling detaches the portal)
+  // Close on outside click or scroll
   useEffect(() => {
     function handleInteraction(event: Event) {
       if (
@@ -89,15 +101,19 @@ export default function TagManager({
       }
     }
 
-    document.addEventListener("mousedown", handleInteraction);
-    // Auto-close on scroll to prevent the floating menu from detaching
-    window.addEventListener("scroll", () => setIsOpen(false), true);
+    if (isOpen) {
+      document.addEventListener("mousedown", handleInteraction);
+      document.addEventListener("touchstart", handleInteraction); // Mobile touch
+      // On desktop, close on scroll. On mobile, we lock scroll usually, but for now just ignore.
+      if (!isMobile) window.addEventListener("scroll", () => setIsOpen(false), true);
+    }
 
     return () => {
       document.removeEventListener("mousedown", handleInteraction);
+      document.removeEventListener("touchstart", handleInteraction);
       window.removeEventListener("scroll", () => setIsOpen(false), true);
     };
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -154,8 +170,8 @@ export default function TagManager({
             isOpen ? setIsOpen(false) : openDropdown();
           }}
           className={`flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 md:px-2 md:py-1 rounded-lg border transition-all shadow-inner ${isOpen
-              ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-              : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+            ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+            : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
             }`}
         >
           <Tag size={12} />
@@ -167,86 +183,119 @@ export default function TagManager({
         </button>
       </div>
 
-      {/* --- THE FIX: RENDER DROP DOWN IN A REACT PORTAL --- */}
+      {/* --- PORTAL MENU --- */}
       {isOpen &&
         typeof document !== "undefined" &&
         createPortal(
-          <div
-            id="tag-portal-menu"
-            style={{
-              position: "fixed",
-              top: `${dropdownCoords.top}px`,
-              left: `${dropdownCoords.left}px`,
-              width: `${dropdownCoords.width}px`,
-            }}
-            className="flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl z-[99999] p-2 animate-in fade-in zoom-in-95 duration-100"
-            onClick={(e) => e.stopPropagation()} // Prevent card expansion
-          >
-            <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-xl px-3 py-2.5 mb-2 shadow-inner">
-              <Search size={14} className="text-slate-500 shrink-0" />
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Search or add..."
-                className="w-full bg-transparent text-base md:text-xs font-bold text-white placeholder:text-slate-600 focus:outline-none"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (exactMatchFound) toggleTag(inputValue.trim());
-                    else handleCreateTag();
-                  }
+          <>
+            {/* Mobile Backdrop Overlay */}
+            {isMobile && (
+              <div
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99998] animate-in fade-in duration-200"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
                 }}
               />
-            </div>
+            )}
 
-            <div className="flex-1 overflow-y-auto no-scrollbar space-y-1 max-h-[220px]">
-              {filteredTags.length === 0 && !inputValue && (
-                <div className="px-3 py-4 text-xs font-bold text-slate-600 text-center uppercase tracking-widest">
-                  No tags yet. Type to create.
-                </div>
+            <div
+              id="tag-portal-menu"
+              style={
+                isMobile
+                  ? {
+                    position: 'fixed',
+                    bottom: '0',
+                    left: '0',
+                    right: '0',
+                    top: 'auto',
+                    width: '100%',
+                    maxHeight: '80vh',
+                    borderRadius: '24px 24px 0 0',
+                    transform: 'none'
+                  }
+                  : {
+                    position: "fixed",
+                    top: `${dropdownCoords.top}px`,
+                    left: `${dropdownCoords.left}px`,
+                    width: `${dropdownCoords.width}px`,
+                  }
+              }
+              className={`flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 shadow-2xl z-[99999] p-4 md:p-2 animate-in duration-200 ${isMobile ? "slide-in-from-bottom-10 fade-in" : "rounded-2xl zoom-in-95 fade-in"
+                }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Mobile drag indicator */}
+              {isMobile && (
+                <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-4" />
               )}
 
-              {filteredTags.map((tag) => {
-                const isSelected = selectedTags.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleTag(tag);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${isSelected
+              <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-xl px-3 py-3 md:py-2.5 mb-2 shadow-inner">
+                <Search size={14} className="text-slate-500 shrink-0" />
+                <input
+                  id="tag-search-input"
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Search to add..."
+                  className="w-full bg-transparent text-base md:text-xs font-bold text-white placeholder:text-slate-600 focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (exactMatchFound) toggleTag(inputValue.trim());
+                      else handleCreateTag();
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto no-scrollbar space-y-1 max-h-[40vh] md:max-h-[220px] pb-safe">
+                {filteredTags.length === 0 && !inputValue && (
+                  <div className="px-3 py-4 text-xs font-bold text-slate-600 text-center uppercase tracking-widest">
+                    No tags yet. Type to create.
+                  </div>
+                )}
+
+                {filteredTags.map((tag) => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTag(tag);
+                      }}
+                      className={`w-full text-left px-3 py-3 md:py-2 rounded-xl text-sm md:text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${isSelected
                         ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
                         : "hover:bg-white/5 text-slate-300 hover:text-white"
-                      }`}
-                  >
-                    {tag} {isSelected && <Check size={14} />}
-                  </button>
-                );
-              })}
+                        }`}
+                    >
+                      {tag} {isSelected && <Check size={14} />}
+                    </button>
+                  );
+                })}
 
-              {inputValue.trim() !== "" && !exactMatchFound && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCreateTag();
-                  }}
-                  disabled={isCreating}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 mt-2 border border-emerald-500/20"
-                >
-                  {isCreating ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Plus size={14} />
-                  )}
-                  Create "{inputValue.trim()}"
-                </button>
-              )}
+                {inputValue.trim() !== "" && !exactMatchFound && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCreateTag();
+                    }}
+                    disabled={isCreating}
+                    className="w-full text-left px-3 py-3 md:py-2 rounded-xl text-sm md:text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 mt-2 border border-emerald-500/20"
+                  >
+                    {isCreating ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Plus size={14} />
+                    )}
+                    Create "{inputValue.trim()}"
+                  </button>
+                )}
+              </div>
             </div>
-          </div>,
-          document.body, // <-- Teleports HTML directly to the end of the webpage
+          </>,
+          document.body,
         )}
     </div>
   );

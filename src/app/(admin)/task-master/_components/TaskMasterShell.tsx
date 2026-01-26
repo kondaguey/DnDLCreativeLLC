@@ -496,7 +496,7 @@ export default function TaskMasterShell({
         <SidebarNav activeView={activeView} onChange={handleSwitchView} />
         <main className={styles.workspace}>
           <header className={styles.header}>
-            <div className={styles.headerTitleBlock}>
+            <div className={`${styles.headerTitleBlock} flex flex-col min-w-0 pr-4`}>
               <div className={styles.subtitle}>DnDL Creative LLC</div>
               <h1 className={styles.title}>
                 {activeView === "task"
