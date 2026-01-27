@@ -30,15 +30,17 @@
 
 .atmosphereBlob {
   position: absolute;
-  border-radius: 9999px;
-  filter: blur(10rem);
+  /* Removed border-radius & blur - Using radial-gradient for performance */
+  /* border-radius: 9999px; */
+  /* filter: blur(10rem); */
   pointer-events: none;
-  opacity: 0.2;
+  opacity: 0.4;
+  /* Increased slightly since gradient fades out */
   animation: var(--animate-pulse);
 }
 
 .blobPurple {
-  background-color: var(--color-brand-end);
+  background: radial-gradient(circle closest-side, var(--color-brand-end), transparent);
   top: -20%;
   left: -10%;
   width: 50rem;
@@ -46,7 +48,7 @@
 }
 
 .blobTeal {
-  background-color: var(--color-primary);
+  background: radial-gradient(circle closest-side, var(--color-primary), transparent);
   bottom: -20%;
   right: -10%;
   width: 50rem;
@@ -88,8 +90,10 @@
   width: 100%;
 
   /* UPDATED: Tighter dimensions */
-  max-width: 26rem; /* Was 33rem */
-  min-height: 16rem; /* Was 20rem */
+  max-width: 26rem;
+  /* Was 33rem */
+  min-height: 16rem;
+  /* Was 20rem */
 
   justify-content: space-between;
   background-color: rgba(255, 255, 255, 0.05);

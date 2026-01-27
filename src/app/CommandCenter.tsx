@@ -35,7 +35,7 @@ export default function CommandCenter() {
     <div className={styles.pageWrapper}>
       <div className={`${styles.atmosphereBlob} ${styles.blobPurple}`} />
       <div className={`${styles.atmosphereBlob} ${styles.blobTeal}`} />
-      <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[400px] h-[400px] pointer-events-none" style={{ background: "radial-gradient(closest-side, rgba(59, 130, 246, 0.1), transparent)" }} />
 
       <div className="max-w-7xl w-full relative z-10">
         <div className="text-center mb-16">
