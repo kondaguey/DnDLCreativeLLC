@@ -220,27 +220,50 @@ export default function IdeaBoard({
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-32 w-full">
       {/* 1. TOP CONTROL BAR */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 w-full py-2 md:bg-[#020617]/50 md:backdrop-blur-md -mx-4 px-4 md:-mx-6 md:px-6 md:border-b border-white/5">
-        {/* TABS */}
-        <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 bg-black/20 p-1 rounded-xl border border-white/5 overflow-x-auto no-scrollbar max-w-full">
-          <button
-            onClick={() => setActiveTab("sparks")}
-            className={`px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "sparks" ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "text-slate-500 hover:text-white"}`}
-          >
-            <Zap size={14} fill={activeTab === "sparks" ? "currentColor" : "none"} /> Sparks
-          </button>
-          <button
-            onClick={() => setActiveTab("solidified")}
-            className={`px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "solidified" ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" : "text-slate-500 hover:text-white"}`}
-          >
-            <BrainCircuit size={14} /> Incubator
-          </button>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {/* TABS */}
+          <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 bg-black/20 p-1 rounded-xl border border-white/5 overflow-x-auto no-scrollbar max-w-full">
+            <button
+              onClick={() => setActiveTab("sparks")}
+              className={`px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "sparks" ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "text-slate-500 hover:text-white"}`}
+            >
+              <Zap size={14} fill={activeTab === "sparks" ? "currentColor" : "none"} /> Sparks
+            </button>
+            <button
+              onClick={() => setActiveTab("solidified")}
+              className={`px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "solidified" ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" : "text-slate-500 hover:text-white"}`}
+            >
+              <BrainCircuit size={14} /> Incubator
+            </button>
+          </div>
+
+          {/* SEARCH BAR (MOVED HERE) */}
+          <div className="relative group w-full md:w-48 hidden md:block">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors"
+              size={14}
+            />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="w-full bg-black/20 border border-white/5 hover:border-white/10 focus:border-cyan-500/50 rounded-lg py-2 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* TIMELINE & VIEW TOGGLE */}
-        {/* TIMELINE & VIEW TOGGLE */}
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto min-w-0">
-          {/* SEARCH BAR */}
-          <div className="relative group w-full md:w-48">
+          {/* MOBILE SEARCH BAR (Visible only on mobile) */}
+          <div className="relative group w-full md:hidden">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors"
               size={14}

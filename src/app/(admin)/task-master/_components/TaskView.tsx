@@ -313,21 +313,21 @@ export default function TaskView({
         {/* --- ACTIVE TASKS COMMAND BAR --- */}
         {activeTasks.length > 0 && (
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-white/5 pb-3">
-            <button
-              onClick={() => setShowActive(!showActive)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-black uppercase tracking-widest text-xs rounded-lg transition-all border border-purple-500/20 w-full md:w-auto justify-center md:justify-start"
-            >
-              {showActive ? (
-                <ChevronDown size={14} />
-              ) : (
-                <ChevronRight size={14} />
-              )}
-              Active Queue ({activeTasks.length})
-            </button>
-
             <div className="flex items-center gap-3 w-full md:w-auto">
-              {/* SEARCH BAR */}
-              <div className="relative group flex-1 md:w-48">
+              <button
+                onClick={() => setShowActive(!showActive)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-black uppercase tracking-widest text-xs rounded-lg transition-all border border-purple-500/20 w-full md:w-auto justify-center md:justify-start"
+              >
+                {showActive ? (
+                  <ChevronDown size={14} />
+                ) : (
+                  <ChevronRight size={14} />
+                )}
+                Active Queue ({activeTasks.length})
+              </button>
+
+              {/* SEARCH BAR (MOVED HERE) */}
+              <div className="relative group w-full md:w-48 hidden md:block">
                 <Search
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors"
                   size={14}
@@ -347,7 +347,30 @@ export default function TaskView({
                   </button>
                 )}
               </div>
+            </div>
 
+            <div className="flex items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
+              {/* MOBILE SEARCH BAR */}
+              <div className="relative group w-full md:hidden">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors"
+                  size={14}
+                />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-purple-500/50 rounded-xl py-1.5 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
               {/* VIEW TOGGLE */}
               <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shrink-0">
                 <button
@@ -383,7 +406,8 @@ export default function TaskView({
               </div>
             </div>
           </div>
-        )}
+        )
+        }
 
         {/* --- ACTIVE TASKS SECTION --- */}
         {showActive && activeTasks.length > 0 && (

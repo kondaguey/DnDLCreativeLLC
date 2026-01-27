@@ -206,9 +206,54 @@ export default function LedgerView({
       <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-4 md:p-5 mb-8 shadow-2xl space-y-4">
         {/* TOP ROW */}
         <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-          <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-            {/* SEARCH BAR */}
-            <div className="relative group w-full md:w-64">
+          <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-1">
+            {/* PRIORITY TABS + SEARCH */}
+            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar mask-linear-fade">
+              {/* SEARCH BAR (MOVED HERE) - Desktop */}
+              <div className="relative group w-48 hidden md:block shrink-0">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors"
+                  size={14}
+                />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full bg-black/40 border border-white/10 hover:border-white/20 focus:border-purple-500 rounded-xl py-2 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide shadow-inner"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0 ml-2">
+                <AlertTriangle size={12} /> Priority:
+              </span>
+              {["all", "critical", "high", "normal", "low"].map((prio) => (
+                <button
+                  key={prio}
+                  onClick={() => setFilterPriority(prio)}
+                  className={`shrink-0 px-4 py-3 md:px-3 md:py-1.5 rounded-xl text-xs md:text-[10px] font-black uppercase tracking-wider transition-all shadow-inner ${filterPriority === prio
+                    ? prio === "critical"
+                      ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                      : prio === "high"
+                        ? "bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]"
+                        : "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                    : "bg-black/40 text-slate-400 border border-white/5 hover:text-white"
+                    }`}
+                >
+                  {prio}
+                </button>
+              ))}
+            </div>
+
+            {/* MOBILE SEARCH (Visible only on mobile) */}
+            <div className="relative group w-full md:hidden">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors"
                 size={14}
@@ -228,45 +273,22 @@ export default function LedgerView({
                 </button>
               )}
             </div>
-
-            <div className="flex items-center gap-2 min-w-[140px]">
-              <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0">
-                <SortAsc size={12} /> Sort:
-              </span>
-              <select
-                value={ledgerSort}
-                onChange={(e) => setLedgerSort(e.target.value as any)}
-                className="bg-black/40 border border-white/10 rounded-xl text-base md:text-xs text-slate-200 px-4 py-3 md:py-2 focus:outline-none focus:border-purple-500 w-full transition-colors shadow-inner font-bold tracking-wide"
-              >
-                <option value="priority">By Urgency</option>
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="manual">Manual Order</option>
-              </select>
-            </div>
           </div>
 
-          {/* PRIORITY TABS */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade">
+          <div className="flex items-center gap-2 min-w-[140px]">
             <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0">
-              <AlertTriangle size={12} /> Priority:
+              <SortAsc size={12} /> Sort:
             </span>
-            {["all", "critical", "high", "normal", "low"].map((prio) => (
-              <button
-                key={prio}
-                onClick={() => setFilterPriority(prio)}
-                className={`shrink-0 px-4 py-3 md:px-3 md:py-1.5 rounded-xl text-xs md:text-[10px] font-black uppercase tracking-wider transition-all shadow-inner ${filterPriority === prio
-                  ? prio === "critical"
-                    ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
-                    : prio === "high"
-                      ? "bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]"
-                      : "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                  : "bg-black/40 text-slate-400 border border-white/5 hover:text-white"
-                  }`}
-              >
-                {prio}
-              </button>
-            ))}
+            <select
+              value={ledgerSort}
+              onChange={(e) => setLedgerSort(e.target.value as any)}
+              className="bg-black/40 border border-white/10 rounded-xl text-base md:text-xs text-slate-200 px-4 py-3 md:py-2 focus:outline-none focus:border-purple-500 w-full transition-colors shadow-inner font-bold tracking-wide"
+            >
+              <option value="priority">By Urgency</option>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="manual">Manual Order</option>
+            </select>
           </div>
         </div>
 

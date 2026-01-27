@@ -167,29 +167,8 @@ export default function ResourceGrid({
   return (
     <div className="w-full">
       {/* SEARCH BAR & TIMELINE SCROLLER */}
+      {/* SEARCH BAR & TIMELINE SCROLLER */}
       <div className="flex flex-col md:flex-row items-center gap-4 mb-8">
-        {/* SEARCH BAR */}
-        <div className="relative group w-full md:w-64">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors"
-            size={14}
-          />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search Resources..."
-            className="w-full bg-black/20 border border-white/5 hover:border-white/10 focus:border-cyan-500/50 rounded-xl py-2 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide shadow-inner"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
-            >
-              <X size={12} />
-            </button>
-          )}
-        </div>
-
         {/* TIMELINE SCROLLER */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade pb-2 w-full md:w-auto">
           <button
@@ -214,6 +193,29 @@ export default function ResourceGrid({
             </button>
           ))}
         </div>
+
+        {/* SEARCH BAR */}
+        <div className="relative group w-full md:w-64">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors"
+            size={14}
+          />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search Resources..."
+            className="w-full bg-black/20 border border-white/5 hover:border-white/10 focus:border-cyan-500/50 rounded-xl py-2 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide shadow-inner"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
       </div>
 
       <div className="pb-24 md:pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -264,7 +266,7 @@ export default function ResourceGrid({
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }
 
