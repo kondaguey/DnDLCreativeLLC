@@ -29,7 +29,9 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  CalendarDays,
 } from "lucide-react";
+import { useMemo } from "react";
 
 import {
   DndContext,
@@ -96,8 +98,31 @@ export default function LedgerView({
   >("priority");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
+  const [activePeriod, setActivePeriod] = useState<string>("all");
+  const [showCompleted, setShowCompleted] = useState(false);
 
-  const filteredItems = items
+  // --- TIMELINE LOGIC ---
+  const timeline = useMemo(() => {
+    const periods = new Set<string>();
+    items.forEach((item) => {
+      // Ledger items use created_at
+      const date = new Date(item.created_at);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      periods.add(key);
+    });
+    return Array.from(periods).sort().reverse();
+  }, [items]);
+
+  const formatPeriod = (key: string) => {
+    const [year, month] = key.split("-");
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      year: "2-digit",
+    });
+  };
+
+  const processedItems = items
     .filter((item) => {
       if (item.status === "archived") return false;
 
@@ -107,6 +132,13 @@ export default function LedgerView({
       if (filterPriority !== "all" && itemPriority !== filterPriority)
         return false;
       if (filterType !== "all" && itemType !== filterType) return false;
+
+      // Date Filter
+      if (activePeriod !== "all") {
+        const date = new Date(item.created_at);
+        const itemKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        if (itemKey !== activePeriod) return false;
+      }
 
       return true;
     })
@@ -140,6 +172,9 @@ export default function LedgerView({
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     });
+
+  const activeTickets = processedItems.filter((i) => i.status !== "completed");
+  const completedTickets = processedItems.filter((i) => i.status === "completed");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -227,9 +262,39 @@ export default function LedgerView({
             </button>
           ))}
         </div>
+
+        <div className="h-px bg-white/5 w-full" />
+
+        {/* TIMELINE TABS */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade pb-1">
+          <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0">
+            <CalendarDays size={12} /> Date:
+          </span>
+          <button
+            onClick={() => setActivePeriod("all")}
+            className={`shrink-0 px-4 py-2 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === "all"
+              ? "bg-white text-black shadow-lg shadow-white/20"
+              : "bg-white/5 text-slate-400 hover:text-white"
+              }`}
+          >
+            All Time
+          </button>
+          {timeline.map((period) => (
+            <button
+              key={period}
+              onClick={() => setActivePeriod(period)}
+              className={`shrink-0 px-4 py-2 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === period
+                ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
+                : "bg-white/5 text-slate-400 hover:text-white"
+                }`}
+            >
+              {formatPeriod(period)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {filteredItems.length === 0 ? (
+      {activeTickets.length === 0 && completedTickets.length === 0 ? (
         <div className="text-center py-20 opacity-30 animate-in fade-in zoom-in-95">
           <CheckCircle2 size={48} className="mx-auto mb-4 text-emerald-500" />
           <p className="text-sm font-bold uppercase tracking-widest text-white">
@@ -243,11 +308,11 @@ export default function LedgerView({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={filteredItems.map((i) => i.id)}
+            items={activeTickets.map((i) => i.id)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-4 pb-20 w-full">
-              {filteredItems.map((item, index) => (
+              {activeTickets.map((item, index) => (
                 <SortableItem
                   key={item.id}
                   id={item.id}
@@ -258,7 +323,7 @@ export default function LedgerView({
                     allSystemTags={allSystemTags}
                     isManualSort={ledgerSort === "manual"}
                     isFirst={index === 0}
-                    isLast={index === filteredItems.length - 1}
+                    isLast={index === activeTickets.length - 1}
                     onUpdateMetadata={onUpdateMetadata}
                     onUpdateTitle={onUpdateTitle}
                     onUpdateTags={onUpdateTags}
@@ -276,6 +341,51 @@ export default function LedgerView({
               ))}
             </div>
           </SortableContext>
+
+          {/* COMPLETED SECTION */}
+          {completedTickets.length > 0 && (
+            <div className="mt-8 border-t border-white/10 pt-8 opacity-80">
+              <button
+                onClick={() => setShowCompleted(!showCompleted)}
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors mb-6"
+              >
+                {showCompleted ? (
+                  <ChevronDown size={14} />
+                ) : (
+                  <ChevronRight size={14} />
+                )}
+                Completed Entries ({completedTickets.length})
+              </button>
+
+              {showCompleted && (
+                <div className="space-y-4">
+                  {completedTickets.map((item) => (
+                    <div key={item.id} className="opacity-60 hover:opacity-100 transition-opacity">
+                      <TicketCard
+                        item={item}
+                        allSystemTags={allSystemTags}
+                        isManualSort={false} // Disable Sort for Completed
+                        isFirst={false}
+                        isLast={false}
+                        onUpdateMetadata={onUpdateMetadata}
+                        onUpdateTitle={onUpdateTitle}
+                        onUpdateTags={onUpdateTags}
+                        onDelete={onDelete}
+                        onToggleStatus={onToggleStatus}
+                        onArchive={onArchive}
+                        onEdit={onEdit}
+                        onManualMove={onManualMove}
+                        onAddSubtask={onAddSubtask}
+                        onToggleSubtask={onToggleSubtask}
+                        onDeleteSubtask={onDeleteSubtask}
+                        onReorderSubtask={onReorderSubtask}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </DndContext>
       )}
     </div>
@@ -412,14 +522,14 @@ function TicketCard({
 
   return (
     <div
-      className={`group relative flex flex-col md:flex-row gap-4 rounded-3xl backdrop-blur-xl border border-white/5 transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 ${priorityColors[priority as keyof typeof priorityColors]} border-l-4 w-full p-5 md:p-6`}
+      className={`group relative flex flex-col gap-3 md:gap-4 rounded-2xl md:rounded-3xl backdrop-blur-xl border border-white/5 transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 ${priorityColors[priority as keyof typeof priorityColors]} border-l-4 w-full p-3 md:p-6`}
     >
       {/* LEFT: STATUS */}
-      <div className="flex flex-row md:flex-col items-center gap-3 shrink-0">
+      <div className="flex flex-row items-center gap-2 md:gap-3 shrink-0">
         {/* DRAG HANDLE */}
         {isManualSort && (
           <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing">
-            <GripVertical size={20} />
+            <GripVertical size={16} className="md:w-5 md:h-5" />
           </DragHandle>
         )}
 
@@ -428,38 +538,38 @@ function TicketCard({
             e.stopPropagation();
             onToggleStatus(item.id, item.status);
           }}
-          className={`w-6 h-6 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center transition-all shadow-inner ${isCompleted ? "bg-emerald-500 border-emerald-500 text-slate-900" : "border-slate-500 hover:border-emerald-500 text-transparent"}`}
+          className={`w-5 h-5 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center transition-all shadow-inner ${isCompleted ? "bg-emerald-500 border-emerald-500 text-slate-900" : "border-slate-500 hover:border-emerald-500 text-transparent"}`}
         >
-          <CheckCircle2 size={14} />
+          <CheckCircle2 size={12} className="md:w-3.5 md:h-3.5" />
         </button>
       </div>
 
       {/* CENTER: CONTENT */}
-      <div className="flex-1 min-w-0 flex flex-col gap-3 w-full">
+      <div className="flex-1 min-w-0 flex flex-col gap-2 md:gap-3 w-full">
         {/* Header Row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col md:flex-row md:items-center gap-2 md:justify-between">
+          <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
             <div
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border ${typeConfig.bg} ${typeConfig.color} ${typeConfig.border}`}
+              className={`flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[9px] md:text-[10px] font-black uppercase tracking-widest border ${typeConfig.bg} ${typeConfig.color} ${typeConfig.border}`}
             >
-              <Icon size={12} /> {typeConfig.label}
+              <Icon size={10} className="md:w-3 md:h-3" /> {typeConfig.label}
             </div>
             {priority !== "normal" && priority !== "low" && (
               <div
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border bg-black/40 ${priority === "critical" ? "text-rose-500 border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]" : "text-orange-400 border-orange-500/50"}`}
+                className={`flex items-center gap-0.5 md:gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[9px] md:text-[10px] font-black uppercase tracking-widest border bg-black/40 ${priority === "critical" ? "text-rose-500 border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]" : "text-orange-400 border-orange-500/50"}`}
               >
-                <AlertTriangle size={12} /> {priority}
+                <AlertTriangle size={10} className="md:w-3 md:h-3" /> {priority}
               </div>
             )}
           </div>
-          <span className="text-[9px] font-mono text-slate-500 bg-black/40 px-2 py-1 rounded-md flex items-center gap-1 whitespace-nowrap shrink-0 border border-white/5">
-            <Clock size={10} /> {dateStr}
+          <span className="text-[9px] font-mono text-slate-500 bg-black/40 px-2 py-1 rounded-md flex items-center gap-1 whitespace-nowrap shrink-0 border border-white/5 w-fit">
+            <Clock size={9} className="md:w-2.5 md:h-2.5" /> {dateStr}
           </span>
         </div>
 
         {isLocked ? (
           <h3
-            className={`text-sm md:text-xl font-black w-full min-w-0 pb-1 cursor-pointer transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}
+            className={`text-xs md:text-xl font-black w-full min-w-0 pb-1 cursor-pointer transition-colors leading-tight ${isCompleted ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}
             onClick={(e) => {
               e.stopPropagation();
               setExpanded(!expanded);
@@ -478,13 +588,13 @@ function TicketCard({
             }}
             onPointerDown={stopProp}
             onKeyDown={stopProp}
-            className={`bg-transparent text-sm md:text-xl font-black w-full min-w-0 focus:outline-none focus:border-b focus:border-purple-500/50 pb-1 transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100"}`}
+            className={`bg-transparent text-xs md:text-xl font-black w-full min-w-0 focus:outline-none focus:border-b focus:border-purple-500/50 pb-1 transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100"}`}
             autoFocus
           />
         )}
 
         {/* TAGS & CONTROLS ROW */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 mt-1 w-full">
+        <div className="flex flex-col gap-2 md:gap-3 mt-1 w-full">
           <div
             className="flex-1 overflow-x-auto no-scrollbar mask-linear-fade w-full"
             onPointerDown={stopProp}
@@ -498,59 +608,61 @@ function TicketCard({
             )}
           </div>
 
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded(!expanded);
-            }}
-            className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all w-fit rounded-md select-none shrink-0 border border-transparent px-2 py-1 ${expanded
-              ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
-              : "text-slate-500 hover:text-white"
-              }`}
-          >
-            {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            {totalSub > 0 ? (
-              <>
-                {completedSub}/{totalSub} Subtasks
-              </>
-            ) : (
-              "Add Subtasks"
-            )}
-          </div>
-
-          <div className="flex gap-2 shrink-0">
-            <select
-              value={type}
-              onChange={(e) => handleMetaChange("ticket_type", e.target.value)}
-              className="appearance-none bg-black/40 text-base md:text-xs font-bold uppercase tracking-wider text-slate-400 border border-white/10 rounded-xl px-3 py-2 md:px-2 md:py-1 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center"
+          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 w-full">
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              className={`flex items-center gap-1 text-[9px] md:text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all w-full md:w-fit rounded-md select-none shrink-0 border border-transparent px-2 py-1.5 md:py-1 ${expanded
+                ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                : "text-slate-500 hover:text-white bg-white/5"
+                }`}
             >
-              <option value="task">Task</option>
-              <option value="bug">Bug</option>
-              <option value="feature">Feature</option>
-              <option value="refactor">Refactor</option>
-              <option value="security">Security</option>
-              <option value="performance">Perf</option>
-              <option value="design">Design</option>
-              <option value="devops">DevOps</option>
-            </select>
+              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              {totalSub > 0 ? (
+                <>
+                  {completedSub}/{totalSub} Subtasks
+                </>
+              ) : (
+                "Add Subtasks"
+              )}
+            </div>
 
-            <select
-              value={priority}
-              onChange={(e) => handleMetaChange("priority", e.target.value)}
-              className={`appearance-none bg-black/40 text-base md:text-xs font-bold uppercase tracking-wider border border-white/10 rounded-xl px-3 py-2 md:px-2 md:py-1 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center
-                  ${priority === "critical"
-                  ? "text-rose-400"
-                  : priority === "high"
-                    ? "text-orange-400"
-                    : "text-slate-400"
-                }
-              `}
-            >
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </select>
+            <div className="flex gap-2 w-full md:w-auto">
+              <select
+                value={type}
+                onChange={(e) => handleMetaChange("ticket_type", e.target.value)}
+                className="appearance-none bg-black/40 text-xs md:text-xs font-bold uppercase tracking-wider text-slate-400 border border-white/10 rounded-xl px-2 py-2 md:px-2 md:py-1 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center flex-1 md:flex-initial"
+              >
+                <option value="task">Task</option>
+                <option value="bug">Bug</option>
+                <option value="feature">Feature</option>
+                <option value="refactor">Refactor</option>
+                <option value="security">Security</option>
+                <option value="performance">Perf</option>
+                <option value="design">Design</option>
+                <option value="devops">DevOps</option>
+              </select>
+
+              <select
+                value={priority}
+                onChange={(e) => handleMetaChange("priority", e.target.value)}
+                className={`appearance-none bg-black/40 text-xs md:text-xs font-bold uppercase tracking-wider border border-white/10 rounded-xl px-2 py-2 md:px-2 md:py-1 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center flex-1 md:flex-initial
+                    ${priority === "critical"
+                    ? "text-rose-400"
+                    : priority === "high"
+                      ? "text-orange-400"
+                      : "text-slate-400"
+                  }
+                `}
+              >
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
           </div>
         </div>
 

@@ -39,8 +39,14 @@ function LoginContent() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900 px-4">
       {/* Background Orbs */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-teal-500/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[120px] pointer-events-none" />
+      <div
+        className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] pointer-events-none"
+        style={{ background: "radial-gradient(circle closest-side, rgba(20, 184, 166, 0.2), transparent)" }}
+      />
+      <div
+        className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] pointer-events-none"
+        style={{ background: "radial-gradient(circle closest-side, rgba(168, 85, 247, 0.2), transparent)" }}
+      />
 
       <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/10 p-10 rounded-[2rem] shadow-2xl relative z-10">
         <div className="flex justify-center mb-8">

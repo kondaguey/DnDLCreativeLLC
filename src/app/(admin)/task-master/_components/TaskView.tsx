@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   CheckSquare,
@@ -35,6 +35,7 @@ import {
   Flag, // <--- NEW ICON FOR PRIORITY
   Lock,
   Unlock,
+  CalendarDays,
 } from "lucide-react";
 import { TaskItem, RecurrenceType, SortOption } from "./types";
 import TagManager from "./TagManager";
@@ -136,9 +137,35 @@ export default function TaskView({
   const [showActive, setShowActive] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid" | "compact">("list");
+  const [activePeriod, setActivePeriod] = useState<string>("all");
 
   const safeItems = items || [];
   const safeFilterTags = filterTags || [];
+
+  // Date helper function
+  const getEffectiveDate = (item: TaskItem): Date => {
+    return item.due_date ? new Date(item.due_date) : new Date(item.created_at);
+  };
+
+  // Timeline generation
+  const timeline = useMemo(() => {
+    const periods = new Set<string>();
+    safeItems.forEach((item) => {
+      const date = getEffectiveDate(item);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      periods.add(key);
+    });
+    return Array.from(periods).sort().reverse();
+  }, [safeItems]);
+
+  const formatPeriod = (key: string) => {
+    const [year, month] = key.split("-");
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      year: "2-digit",
+    });
+  };
 
   const filteredItems = safeItems
     .filter((item) => {
@@ -150,6 +177,14 @@ export default function TaskView({
       const matchesTags =
         safeFilterTags.length === 0 ||
         safeFilterTags.every((t) => itemTags.includes(t));
+
+      // Date filter
+      if (activePeriod !== "all") {
+        const date = getEffectiveDate(item);
+        const itemKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        if (itemKey !== activePeriod) return false;
+      }
+
       return matchesTab && matchesTags;
     })
     .sort((a, b) => {
@@ -227,6 +262,34 @@ export default function TaskView({
           onClick={onRecurrenceChange}
           icon={<Archive size={14} />}
         />
+      </div>
+
+      {/* DATE TIMELINE TABS */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar mask-linear-fade pb-2 px-1">
+        <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0">
+          <CalendarDays size={12} /> Date:
+        </span>
+        <button
+          onClick={() => setActivePeriod("all")}
+          className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === "all"
+            ? "bg-white text-black shadow-lg shadow-white/20"
+            : "bg-white/5 text-slate-400 hover:text-white"
+            }`}
+        >
+          All Time
+        </button>
+        {timeline.map((period) => (
+          <button
+            key={period}
+            onClick={() => setActivePeriod(period)}
+            className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === period
+              ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
+              : "bg-white/5 text-slate-400 hover:text-white"
+              }`}
+          >
+            {formatPeriod(period)}
+          </button>
+        ))}
       </div>
 
       <div className="flex-1 px-1 pt-2">

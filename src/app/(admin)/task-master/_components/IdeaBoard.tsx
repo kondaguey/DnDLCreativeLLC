@@ -208,7 +208,7 @@ export default function IdeaBoard({
       {/* 1. TOP CONTROL BAR */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 w-full py-2 md:bg-[#020617]/50 md:backdrop-blur-md -mx-4 px-4 md:-mx-6 md:px-6 md:border-b border-white/5">
         {/* TABS */}
-        <div className="flex items-center gap-2 md:gap-4 bg-black/20 p-1 rounded-xl border border-white/5 overflow-x-auto no-scrollbar max-w-full">
+        <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 bg-black/20 p-1 rounded-xl border border-white/5 overflow-x-auto no-scrollbar max-w-full">
           <button
             onClick={() => setActiveTab("sparks")}
             className={`px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "sparks" ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "text-slate-500 hover:text-white"}`}
@@ -249,6 +249,34 @@ export default function IdeaBoard({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* DATE TIMELINE TABS */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar mask-linear-fade pb-2">
+        <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest shrink-0">
+          <Clock size={12} className="mr-1" /> Date:
+        </span>
+        <button
+          onClick={() => setActivePeriod("all")}
+          className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === "all"
+            ? "bg-white text-black shadow-lg shadow-white/20"
+            : "bg-white/5 text-slate-400 hover:text-white"
+            }`}
+        >
+          All Time
+        </button>
+        {timeline.map((period) => (
+          <button
+            key={period}
+            onClick={() => setActivePeriod(period)}
+            className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === period
+              ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20"
+              : "bg-white/5 text-slate-400 hover:text-white"
+              }`}
+          >
+            {formatPeriod(period)}
+          </button>
+        ))}
       </div>
 
       <DndContext

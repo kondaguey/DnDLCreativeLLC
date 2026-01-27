@@ -386,7 +386,7 @@ function ResourceCard({
         <div className="flex-1 min-w-0 space-y-2">
           {/* TITLE INPUT */}
           {isLocked ? (
-            <h3 className="text-sm md:text-lg font-black text-slate-100 w-full truncate cursor-default">
+            <h3 className="text-xs md:text-lg font-black text-slate-100 w-full line-clamp-2 md:truncate cursor-default">
               {title}
             </h3>
           ) : (
@@ -396,7 +396,7 @@ function ResourceCard({
               onBlur={() => {
                 if (title !== item.title) onUpdateTitle(item.id, title);
               }}
-              className="bg-black/40 rounded px-2 py-0.5 text-sm md:text-lg font-black text-slate-100 w-full focus:outline-none placeholder:text-slate-600 truncate border border-cyan-500/30"
+              className="bg-black/40 rounded px-2 py-0.5 text-xs md:text-lg font-black text-slate-100 w-full focus:outline-none placeholder:text-slate-600 border border-cyan-500/30"
               placeholder="Resource Title..."
               autoFocus
             />
@@ -469,7 +469,7 @@ function ResourceCard({
       </div>
 
       {/* NOTES BODY */}
-      <div className="flex-1 p-5 pt-3 min-h-[120px] relative">
+      <div className="flex-1 p-5 pt-3 min-h-[100px] md:min-h-[120px] relative">
         <textarea
           value={content}
           readOnly={isLocked}
@@ -477,7 +477,7 @@ function ResourceCard({
           onBlur={() => {
             if (content !== item.content) onUpdateContent(item.id, content);
           }}
-          className={`w-full h-full rounded-xl p-4 text-base md:text-sm text-slate-300 focus:text-white focus:outline-none resize-none transition-colors border shadow-inner leading-relaxed ${isLocked ? "bg-transparent border-transparent" : "bg-black/40 border-white/10 focus:border-cyan-500/50"}`}
+          className={`w-full h-full rounded-xl p-3 md:p-4 text-sm md:text-sm text-slate-300 focus:text-white focus:outline-none resize-none transition-colors border shadow-inner leading-relaxed ${isLocked ? "bg-transparent border-transparent" : "bg-black/40 border-white/10 focus:border-cyan-500/50"}`}
           placeholder={isLocked ? "No content." : "Add context, takeaways, or research..."}
         />
       </div>
