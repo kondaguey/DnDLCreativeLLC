@@ -17,11 +17,13 @@ interface TagManagerProps {
   selectedTags: string[];
   allSystemTags: string[];
   onUpdateTags: (newTags: string[]) => void;
+  disabled?: boolean;
 }
 export default function TagManager({
   selectedTags = [],
   allSystemTags = [],
   onUpdateTags,
+  disabled = false,
 }: TagManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -155,9 +157,10 @@ export default function TagManager({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onUpdateTags(selectedTags.filter((t) => t !== tag));
+                if (!disabled) onUpdateTags(selectedTags.filter((t) => t !== tag));
               }}
-              className="hover:text-white transition-colors"
+              className={`transition-colors ${disabled ? "opacity-50 cursor-not-allowed" : "hover:text-white"}`}
+              disabled={disabled}
             >
               <X size={12} />
             </button>
@@ -169,10 +172,11 @@ export default function TagManager({
             e.stopPropagation();
             isOpen ? setIsOpen(false) : openDropdown();
           }}
-          className={`flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 md:px-2 md:py-1 rounded-lg border transition-all shadow-inner ${isOpen
+          className={`flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 md:px-2 md:py-1 rounded-lg border transition-all shadow-inner ${disabled ? "opacity-50 cursor-not-allowed bg-white/5 border-white/10 text-slate-500" : isOpen
             ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
             : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
             }`}
+          disabled={disabled}
         >
           <Tag size={12} />
           {selectedTags.length === 0 ? "Add Tag" : "Add"}

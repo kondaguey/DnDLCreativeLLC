@@ -483,6 +483,60 @@ export default function TaskMasterShell({
       .eq("id", parentId);
   };
 
+  const handleManualSubtaskMove = async (
+    parentId: string,
+    subtaskId: string,
+    direction: "up" | "down"
+  ) => {
+    const parent = items.find((i) => i.id === parentId);
+    if (!parent || !parent.subtasks) return;
+
+    const index = parent.subtasks.findIndex((s: any) => s.id === subtaskId);
+    if (index === -1) return;
+
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= parent.subtasks.length) return;
+
+    const newSubtasks = [...parent.subtasks];
+    const temp = newSubtasks[index];
+    newSubtasks[index] = newSubtasks[targetIndex];
+    newSubtasks[targetIndex] = temp;
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === parentId ? { ...i, subtasks: newSubtasks } : i
+      )
+    );
+
+    await supabase
+      .from("task_master_items")
+      .update({ subtasks: newSubtasks })
+      .eq("id", parentId);
+  };
+
+  const handleUpdateSubtaskTitle = async (
+    parentId: string,
+    subtaskId: string,
+    newTitle: string
+  ) => {
+    const parent = items.find((i) => i.id === parentId);
+    if (!parent || !parent.subtasks) return;
+
+    const updatedSubtasks = parent.subtasks.map((sub: any) =>
+      sub.id === subtaskId ? { ...sub, title: newTitle } : sub,
+    );
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === parentId ? { ...i, subtasks: updatedSubtasks } : i,
+      ),
+    );
+    await supabase
+      .from("task_master_items")
+      .update({ subtasks: updatedSubtasks })
+      .eq("id", parentId);
+  };
+
   // --- VIEW FILTERING ---
   const currentViewItems = items.filter((item) => {
     if (activeView === "resource")
@@ -618,10 +672,13 @@ export default function TaskMasterShell({
                 onUpdateMetadata={(id, meta) =>
                   handleUpdate(id, "metadata", meta)
                 }
+                onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
                 onManualMove={handleManualMove}
-                onEdit={requestEdit}
+
                 onToggleSubtask={handleToggleSubtask}
                 onDeleteSubtask={handleDeleteSubtask}
+                onReorderSubtask={handleManualSubtaskMove}
+                onUpdateSubtaskTitle={handleUpdateSubtaskTitle}
                 // --- PASSING THE ID INSTEAD OF THE OBJECT ---
                 onOpenRecurring={(item) => setRecurringItemId(item.id)}
               />
@@ -677,7 +734,6 @@ export default function TaskMasterShell({
                 onReorder={handleReorder}
                 onArchive={(id) => handleUpdate(id, "status", "archived")}
                 onManualMove={handleManualMove}
-                onEdit={requestEdit}
               />
             )}
             {activeView === "level_up" && (
@@ -718,7 +774,6 @@ export default function TaskMasterShell({
                   onArchive={(id) => handleUpdate(id, "status", "archived")}
                   onReorder={handleReorder}
                   onManualMove={handleManualMove}
-                  onEdit={requestEdit}
                 />
               )}
           </div>

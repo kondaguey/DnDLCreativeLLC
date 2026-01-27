@@ -33,6 +33,8 @@ import {
   List,
   StretchVertical, // <--- NEW ICON FOR LIST VIEW
   Flag, // <--- NEW ICON FOR PRIORITY
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { TaskItem, RecurrenceType, SortOption } from "./types";
 import TagManager from "./TagManager";
@@ -79,6 +81,7 @@ interface TaskViewProps {
   onUpdateRecurrence: (id: string, recurrence: RecurrenceType) => void;
   onUpdatePriority: (id: string, priority: string) => void;
   onUpdateMetadata: (id: string, metadata: any) => void; // <--- ADDED: Needed for the Punch Card logic
+  onUpdateTitle?: (id: string, title: string) => void;
   onManualMove?: (id: string, direction: "up" | "down") => void;
   onReorderSubtask?: (
     parentId: string,
@@ -86,6 +89,11 @@ interface TaskViewProps {
     direction: "up" | "down",
   ) => void;
   onEdit?: (item: TaskItem) => void;
+  onUpdateSubtaskTitle?: (
+    parentId: string,
+    subtaskId: string,
+    newTitle: string,
+  ) => void;
 
   onToggleSubtask: (
     parentId: string,
@@ -115,11 +123,14 @@ export default function TaskView({
   onUpdateRecurrence,
   onUpdatePriority,
   onUpdateMetadata, // <--- Destructured
+  onUpdateTitle,
   onManualMove,
   onReorderSubtask,
   onEdit,
   onToggleSubtask,
   onDeleteSubtask,
+  onUpdateSubtaskTitle,
+
   onOpenRecurring,
 }: TaskViewProps) {
   const [showActive, setShowActive] = useState(true);
@@ -319,12 +330,14 @@ export default function TaskView({
                       onUpdateContent={onUpdateContent}
                       onUpdateRecurrence={onUpdateRecurrence}
                       onUpdatePriority={onUpdatePriority}
-                      onUpdateMetadata={onUpdateMetadata} // <--- PASSING DOWN
+                      onUpdateMetadata={onUpdateMetadata}
+                      onUpdateTitle={onUpdateTitle}
                       onManualMove={onManualMove}
                       onReorderSubtask={onReorderSubtask}
                       onEdit={onEdit}
                       onToggleSubtask={onToggleSubtask}
                       onDeleteSubtask={onDeleteSubtask}
+                      onUpdateSubtaskTitle={onUpdateSubtaskTitle}
                       onOpenRecurring={onOpenRecurring}
                     />
                   </SortableItem>
@@ -377,7 +390,8 @@ export default function TaskView({
                     onUpdateContent={onUpdateContent}
                     onUpdateRecurrence={onUpdateRecurrence}
                     onUpdatePriority={onUpdatePriority}
-                    onUpdateMetadata={onUpdateMetadata} // <--- PASSING DOWN
+                    onUpdateMetadata={onUpdateMetadata}
+                    onUpdateTitle={onUpdateTitle}
                     onReorderSubtask={onReorderSubtask}
                     onEdit={onEdit}
                     onToggleSubtask={onToggleSubtask}
@@ -411,17 +425,21 @@ function TaskCard({
   onUpdateRecurrence,
   onUpdatePriority,
   onUpdateMetadata, // <--- Destructured
+  onUpdateTitle,
   onManualMove,
-  onReorderSubtask,
-  onEdit,
+  onEdit, // Keeping it optional to avoid breaking existing calls but we ignore it for Protocol
   onToggleSubtask,
   onDeleteSubtask,
   onOpenRecurring,
+  onReorderSubtask,
+  onUpdateSubtaskTitle,
 }: any) {
   const [expanded, setExpanded] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [notes, setNotes] = useState(item.content || "");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isLocked, setIsLocked] = useState(true);
+  const [isHoveringLock, setIsHoveringLock] = useState(false);
 
   const priority = item.metadata?.priority || "normal";
 
@@ -520,10 +538,16 @@ function TaskCard({
   if (viewMode === "compact") {
     return (
       <div
-        className={`group flex items-center gap-3 p-2 md:p-3 rounded-xl border ${statusBorder} ${bgEffect} transition-all hover:bg-white/5`}
+        className={`group flex items-center gap-3 p-2 md:p-2.5 rounded-xl border ${statusBorder} ${bgEffect} transition-all hover:bg-white/5 relative overflow-hidden`}
       >
+        {/* PROGRESS BAR BACKGROUND */}
+        <div
+          className={`absolute bottom-0 left-0 h-0.5 transition-all duration-700 opacity-50 ${progressGradient}`}
+          style={{ width: `${progress}%` }}
+        />
+
         {isManualSort && (
-          <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing">
+          <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
             <GripVertical size={14} />
           </DragHandle>
         )}
@@ -543,63 +567,110 @@ function TaskCard({
           )}
         </button>
 
-        <div className="flex-1 min-w-0 flex items-center gap-3 overflow-hidden">
-          <span
-            className={`truncate font-bold text-sm ${item.status === "completed"
-              ? "line-through text-slate-500"
-              : "text-slate-200"
-              }`}
-            onClick={() => setExpanded(!expanded)}
-          >
-            {item.title}
-          </span>
-          <div className="hidden md:flex flex-wrap gap-1">
-            {item.tags?.slice(0, 2).map((t: string) => (
+        {/* MAIN INFO SECTION */}
+        <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] items-center gap-2 md:gap-6">
+          <div className="flex items-center gap-3 overflow-hidden">
+            {isLocked ? (
+              <span
+                className={`truncate font-bold text-sm cursor-pointer hover:underline ${item.status === "completed"
+                  ? "line-through text-slate-500"
+                  : "text-slate-200"
+                  }`}
+                onClick={() => setExpanded(!expanded)}
+              >
+                {item.title}
+              </span>
+            ) : (
+              <input
+                type="text"
+                value={item.title}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => onUpdateTitle && onUpdateTitle(item.id, e.target.value)}
+                className="bg-black/50 border border-cyan-500/50 text-cyan-300 text-sm font-bold px-2 py-0.5 rounded focus:outline-none w-full min-w-[150px]"
+                autoFocus
+              />
+            )}
+            {totalSub > 0 && (
+              <span className="text-[10px] font-mono text-slate-500 bg-black/20 px-1.5 rounded flex items-center gap-1 shrink-0">
+                <CheckSquare size={10} />
+                {completedSub}/{totalSub}
+              </span>
+            )}
+          </div>
+
+          {/* TABLET/DESKTOP EXTENDED INFO */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-[120px] md:max-w-none">
+            {item.tags?.slice(0, 4).map((t: string) => (
               <span
                 key={t}
-                className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 text-slate-400"
+                className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 text-slate-400 whitespace-nowrap"
               >
                 {t}
               </span>
             ))}
+            {item.tags?.length > 4 && (
+              <span className="text-[9px] text-slate-600">
+                +{item.tags.length - 4}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4 text-slate-500 text-[10px] md:text-xs shrink-0">
+            {item.recurrence && item.recurrence !== "one_off" && (
+              <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-purple-400/80">
+                <RefreshCcw size={10} />
+                {item.recurrence}
+              </div>
+            )}
+
+            {item.content && (
+              <div className="flex items-center gap-1 text-[10px] text-cyan-500/80">
+                <StickyNote size={10} />
+                <span className="hidden lg:inline">Notes</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 justify-end min-w-[80px] md:min-w-[120px] shrink-0">
+            {item.due_date ? (
+              <span
+                className={`text-[10px] font-mono ${statusColor === "rose" ? "text-rose-400" : "text-slate-500"
+                  }`}
+              >
+                {formatDate(item.due_date)}
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono text-slate-700">--</span>
+            )}
+            {priority !== "normal" && (
+              <PriorityBadge priority={priority} compact />
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          {priority !== "normal" && (
-            <PriorityBadge priority={priority} compact />
-          )}
-          {item.due_date && (
-            <span
-              className={`text-[10px] font-mono ${statusColor === "rose" ? "text-rose-400" : "text-slate-500"
-                }`}
-            >
-              {formatDate(item.due_date)}
-            </span>
-          )}
 
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {onEdit && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(item);
-                }}
-                className="hover:text-cyan-400 p-1"
-              >
-                <Edit2 size={14} />
-              </button>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(item.id);
-              }}
-              className="hover:text-rose-400 p-1"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
+
+
+        <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsLocked(!isLocked);
+            }}
+            className={`p-1 transition-colors ${!isLocked ? "text-cyan-400" : "text-slate-500 hover:text-white"}`}
+            title={isLocked ? "Unlock to Edit" : "Lock Task"}
+          >
+            {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item.id);
+            }}
+            className="text-slate-500 hover:text-rose-400 p-1.5"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
     );
@@ -636,15 +707,26 @@ function TaskCard({
         {/* RIGHT COLUMN: Content */}
         <div className="flex-1 min-w-0 flex flex-col h-full">
           <div className="flex justify-between items-start gap-2 mb-1">
-            <h4
-              className={`font-black text-lg md:text-base leading-tight break-words transition-all cursor-pointer select-none ${item.status === "completed" || item.status === "archived"
-                ? "line-through text-slate-600"
-                : "text-slate-100"
-                }`}
-              onClick={() => setExpanded(!expanded)}
-            >
-              {item.title}
-            </h4>
+            {isLocked ? (
+              <h4
+                className={`font-black text-sm md:text-base leading-tight break-words transition-all cursor-pointer select-none ${item.status === "completed" || item.status === "archived"
+                  ? "line-through text-slate-600"
+                  : "text-slate-100"
+                  }`}
+                onClick={() => setExpanded(!expanded)}
+              >
+                {item.title}
+              </h4>
+            ) : (
+              <input
+                type="text"
+                value={item.title}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => onUpdateTitle && onUpdateTitle(item.id, e.target.value)}
+                className="bg-black/50 border border-cyan-500/50 text-cyan-300 text-sm md:text-base font-black px-2 py-1 rounded-lg focus:outline-none w-[90%] mb-1"
+                autoFocus
+              />
+            )}
 
             {/* TOP RIGHT TOOLS: Drag Handle & Priority */}
             <div className="flex flex-col items-end gap-1.5 shrink-0 -mt-1 -mr-1">
@@ -694,6 +776,7 @@ function TaskCard({
               selectedTags={item.tags || []}
               allSystemTags={allSystemTags}
               onUpdateTags={(tags) => onUpdateTags(item.id, tags)}
+              disabled={isLocked}
             />
           </div>
 
@@ -711,57 +794,59 @@ function TaskCard({
               </button>
             ) : (
               <>
-                {!["daily", "weekly"].includes(item.recurrence || "") && (
-                  <DateControl
-                    dueDate={item.due_date}
-                    onChange={(date) => onUpdateDate(item.id, date)}
-                    statusColor={statusColor}
+                <div className={`flex items-center gap-2 ${isLocked ? "pointer-events-none opacity-50" : ""}`}>
+                  {!["daily", "weekly"].includes(item.recurrence || "") && (
+                    <DateControl
+                      dueDate={item.due_date}
+                      onChange={(date) => onUpdateDate(item.id, date)}
+                      statusColor={statusColor}
+                    />
+                  )}
+                  <RecurrenceSwitcher
+                    current={item.recurrence || "one_off"}
+                    onChange={(newRec) => onUpdateRecurrence(item.id, newRec)}
                   />
-                )}
-                <RecurrenceSwitcher
-                  current={item.recurrence || "one_off"}
-                  onChange={(newRec) => onUpdateRecurrence(item.id, newRec)}
-                />
 
-                <PrioritySwitcher
-                  current={priority}
-                  onChange={(newPriority) =>
-                    onUpdatePriority(item.id, newPriority)
-                  }
-                />
+                  <PrioritySwitcher
+                    current={priority}
+                    onChange={(newPriority) =>
+                      onUpdatePriority(item.id, newPriority)
+                    }
+                  />
+                </div>
 
-                {onEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsLocked(!isLocked);
+                  }}
+                  className={`p-1.5 transition-colors ${!isLocked ? "text-cyan-400" : "text-slate-600 hover:text-white"}`}
+                  title={isLocked ? "Unlock to Edit" : "Lock Task"}
+                >
+                  {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
+                </button>
+                <div className={`flex items-center gap-2 ml-auto ${isLocked ? "pointer-events-none opacity-50" : ""}`}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onEdit(item);
+                      onArchive(item.id);
                     }}
-                    className="text-slate-600 hover:text-cyan-400 p-1.5"
-                    title="Edit"
+                    className="text-slate-600 hover:text-purple-400 p-1.5"
+                    title="Archive"
                   >
-                    <Edit2 size={14} />
+                    <Archive size={14} />
                   </button>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onArchive(item.id);
-                  }}
-                  className="text-slate-600 hover:text-purple-400 p-1.5"
-                  title="Archive"
-                >
-                  <Archive size={14} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(item.id);
-                  }}
-                  className="text-slate-600 hover:text-rose-400 p-1.5 ml-auto"
-                  title="Delete"
-                >
-                  <Trash2 size={14} />
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(item.id);
+                    }}
+                    className="text-slate-600 hover:text-rose-400 p-1.5"
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -805,11 +890,33 @@ function TaskCard({
               <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
                 <CheckSquare size={12} className="text-purple-500" /> Checklist
               </h5>
-              {safeSubtasks.map((sub: any, index: number) => (
+              {safeSubtasks.map((sub: any, idx: number) => (
                 <div
                   key={sub.id}
                   className="flex items-start gap-3 group/sub relative bg-white/5 md:bg-transparent p-3 md:p-0 rounded-xl md:rounded-none border md:border-transparent border-white/5 hover:bg-white/5 transition-colors"
                 >
+                  <div className="flex flex-col gap-0.5 mt-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+                    <button
+                      disabled={idx === 0 || isLocked}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReorderSubtask && onReorderSubtask(item.id, sub.id, "up");
+                      }}
+                      className="text-slate-600 hover:text-white disabled:opacity-20"
+                    >
+                      <ArrowUp size={8} />
+                    </button>
+                    <button
+                      disabled={idx === safeSubtasks.length - 1 || isLocked}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReorderSubtask && onReorderSubtask(item.id, sub.id, "down");
+                      }}
+                      className="text-slate-600 hover:text-white disabled:opacity-20"
+                    >
+                      <ArrowDown size={8} />
+                    </button>
+                  </div>
                   <button
                     onClick={() => onToggleSubtask(item.id, sub.id, sub.status)}
                     className={`w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center shrink-0 transition-all ${sub.status === "completed"
@@ -821,16 +928,35 @@ function TaskCard({
                       <Check size={10} className="text-white font-black" />
                     )}
                   </button>
-                  <span
-                    className={`text-sm break-words leading-relaxed pt-0.5 transition-all ${sub.status === "completed"
-                      ? "line-through text-slate-600"
-                      : "text-slate-100 font-medium"
-                      }`}
-                  >
-                    {sub.title}
-                  </span>
+
+                  {!isLocked ? (
+                    <input
+                      defaultValue={sub.title}
+                      onBlur={(e) =>
+                        onUpdateSubtaskTitle &&
+                        onUpdateSubtaskTitle(item.id, sub.id, e.target.value)
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                      }}
+                      className={`flex-1 bg-transparent text-sm font-medium focus:outline-none border-b border-transparent focus:border-cyan-500/50 transition-all pt-0.5 ${sub.status === "completed"
+                        ? "line-through text-slate-600"
+                        : "text-slate-100"
+                        }`}
+                    />
+                  ) : (
+                    <span
+                      className={`text-sm break-words leading-relaxed pt-0.5 transition-all ${sub.status === "completed"
+                        ? "line-through text-slate-600"
+                        : "text-slate-100 font-medium"
+                        }`}
+                    >
+                      {sub.title}
+                    </span>
+                  )}
                   <button
                     onClick={() => onDeleteSubtask(item.id, sub.id)}
+                    disabled={isLocked}
                     className="md:opacity-0 group-hover/sub:opacity-100 text-slate-600 hover:text-rose-400 ml-auto p-1"
                   >
                     <Trash2 size={14} />
@@ -838,7 +964,7 @@ function TaskCard({
                 </div>
               ))}
 
-              {item.status !== "archived" && (
+              {item.status !== "archived" && !isLocked && (
                 <form
                   onSubmit={handleSubmitSub}
                   className="flex items-center gap-2 relative mt-4 md:mt-2 bg-white/5 md:bg-transparent border border-white/10 md:border-transparent focus-within:bg-purple-500/5 focus-within:border-purple-500/50 rounded-xl transition-all"
@@ -894,7 +1020,7 @@ function TaskCard({
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 

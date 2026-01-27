@@ -31,71 +31,90 @@
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
   }
+
   @keyframes slideUp {
     from {
       opacity: 0;
       transform: translateY(40px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
+
   @keyframes gradient-xy {
+
     0%,
     100% {
       background-position: 0% 50%;
     }
+
     50% {
       background-position: 100% 50%;
     }
   }
+
   @keyframes gradient-x {
+
     0%,
     100% {
       background-position: 0% 50%;
     }
+
     50% {
       background-position: 100% 50%;
     }
   }
+
   @keyframes ticker {
     0% {
       transform: translateX(0);
     }
+
     100% {
       transform: translateX(-50%);
     }
   }
+
   @keyframes wave {
+
     0%,
     100% {
       transform: translateY(0);
     }
+
     25% {
       transform: translateY(-4px) rotate(-2deg);
     }
+
     75% {
       transform: translateY(2px) rotate(2deg);
     }
   }
+
   @keyframes glitch {
     0% {
       text-shadow: 0.05em 0 0 rgba(255, 0, 81, 0.8),
         -0.05em -0.025em 0 rgba(0, 255, 225, 0.8);
     }
+
     15% {
       text-shadow: -0.05em -0.025em 0 rgba(255, 0, 81, 0.8),
         0.025em 0.025em 0 rgba(0, 255, 225, 0.8);
     }
+
     50% {
       text-shadow: 0.025em 0.05em 0 rgba(255, 0, 81, 0.8),
         0.05em 0 0 rgba(0, 255, 225, 0.8);
     }
+
     100% {
       text-shadow: -0.025em 0 0 rgba(255, 0, 81, 0.8),
         -0.025em -0.025em 0 rgba(0, 255, 225, 0.8);
@@ -130,6 +149,7 @@
       --color-text-main: #f3f4f6;
     }
   }
+
   .dark {
     --color-bg: #0f172a;
     --color-surface: #1e293b;
@@ -139,6 +159,16 @@
   @media (min-width: 768px) {
     body {
       transition: background-color 0.3s ease, color 0.3s ease;
+    }
+  }
+
+  /* iOS Zoom Fix */
+  @media screen and (max-width: 768px) {
+
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
     }
   }
 
@@ -161,7 +191,8 @@
   /* H1: The Signature "Wave" Title */
   .h1-wave {
     display: inline-block;
-    @apply text-4xl md:text-6xl; /* Increased slightly to match original */
+    @apply text-4xl md:text-6xl;
+    /* Increased slightly to match original */
     @apply font-black uppercase tracking-tight leading-none mb-4;
     @apply text-transparent bg-clip-text;
     @apply bg-gradient-to-r from-brand-start via-brand-mid to-brand-end;

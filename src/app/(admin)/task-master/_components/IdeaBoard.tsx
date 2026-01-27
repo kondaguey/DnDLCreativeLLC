@@ -18,6 +18,7 @@ import {
   Send,
   Sparkles,
   Star,
+  Edit2,
 } from "lucide-react";
 import {
   DndContext,
@@ -466,7 +467,7 @@ function SparkCard({
   const baseCardStyle = containerClasses + " " + dynamicPadding;
 
   return (
-    <div className={baseCardStyle} onClick={() => onEdit && onEdit(item)}>
+    <div className={baseCardStyle}>
       {/* FLOATING DRAG HANDLE */}
       {isManualSort && viewMode !== "compact" && (
         <DragHandle className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center bg-black/95 backdrop-blur-md px-8 py-2 md:px-3 md:py-1 rounded-full border border-white/10 shadow-xl text-slate-400 active:bg-amber-500/20 active:text-amber-400 transition-all cursor-grab active:cursor-grabbing">
@@ -482,12 +483,15 @@ function SparkCard({
               <GripHorizontal size={14} />
             </DragHandle>
           )}
-          <span className="text-[10px] font-mono text-slate-600 shrink-0 w-[80px]">{dateStr}</span>
+          <span className="text-[10px] font-mono text-slate-600 shrink-0 w-[80px] flex items-center gap-1"><Clock size={10} /> {dateStr}</span>
           <div className="flex-1 truncate text-xs md:text-sm text-slate-300 font-medium">
             {isCode && <span className="text-emerald-500 mr-2 font-mono">//</span>}
             {item.content || "Empty Note"}
           </div>
           <TagManager selectedTags={item.tags || []} allSystemTags={allSystemTags} onUpdateTags={() => { }} />
+          <button onClick={(e) => { e.stopPropagation(); onEdit && onEdit(item) }} className="p-2 text-slate-600 hover:text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Edit2 size={14} />
+          </button>
           <button onClick={(e) => { e.stopPropagation(); onDelete(item.id) }} className="p-2 text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
             <Trash2 size={14} />
           </button>
@@ -498,10 +502,13 @@ function SparkCard({
       {viewMode !== "compact" && (
         <>
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[9px] font-mono text-slate-500 bg-black/40 px-2 py-1 rounded border border-white/5">{dateStr}</span>
+            <span className="text-[9px] font-mono text-slate-500 bg-black/40 px-2 py-1 rounded border border-white/5 flex items-center gap-1"><Clock size={10} /> {dateStr}</span>
             <div className="flex gap-1">
               <button onClick={(e) => { e.stopPropagation(); onToggleFavorite() }} className={`p-1.5 rounded hover:bg-white/10 ${isFav ? "text-amber-400" : "text-slate-600"}`}>
                 <Star size={14} fill={isFav ? "currentColor" : "none"} />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onEdit && onEdit(item) }} className="p-1.5 rounded hover:bg-cyan-500/10 text-slate-600 hover:text-cyan-400">
+                <Edit2 size={14} />
               </button>
               <button onClick={(e) => { e.stopPropagation(); onDelete(item.id) }} className="p-1.5 rounded hover:bg-rose-500/10 text-slate-600 hover:text-rose-400">
                 <Trash2 size={14} />
@@ -513,7 +520,7 @@ function SparkCard({
             <textarea
               value={content}
               readOnly
-              className="w-full h-full bg-transparent resize-none text-sm text-slate-300 focus:outline-none cursor-pointer"
+              className="w-full h-full bg-transparent resize-none text-xs md:text-sm text-slate-300 focus:outline-none cursor-pointer"
               placeholder="Empty..."
             />
           </div>
@@ -580,7 +587,7 @@ function IncubatorCard({
   const baseCardStyle = containerClasses + " " + dynamicPadding;
 
   return (
-    <div className={baseCardStyle} onClick={() => onEdit && onEdit(item)}>
+    <div className={baseCardStyle}>
       {/* --- COMPACT VIEW --- */}
       {viewMode === "compact" && (
         <>
@@ -600,7 +607,7 @@ function IncubatorCard({
         <>
           <div className="flex flex-col gap-1 mb-3">
             <div className="flex justify-between items-start gap-2">
-              <h3 className="font-black text-xl text-violet-100 leading-tight line-clamp-2 break-words mr-auto">
+              <h3 className="font-black text-sm md:text-xl text-violet-100 leading-tight line-clamp-2 break-words mr-auto">
                 {item.title}
               </h3>
               {/* Metadata Pills in Top Right */}
@@ -636,6 +643,12 @@ function IncubatorCard({
               >
                 Promote
               </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit && onEdit(item) }}
+                className="px-3 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 py-2 rounded-lg transition-all"
+              >
+                <Edit2 size={14} />
+              </button>
             </div>
           </div>
         </>
@@ -649,7 +662,7 @@ function IncubatorCard({
               <div className="flex-1 min-w-0 w-full">
                 <input
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent text-2xl md:text-3xl font-black text-violet-100 focus:outline-none placeholder:text-violet-900/50 border-b border-white/5 focus:border-violet-500/50 w-full pb-2"
+                  className="bg-transparent text-lg md:text-3xl font-black text-violet-100 focus:outline-none placeholder:text-violet-900/50 border-b border-white/5 focus:border-violet-500/50 w-full pb-2"
                   defaultValue={item.title}
                   onBlur={(e) => onUpdateTitle(item.id, e.target.value)}
                 />
@@ -690,6 +703,9 @@ function IncubatorCard({
 
               <button onClick={(e) => { e.stopPropagation(); onToggleFavorite() }} className={`p-3 rounded-xl border shrink-0 ${isFav ? "bg-amber-500/20 border-amber-500 text-amber-500" : "border-white/5 text-slate-500 hover:text-white"}`}>
                 <Star size={20} fill={isFav ? "currentColor" : "none"} />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onEdit && onEdit(item) }} className="p-3 rounded-xl border border-white/5 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 shrink-0">
+                <Edit2 size={20} />
               </button>
             </div>
 

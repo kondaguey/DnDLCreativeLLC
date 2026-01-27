@@ -53,11 +53,10 @@ const Toast = ({ message, type, onClose }) => {
 
   return (
     <div
-      className={`fixed bottom-8 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-8 z-[300] px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border animate-in slide-in-from-bottom-5 fade-in duration-300 backdrop-blur-xl ${
-        type === "error"
+      className={`fixed bottom-8 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-8 z-[300] px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border animate-in slide-in-from-bottom-5 fade-in duration-300 backdrop-blur-xl ${type === "error"
           ? "bg-red-950/90 border-red-500 text-red-200"
           : "bg-black/80 border-white/20 text-white"
-      }`}
+        }`}
     >
       {type === "error" ? (
         <AlertTriangle size={18} className="text-red-500" />
@@ -83,22 +82,19 @@ const ConfirmModal = ({
   return (
     <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-sm p-6 rounded-3xl border shadow-2xl text-center ${
-          isDark ? "bg-[#0f172a] border-white/10" : "bg-white border-slate-200"
-        }`}
+        className={`w-full max-w-sm p-6 rounded-3xl border shadow-2xl text-center ${isDark ? "bg-[#0f172a] border-white/10" : "bg-white border-slate-200"
+          }`}
       >
         <AlertTriangle size={32} className="mx-auto mb-4 text-amber-500" />
         <h3
-          className={`text-lg font-black uppercase mb-2 ${
-            isDark ? "text-white" : "text-slate-900"
-          }`}
+          className={`text-lg font-black uppercase mb-2 ${isDark ? "text-white" : "text-slate-900"
+            }`}
         >
           {title}
         </h3>
         <p
-          className={`text-xs mb-6 ${
-            isDark ? "text-slate-400" : "text-slate-500"
-          }`}
+          className={`text-xs mb-6 ${isDark ? "text-slate-400" : "text-slate-500"
+            }`}
         >
           {message}
         </p>
@@ -347,13 +343,12 @@ export default function ClientVibeWriter({ initialDrafts }) {
         title
       )}', '${escape(urlPath)}', '${date}', '${escape(author)}', '${escape(
         tag
-      )}', '${images.main}', '${images.img2}', '${images.img3}', '${
-        images.img4
-      }', '${images.img5}', '${images.img6}', '${escape(
-        imageCaption
-      )}', '${escape(musicEmbed)}', '${escape(blogcastUrl)}', '${escape(
-        content
-      )}', ${isPublished}) ON CONFLICT (slug) DO UPDATE SET title = EXCLUDED.title, content = EXCLUDED.content, image = EXCLUDED.image, image_2 = EXCLUDED.image_2, image_3 = EXCLUDED.image_3, image_4 = EXCLUDED.image_4, image_5 = EXCLUDED.image_5, image_6 = EXCLUDED.image_6, image_caption = EXCLUDED.image_caption, music_embed = EXCLUDED.music_embed, blogcast_url = EXCLUDED.blogcast_url, author = EXCLUDED.author, tag = EXCLUDED.tag, published = EXCLUDED.published;`.trim();
+      )}', '${images.main}', '${images.img2}', '${images.img3}', '${images.img4
+        }', '${images.img5}', '${images.img6}', '${escape(
+          imageCaption
+        )}', '${escape(musicEmbed)}', '${escape(blogcastUrl)}', '${escape(
+          content
+        )}', ${isPublished}) ON CONFLICT (slug) DO UPDATE SET title = EXCLUDED.title, content = EXCLUDED.content, image = EXCLUDED.image, image_2 = EXCLUDED.image_2, image_3 = EXCLUDED.image_3, image_4 = EXCLUDED.image_4, image_5 = EXCLUDED.image_5, image_6 = EXCLUDED.image_6, image_caption = EXCLUDED.image_caption, music_embed = EXCLUDED.music_embed, blogcast_url = EXCLUDED.blogcast_url, author = EXCLUDED.author, tag = EXCLUDED.tag, published = EXCLUDED.published;`.trim();
     setGeneratedSql(sql);
     setShowSqlModal(true);
   };
@@ -535,7 +530,7 @@ export default function ClientVibeWriter({ initialDrafts }) {
 
       {/* --- BACKGROUND CANVAS (Full Screen, Fixed) --- */}
       {isDark && mountCanvas && (
-        <div className="fixed inset-0 z-0 opacity-100 pointer-events-none transition-transform duration-700">
+        <div className="fixed top-0 left-0 w-full h-screen z-0 opacity-100 pointer-events-none transition-transform duration-700">
           <Suspense fallback={null}>
             <Canvas camera={{ position: [0, 0, 10], fov: 60 }}>
               <DystopianSnow
@@ -573,15 +568,13 @@ export default function ClientVibeWriter({ initialDrafts }) {
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           {/* LOGO */}
           <h1
-            className={`text-xl md:text-3xl font-black uppercase tracking-[0.2em] md:tracking-[0.4em] cursor-default transition-all duration-300 ${
-              themeStyle.logo
-            } ${
-              isDark && vibeMode === "sexy"
+            className={`text-xl md:text-3xl font-black uppercase tracking-[0.2em] md:tracking-[0.4em] cursor-default transition-all duration-300 ${themeStyle.logo
+              } ${isDark && vibeMode === "sexy"
                 ? "sexy-text"
                 : isDark
-                ? "glitch-text"
-                : ""
-            }`}
+                  ? "glitch-text"
+                  : ""
+              }`}
           >
             VibeWriter
           </h1>
@@ -606,9 +599,8 @@ export default function ClientVibeWriter({ initialDrafts }) {
                 <FilePlus size={14} /> Reset
               </button>
               <div
-                className={`w-px h-6 mx-2 ${
-                  isDark ? "bg-white/10" : "bg-slate-300"
-                }`}
+                className={`w-px h-6 mx-2 ${isDark ? "bg-white/10" : "bg-slate-300"
+                  }`}
               ></div>
               <button onClick={fetchDrafts} className={themeStyle.btnSecondary}>
                 <Archive size={16} /> Archive
@@ -643,9 +635,8 @@ export default function ClientVibeWriter({ initialDrafts }) {
 
             {/* TOGGLES ROW */}
             <div
-              className={`flex gap-2 ml-2 pl-2 md:ml-4 md:pl-4 border-l ${
-                isDark ? "border-white/10" : "border-slate-300"
-              }`}
+              className={`flex gap-2 ml-2 pl-2 md:ml-4 md:pl-4 border-l ${isDark ? "border-white/10" : "border-slate-300"
+                }`}
             >
               {isDark && (
                 <button
@@ -658,11 +649,10 @@ export default function ClientVibeWriter({ initialDrafts }) {
               {isDark && (
                 <button
                   onClick={toggleVibeMode}
-                  className={`p-2 md:p-3 rounded-xl border transition-all ${
-                    vibeMode === "sexy"
+                  className={`p-2 md:p-3 rounded-xl border transition-all ${vibeMode === "sexy"
                       ? "bg-pink-500/20 border-pink-500 text-pink-500"
                       : "bg-white/5 border-white/10 text-slate-400"
-                  }`}
+                    }`}
                 >
                   {vibeMode === "sexy" ? (
                     <Flame size={16} className="animate-pulse" />
@@ -673,11 +663,10 @@ export default function ClientVibeWriter({ initialDrafts }) {
               )}
               <button
                 onClick={toggleTheme}
-                className={`p-2 md:p-3 rounded-xl border transition-all ${
-                  theme === "light"
+                className={`p-2 md:p-3 rounded-xl border transition-all ${theme === "light"
                     ? "bg-white border-slate-200 text-amber-500"
                     : "bg-white/5 border-white/10 hover:text-white"
-                }`}
+                  }`}
               >
                 {theme === "light" ? (
                   <Sun size={16} />
@@ -693,11 +682,10 @@ export default function ClientVibeWriter({ initialDrafts }) {
             <div className="md:hidden ml-2 relative">
               <button
                 onClick={() => setShowMobileActions(!showMobileActions)}
-                className={`p-2 rounded-xl border ${
-                  isDark
+                className={`p-2 rounded-xl border ${isDark
                     ? "bg-white/10 border-white/20 text-white"
                     : "bg-slate-100 border-slate-300 text-slate-800"
-                }`}
+                  }`}
               >
                 <Menu size={20} />
               </button>
@@ -837,9 +825,8 @@ export default function ClientVibeWriter({ initialDrafts }) {
               title={title}
             />
             <div
-              className={`flex justify-between text-[10px] font-mono opacity-50 uppercase tracking-widest ${
-                isDark ? "text-white" : "text-slate-500"
-              }`}
+              className={`flex justify-between text-[10px] font-mono opacity-50 uppercase tracking-widest ${isDark ? "text-white" : "text-slate-500"
+                }`}
             >
               <span>VibeLexical Engine Active</span>
               <span>ID: {postId || "UNSAVED"}</span>
@@ -877,9 +864,8 @@ export default function ClientVibeWriter({ initialDrafts }) {
                   className={isDark ? "text-white" : "text-slate-900"}
                 />
                 <h2
-                  className={`text-xl font-black uppercase ${
-                    isDark ? "text-white" : "text-slate-900"
-                  }`}
+                  className={`text-xl font-black uppercase ${isDark ? "text-white" : "text-slate-900"
+                    }`}
                 >
                   SQL Generator
                 </h2>
@@ -918,9 +904,8 @@ export default function ClientVibeWriter({ initialDrafts }) {
           >
             <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
               <h2
-                className={`text-xl font-black uppercase ${
-                  isDark ? "text-white" : "text-slate-900"
-                }`}
+                className={`text-xl font-black uppercase ${isDark ? "text-white" : "text-slate-900"
+                  }`}
               >
                 Load Transmission
               </h2>
@@ -964,11 +949,10 @@ export default function ClientVibeWriter({ initialDrafts }) {
                       onClick={(e) =>
                         toggleVisibility(e, draft.id, draft.published)
                       }
-                      className={`p-2 rounded border transition-all ${
-                        draft.published
+                      className={`p-2 rounded border transition-all ${draft.published
                           ? "bg-emerald-900/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
                           : "bg-slate-800/50 border-slate-700 text-slate-500 hover:bg-slate-700 hover:text-slate-300"
-                      }`}
+                        }`}
                     >
                       {draft.published ? (
                         <Eye size={16} />

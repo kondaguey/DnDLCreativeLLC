@@ -20,7 +20,15 @@ import {
   SortAsc,
   ArrowUp,
   ArrowDown,
+  Lock,
+  Unlock,
   GripVertical,
+  CheckSquare,
+  Plus,
+  CornerDownRight,
+  Check,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 import {
@@ -53,6 +61,10 @@ interface LedgerViewProps {
   onReorder: (draggedId: string, targetId: string) => void;
   onManualMove?: (id: string, direction: "up" | "down") => void;
   onEdit?: (item: TaskItem) => void;
+  onAddSubtask?: (parentId: string, title: string) => void;
+  onToggleSubtask?: (parentId: string, subtaskId: string, currentStatus: string) => void;
+  onDeleteSubtask?: (parentId: string, subtaskId: string) => void;
+  onReorderSubtask?: (parentId: string, subtaskId: string, direction: "up" | "down") => void;
 }
 
 const PRIORITY_WEIGHT: Record<string, number> = {
@@ -74,6 +86,10 @@ export default function LedgerView({
   onReorder,
   onManualMove,
   onEdit,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
+  onReorderSubtask,
 }: LedgerViewProps) {
   const [ledgerSort, setLedgerSort] = useState<
     "priority" | "newest" | "oldest" | "manual"
@@ -251,6 +267,10 @@ export default function LedgerView({
                     onArchive={onArchive}
                     onEdit={onEdit}
                     onManualMove={onManualMove}
+                    onAddSubtask={onAddSubtask}
+                    onToggleSubtask={onToggleSubtask}
+                    onDeleteSubtask={onDeleteSubtask}
+                    onReorderSubtask={onReorderSubtask}
                   />
                 </SortableItem>
               ))}
@@ -277,9 +297,21 @@ function TicketCard({
   onArchive,
   onEdit,
   onManualMove,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
+  onReorderSubtask,
 }: any) {
   const meta = item.metadata || {};
   const [title, setTitle] = useState(item.title);
+  const [expanded, setExpanded] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [isLocked, setIsLocked] = useState(true);
+
+  // Sync internal title state if prop changes
+  if (item.title !== title && document.activeElement?.id !== `title-${item.id}`) {
+    setTitle(item.title);
+  }
 
   const dateStr = new Date(item.created_at).toLocaleDateString(undefined, {
     month: "short",
@@ -294,6 +326,19 @@ function TicketCard({
   const handleMetaChange = (field: string, value: string) => {
     onUpdateMetadata(item.id, { ...meta, [field]: value });
   };
+
+  const handleSubmitSub = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subtaskTitle.trim() || !onAddSubtask) return;
+    onAddSubtask(item.id, subtaskTitle);
+    setSubtaskTitle("");
+  };
+
+  const safeSubtasks = item.subtasks || [];
+  const totalSub = safeSubtasks.length;
+  const completedSub = safeSubtasks.filter(
+    (s: any) => s.status === "completed"
+  ).length;
 
   const typeConfig = {
     bug: {
@@ -412,18 +457,31 @@ function TicketCard({
           </span>
         </div>
 
-        {/* Title Input */}
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => {
-            if (title !== item.title) onUpdateTitle(item.id, title);
-          }}
-          onPointerDown={stopProp}
-          onKeyDown={stopProp}
-          className={`bg-transparent text-lg md:text-xl font-black w-full min-w-0 focus:outline-none focus:border-b focus:border-purple-500/50 pb-1 transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100"}`}
-        />
+        {isLocked ? (
+          <h3
+            className={`text-sm md:text-xl font-black w-full min-w-0 pb-1 cursor-pointer transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
+          >
+            {title}
+          </h3>
+        ) : (
+          <input
+            id={`title-${item.id}`}
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => {
+              if (title !== item.title) onUpdateTitle(item.id, title);
+            }}
+            onPointerDown={stopProp}
+            onKeyDown={stopProp}
+            className={`bg-transparent text-sm md:text-xl font-black w-full min-w-0 focus:outline-none focus:border-b focus:border-purple-500/50 pb-1 transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100"}`}
+            autoFocus
+          />
+        )}
 
         {/* TAGS & CONTROLS ROW */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 mt-1 w-full">
@@ -437,6 +495,26 @@ function TicketCard({
                 allSystemTags={allSystemTags}
                 onUpdateTags={(t) => onUpdateTags(item.id, t)}
               />
+            )}
+          </div>
+
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
+            className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all w-fit rounded-md select-none shrink-0 border border-transparent px-2 py-1 ${expanded
+              ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+              : "text-slate-500 hover:text-white"
+              }`}
+          >
+            {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            {totalSub > 0 ? (
+              <>
+                {completedSub}/{totalSub} Subtasks
+              </>
+            ) : (
+              "Add Subtasks"
             )}
           </div>
 
@@ -460,7 +538,12 @@ function TicketCard({
               value={priority}
               onChange={(e) => handleMetaChange("priority", e.target.value)}
               className={`appearance-none bg-black/40 text-base md:text-xs font-bold uppercase tracking-wider border border-white/10 rounded-xl px-3 py-2 md:px-2 md:py-1 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center
-                  ${priority === "critical" ? "text-rose-400" : priority === "high" ? "text-orange-400" : "text-slate-400"}
+                  ${priority === "critical"
+                  ? "text-rose-400"
+                  : priority === "high"
+                    ? "text-orange-400"
+                    : "text-slate-400"
+                }
               `}
             >
               <option value="low">Low</option>
@@ -470,6 +553,98 @@ function TicketCard({
             </select>
           </div>
         </div>
+
+        {/* --- EXPANDABLE SUBTASK SECTION --- */}
+        {expanded && (
+          <div className="mt-4 pt-4 border-t border-white/5 animate-in slide-in-from-top-2 duration-200">
+            <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+              <CheckSquare size={12} className="text-purple-500" /> Checklist
+            </h5>
+
+            <div className="space-y-2 mb-4">
+              {safeSubtasks.map((sub: any, idx: number) => (
+                <div
+                  key={sub.id}
+                  className="flex items-start gap-3 group/sub relative bg-white/5 p-2 rounded-lg border border-white/5 hover:border-white/10 transition-colors"
+                >
+                  <div className="flex flex-col gap-0.5 mt-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+                    <button
+                      disabled={idx === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReorderSubtask && onReorderSubtask(item.id, sub.id, "up");
+                      }}
+                      className="text-slate-600 hover:text-white disabled:opacity-20"
+                    >
+                      <ArrowUp size={8} />
+                    </button>
+                    <button
+                      disabled={idx === safeSubtasks.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReorderSubtask && onReorderSubtask(item.id, sub.id, "down");
+                      }}
+                      className="text-slate-600 hover:text-white disabled:opacity-20"
+                    >
+                      <ArrowDown size={8} />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => onToggleSubtask && onToggleSubtask(item.id, sub.id, sub.status)}
+                    className={`w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center shrink-0 transition-all ${sub.status === "completed"
+                      ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                      : "border-slate-500 hover:border-indigo-400"
+                      }`}
+                  >
+                    {sub.status === "completed" && (
+                      <Check size={10} className="text-white font-black" />
+                    )}
+                  </button>
+                  <span
+                    className={`text-sm break-words leading-relaxed pt-0.5 transition-all ${sub.status === "completed"
+                      ? "line-through text-slate-600"
+                      : "text-slate-200 font-medium"
+                      }`}
+                  >
+                    {sub.title}
+                  </span>
+                  <button
+                    onClick={() => onDeleteSubtask && onDeleteSubtask(item.id, sub.id)}
+                    className="md:opacity-0 group-hover/sub:opacity-100 text-slate-600 hover:text-rose-400 ml-auto p-1"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {item.status !== "archived" && onAddSubtask && (
+              <form
+                onSubmit={handleSubmitSub}
+                className="flex items-center gap-2 relative bg-black/20 border border-white/10 focus-within:bg-purple-500/5 focus-within:border-purple-500/50 rounded-xl transition-all"
+              >
+                <CornerDownRight
+                  size={14}
+                  className="text-slate-600 shrink-0 ml-3"
+                />
+                <input
+                  type="text"
+                  value={subtaskTitle}
+                  onChange={(e) => setSubtaskTitle(e.target.value)}
+                  placeholder="New step..."
+                  className="bg-transparent text-sm text-white font-medium w-full px-2 py-2.5 focus:outline-none placeholder:text-slate-600"
+                />
+                <button
+                  type="submit"
+                  className="text-slate-500 hover:text-purple-400 p-2 pr-3 transition-colors"
+                >
+                  <Plus size={16} />
+                </button>
+              </form>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ACTIONS ROW (No more parent event-blockers here) */}
@@ -515,18 +690,16 @@ function TicketCard({
         >
           <Archive size={16} />
         </button>
-        {onEdit && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(item);
-            }}
-            className="p-3 md:p-1.5 rounded-lg bg-cyan-500/10 md:bg-transparent hover:bg-cyan-500/20 md:hover:bg-white/10 text-cyan-400 md:text-slate-600 md:hover:text-cyan-400 transition-colors"
-            title="Edit"
-          >
-            <Edit2 size={16} />
-          </button>
-        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsLocked(!isLocked);
+          }}
+          className={`p-3 md:p-1.5 rounded-lg bg-cyan-500/10 md:bg-transparent hover:bg-cyan-500/20 md:hover:bg-white/10 transition-colors ${!isLocked ? "text-cyan-400" : "text-slate-500 md:text-slate-600 md:hover:text-cyan-400"}`}
+          title={isLocked ? "Unlock to Edit" : "Lock Task"}
+        >
+          {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();

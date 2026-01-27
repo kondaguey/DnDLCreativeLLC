@@ -35,6 +35,8 @@ import {
   CalendarDays,
   Clock,
   Calendar as CalendarIcon,
+  Lock,
+  Unlock,
 } from "lucide-react";
 
 import { TaskItem, ViewType, SortOption } from "./types";
@@ -315,6 +317,7 @@ function ResourceCard({
   const [content, setContent] = useState(item.content || "");
   const [title, setTitle] = useState(item.title);
   const [url, setUrl] = useState(item.metadata?.url || "");
+  const [isLocked, setIsLocked] = useState(true);
 
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -382,15 +385,22 @@ function ResourceCard({
 
         <div className="flex-1 min-w-0 space-y-2">
           {/* TITLE INPUT */}
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => {
-              if (title !== item.title) onUpdateTitle(item.id, title);
-            }}
-            className="bg-transparent text-xl md:text-lg font-black text-slate-100 w-full focus:outline-none placeholder:text-slate-600 truncate"
-            placeholder="Resource Title..."
-          />
+          {isLocked ? (
+            <h3 className="text-sm md:text-lg font-black text-slate-100 w-full truncate cursor-default">
+              {title}
+            </h3>
+          ) : (
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => {
+                if (title !== item.title) onUpdateTitle(item.id, title);
+              }}
+              className="bg-black/40 rounded px-2 py-0.5 text-sm md:text-lg font-black text-slate-100 w-full focus:outline-none placeholder:text-slate-600 truncate border border-cyan-500/30"
+              placeholder="Resource Title..."
+              autoFocus
+            />
+          )}
 
           {/* DATE & PLATFORM METADATA */}
           <div className="text-[10px] md:text-[9px] text-slate-500 font-mono flex items-center gap-2 flex-wrap">
@@ -429,10 +439,11 @@ function ResourceCard({
           <LinkIcon size={14} className="text-slate-500 shrink-0" />
           <input
             value={url}
+            readOnly={isLocked}
             onChange={(e) => setUrl(e.target.value)}
             onBlur={handleUrlBlur}
-            placeholder="Paste URL..."
-            className="bg-transparent w-full text-base md:text-sm text-cyan-400 font-mono placeholder:text-slate-700 focus:outline-none truncate"
+            placeholder={isLocked ? "No URL" : "Paste URL..."}
+            className={`bg-transparent w-full text-base md:text-sm text-cyan-400 font-mono placeholder:text-slate-700 focus:outline-none truncate ${!isLocked && "border-b border-cyan-500/30"}`}
           />
           {url && (
             <a
@@ -461,12 +472,13 @@ function ResourceCard({
       <div className="flex-1 p-5 pt-3 min-h-[120px] relative">
         <textarea
           value={content}
+          readOnly={isLocked}
           onChange={(e) => setContent(e.target.value)}
           onBlur={() => {
             if (content !== item.content) onUpdateContent(item.id, content);
           }}
-          className="w-full h-full bg-black/40 rounded-xl p-4 text-base md:text-sm text-slate-300 focus:text-white focus:outline-none resize-none transition-colors border border-transparent focus:border-white/10 shadow-inner leading-relaxed"
-          placeholder="Add context, takeaways, or research..."
+          className={`w-full h-full rounded-xl p-4 text-base md:text-sm text-slate-300 focus:text-white focus:outline-none resize-none transition-colors border shadow-inner leading-relaxed ${isLocked ? "bg-transparent border-transparent" : "bg-black/40 border-white/10 focus:border-cyan-500/50"}`}
+          placeholder={isLocked ? "No content." : "Add context, takeaways, or research..."}
         />
       </div>
 
@@ -517,18 +529,16 @@ function ResourceCard({
         </div>
 
         <div className="flex gap-2">
-          {onEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(item);
-              }}
-              className="text-slate-600 hover:text-cyan-400 p-3 md:p-2 rounded-xl hover:bg-cyan-500/10 transition-colors"
-              title="Edit in Master Modal"
-            >
-              <Edit2 size={18} />
-            </button>
-          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsLocked(!isLocked);
+            }}
+            className={`p-3 md:p-2 rounded-xl transition-colors ${!isLocked ? "bg-cyan-500/10 text-cyan-400" : "text-slate-600 hover:text-white hover:bg-white/5"}`}
+            title={isLocked ? "Unlock to Edit" : "Lock Task"}
+          >
+            {isLocked ? <Lock size={18} /> : <Unlock size={18} />}
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
