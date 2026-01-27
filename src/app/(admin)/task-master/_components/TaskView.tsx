@@ -36,6 +36,8 @@ import {
   Lock,
   Unlock,
   CalendarDays,
+  Search, // <--- Added Search icon
+  X, // <--- Added X icon
 } from "lucide-react";
 import { TaskItem, RecurrenceType, SortOption } from "./types";
 import TagManager from "./TagManager";
@@ -139,6 +141,9 @@ export default function TaskView({
   const [viewMode, setViewMode] = useState<"list" | "grid" | "compact">("list");
   const [activePeriod, setActivePeriod] = useState<string>("all");
 
+  // LOCAL SEARCH STATE
+  const [searchQuery, setSearchQuery] = useState("");
+
   const safeItems = items || [];
   const safeFilterTags = filterTags || [];
 
@@ -183,6 +188,14 @@ export default function TaskView({
         const date = getEffectiveDate(item);
         const itemKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         if (itemKey !== activePeriod) return false;
+      }
+
+      // SEARCH FILTER
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = (item.title || "").toLowerCase().includes(query);
+        const notesMatch = (item.content || "").toLowerCase().includes(query); // Content stores notes
+        if (!titleMatch && !notesMatch) return false;
       }
 
       return matchesTab && matchesTags;
@@ -299,10 +312,10 @@ export default function TaskView({
 
         {/* --- ACTIVE TASKS COMMAND BAR --- */}
         {activeTasks.length > 0 && (
-          <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-white/5 pb-3">
             <button
               onClick={() => setShowActive(!showActive)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-black uppercase tracking-widest text-xs rounded-lg transition-all border border-purple-500/20"
+              className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-black uppercase tracking-widest text-xs rounded-lg transition-all border border-purple-500/20 w-full md:w-auto justify-center md:justify-start"
             >
               {showActive ? (
                 <ChevronDown size={14} />
@@ -312,38 +325,62 @@ export default function TaskView({
               Active Queue ({activeTasks.length})
             </button>
 
-            {/* VIEW TOGGLE */}
-            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shrink-0">
-              <button
-                onClick={() => setViewMode("compact")}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === "compact"
-                  ? "bg-slate-700 text-white shadow-inner"
-                  : "text-slate-500 hover:text-white"
-                  }`}
-                title="Compact View"
-              >
-                <List size={16} />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === "list"
-                  ? "bg-slate-700 text-white shadow-inner"
-                  : "text-slate-500 hover:text-white"
-                  }`}
-                title="List View"
-              >
-                <StretchVertical size={16} />
-              </button>
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === "grid"
-                  ? "bg-slate-700 text-white shadow-inner"
-                  : "text-slate-500 hover:text-white"
-                  }`}
-                title="Card View"
-              >
-                <LayoutGrid size={16} />
-              </button>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              {/* SEARCH BAR */}
+              <div className="relative group flex-1 md:w-48">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors"
+                  size={14}
+                />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-purple-500/50 rounded-xl py-1.5 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* VIEW TOGGLE */}
+              <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shrink-0">
+                <button
+                  onClick={() => setViewMode("compact")}
+                  className={`p-1.5 rounded-lg transition-all ${viewMode === "compact"
+                    ? "bg-slate-700 text-white shadow-inner"
+                    : "text-slate-500 hover:text-white"
+                    }`}
+                  title="Compact View"
+                >
+                  <List size={16} />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded-lg transition-all ${viewMode === "list"
+                    ? "bg-slate-700 text-white shadow-inner"
+                    : "text-slate-500 hover:text-white"
+                    }`}
+                  title="List View"
+                >
+                  <StretchVertical size={16} />
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded-lg transition-all ${viewMode === "grid"
+                    ? "bg-slate-700 text-white shadow-inner"
+                    : "text-slate-500 hover:text-white"
+                    }`}
+                  title="Card View"
+                >
+                  <LayoutGrid size={16} />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -611,7 +648,7 @@ function TaskCard({
 
         {isManualSort && (
           <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
-            <GripVertical size={14} />
+            <GripVertical size={12} />
           </DragHandle>
         )}
 
@@ -620,22 +657,22 @@ function TaskCard({
             e.stopPropagation();
             onToggleStatus(item.id, item.status);
           }}
-          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${item.status === "completed"
+          className={`w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${item.status === "completed"
             ? "bg-emerald-500 border-emerald-500"
             : "border-slate-600 hover:border-emerald-500"
             }`}
         >
           {item.status === "completed" && (
-            <Check size={12} className="text-black" />
+            <Check size={10} className="text-black" />
           )}
         </button>
 
         {/* MAIN INFO SECTION */}
-        <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] items-center gap-2 md:gap-6">
-          <div className="flex items-center gap-3 overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col md:grid md:grid-cols-[1fr_auto_auto_auto] md:items-center gap-2">
+          <div className="flex items-center gap-2 overflow-hidden w-full">
             {isLocked ? (
               <span
-                className={`truncate font-bold text-sm cursor-pointer hover:underline ${item.status === "completed"
+                className={`flex-1 font-bold text-sm md:text-base cursor-pointer hover:underline line-clamp-1 ${item.status === "completed"
                   ? "line-through text-slate-500"
                   : "text-slate-200"
                   }`}
@@ -649,20 +686,14 @@ function TaskCard({
                 value={item.title}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => onUpdateTitle && onUpdateTitle(item.id, e.target.value)}
-                className="bg-black/50 border border-cyan-500/50 text-cyan-300 text-sm font-bold px-2 py-0.5 rounded focus:outline-none w-full min-w-[150px]"
+                className="flex-1 bg-black/50 border border-cyan-500/50 text-cyan-300 text-sm md:text-base font-bold px-2 py-0.5 rounded focus:outline-none"
                 autoFocus
               />
-            )}
-            {totalSub > 0 && (
-              <span className="text-[10px] font-mono text-slate-500 bg-black/20 px-1.5 rounded flex items-center gap-1 shrink-0">
-                <CheckSquare size={10} />
-                {completedSub}/{totalSub}
-              </span>
             )}
           </div>
 
           {/* TABLET/DESKTOP EXTENDED INFO */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-[120px] md:max-w-none">
+          <div className="hidden md:flex items-center gap-2 overflow-x-auto no-scrollbar max-w-[120px] md:max-w-none">
             {item.tags?.slice(0, 4).map((t: string) => (
               <span
                 key={t}
@@ -678,62 +709,79 @@ function TaskCard({
             )}
           </div>
 
-          <div className="flex items-center gap-4 text-slate-500 text-[10px] md:text-xs shrink-0">
-            {item.recurrence && item.recurrence !== "one_off" && (
-              <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-purple-400/80">
-                <RefreshCcw size={10} />
-                {item.recurrence}
+          <div className="flex items-center gap-3 text-slate-500 text-[10px] md:text-xs shrink-0 justify-between md:justify-start w-full md:w-auto">
+            <div className="flex items-center gap-3">
+              {item.recurrence && item.recurrence !== "one_off" && (
+                <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-purple-400/80">
+                  <RefreshCcw size={10} />
+                  {item.recurrence}
+                </div>
+              )}
+
+              {item.content && (
+                <div className="flex items-center gap-1 text-[10px] text-cyan-500/80">
+                  <StickyNote size={10} />
+                  <span className="hidden lg:inline">Notes</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {totalSub > 0 && (
+                <span className="text-[10px] font-mono text-slate-500 bg-black/20 px-1.5 rounded flex items-center gap-1 shrink-0">
+                  <CheckSquare size={10} />
+                  {completedSub}/{totalSub}
+                </span>
+              )}
+              {item.due_date ? (
+                <span
+                  className={`text-[10px] font-mono ${statusColor === "rose" ? "text-rose-400" : "text-slate-500"
+                    }`}
+                >
+                  {formatDate(item.due_date)}
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono text-slate-700">--</span>
+              )}
+              {priority !== "normal" && (
+                <PriorityBadge priority={priority} compact />
+              )}
+
+              {/* Action buttons - smaller but pressable */}
+              <div className="flex items-center gap-1 ml-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsLocked(!isLocked);
+                  }}
+                  className={`p-1.5 rounded transition-colors ${!isLocked ? "text-cyan-400 bg-cyan-500/10" : "text-slate-500 hover:text-white hover:bg-white/5"}`}
+                  title={isLocked ? "Unlock to Edit" : "Lock Task"}
+                >
+                  {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive(item.id);
+                  }}
+                  className="text-slate-500 hover:text-purple-400 hover:bg-purple-500/10 p-1.5 rounded transition-colors"
+                  title="Archive"
+                >
+                  <Archive size={12} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(item.id);
+                  }}
+                  className="text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 size={12} />
+                </button>
               </div>
-            )}
-
-            {item.content && (
-              <div className="flex items-center gap-1 text-[10px] text-cyan-500/80">
-                <StickyNote size={10} />
-                <span className="hidden lg:inline">Notes</span>
-              </div>
-            )}
+            </div>
           </div>
-
-          <div className="flex items-center gap-3 justify-end min-w-[80px] md:min-w-[120px] shrink-0">
-            {item.due_date ? (
-              <span
-                className={`text-[10px] font-mono ${statusColor === "rose" ? "text-rose-400" : "text-slate-500"
-                  }`}
-              >
-                {formatDate(item.due_date)}
-              </span>
-            ) : (
-              <span className="text-[10px] font-mono text-slate-700">--</span>
-            )}
-            {priority !== "normal" && (
-              <PriorityBadge priority={priority} compact />
-            )}
-          </div>
-        </div>
-
-
-
-
-        <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsLocked(!isLocked);
-            }}
-            className={`p-1 transition-colors ${!isLocked ? "text-cyan-400" : "text-slate-500 hover:text-white"}`}
-            title={isLocked ? "Unlock to Edit" : "Lock Task"}
-          >
-            {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(item.id);
-            }}
-            className="text-slate-500 hover:text-rose-400 p-1.5"
-          >
-            <Trash2 size={14} />
-          </button>
         </div>
       </div>
     );
@@ -844,20 +892,21 @@ function TaskCard({
           </div>
 
           {/* CONTROLS ROW */}
-          <div className="mt-auto pt-2 flex flex-wrap items-center gap-2 border-t border-white/5">
+          <div className="mt-auto pt-2 flex flex-col md:flex-row md:flex-wrap items-stretch md:items-center gap-2 border-t border-white/5">
             {item.status === "archived" ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onRestore(item.id);
                 }}
-                className="flex items-center gap-1 text-[10px] uppercase font-black px-2 py-1 rounded-lg border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all"
+                className="flex items-center justify-center gap-1 text-[10px] uppercase font-black px-2 py-1 rounded-lg border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all w-full md:w-auto"
               >
                 <RefreshCcw size={12} /> Restore
               </button>
             ) : (
               <>
-                <div className={`flex items-center gap-2 ${isLocked ? "pointer-events-none opacity-50" : ""}`}>
+                {/* Mobile: Full-width control group */}
+                <div className={`flex flex-col md:flex-row md:items-center gap-2 md:gap-2 w-full md:w-auto ${isLocked ? "pointer-events-none opacity-50" : ""}`}>
                   {!["daily", "weekly"].includes(item.recurrence || "") && (
                     <DateControl
                       dueDate={item.due_date}
@@ -865,36 +914,39 @@ function TaskCard({
                       statusColor={statusColor}
                     />
                   )}
-                  <RecurrenceSwitcher
-                    current={item.recurrence || "one_off"}
-                    onChange={(newRec) => onUpdateRecurrence(item.id, newRec)}
-                  />
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <RecurrenceSwitcher
+                      current={item.recurrence || "one_off"}
+                      onChange={(newRec) => onUpdateRecurrence(item.id, newRec)}
+                    />
 
-                  <PrioritySwitcher
-                    current={priority}
-                    onChange={(newPriority) =>
-                      onUpdatePriority(item.id, newPriority)
-                    }
-                  />
+                    <PrioritySwitcher
+                      current={priority}
+                      onChange={(newPriority) =>
+                        onUpdatePriority(item.id, newPriority)
+                      }
+                    />
+                  </div>
                 </div>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsLocked(!isLocked);
-                  }}
-                  className={`p-1.5 transition-colors ${!isLocked ? "text-cyan-400" : "text-slate-600 hover:text-white"}`}
-                  title={isLocked ? "Unlock to Edit" : "Lock Task"}
-                >
-                  {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
-                </button>
-                <div className={`flex items-center gap-2 ml-auto ${isLocked ? "pointer-events-none opacity-50" : ""}`}>
+                {/* Action buttons row */}
+                <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto justify-center md:justify-end">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsLocked(!isLocked);
+                    }}
+                    className={`p-2 md:p-1.5 rounded-lg transition-colors flex-1 md:flex-initial ${!isLocked ? "text-cyan-400 bg-cyan-500/10" : "text-slate-600 hover:text-white hover:bg-white/5"}`}
+                    title={isLocked ? "Unlock to Edit" : "Lock Task"}
+                  >
+                    {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
+                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onArchive(item.id);
                     }}
-                    className="text-slate-600 hover:text-purple-400 p-1.5"
+                    className={`text-slate-600 hover:text-purple-400 hover:bg-purple-500/10 p-2 md:p-1.5 rounded-lg transition-colors flex-1 md:flex-initial ${isLocked ? "pointer-events-none opacity-50" : ""}`}
                     title="Archive"
                   >
                     <Archive size={14} />
@@ -904,7 +956,7 @@ function TaskCard({
                       e.stopPropagation();
                       onDelete(item.id);
                     }}
-                    className="text-slate-600 hover:text-rose-400 p-1.5"
+                    className={`text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 p-2 md:p-1.5 rounded-lg transition-colors flex-1 md:flex-initial ${isLocked ? "pointer-events-none opacity-50" : ""}`}
                     title="Delete"
                   >
                     <Trash2 size={14} />

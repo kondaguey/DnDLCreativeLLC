@@ -18,6 +18,8 @@ import {
   Loader2,
   GripVertical,
   GripHorizontal,
+  Search, // <--- Added Search icon
+  X, // <--- Added X icon
 } from "lucide-react";
 import {
   DndContext,
@@ -62,6 +64,9 @@ export default function TechCodex({
   onReorder,
   onManualMove,
 }: TechCodexProps) {
+  // LOCAL SEARCH STATE
+  const [searchQuery, setSearchQuery] = useState("");
+
   const filteredItems = items
     .filter((item) => {
       if (item.status === "archived") return false;
@@ -70,6 +75,16 @@ export default function TechCodex({
         !filterTags.every((t) => item.tags?.includes(t))
       )
         return false;
+
+      // SEARCH FILTER
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = (item.title || "").toLowerCase().includes(query);
+        const codeMatch = (item.content || "").toLowerCase().includes(query);
+        const notesMatch = (item.metadata?.notes || "").toLowerCase().includes(query);
+        if (!titleMatch && !codeMatch && !notesMatch) return false;
+      }
+
       return true;
     })
     .sort((a, b) => {
@@ -139,6 +154,27 @@ export default function TechCodex({
         strategy={verticalListSortingStrategy}
       >
         <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-20 max-w-4xl mx-auto w-full">
+          {/* SEARCH BAR */}
+          <div className="relative group w-full mb-2">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors"
+              size={16}
+            />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search Codex..."
+              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-emerald-500/50 rounded-2xl py-3 pl-10 pr-10 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
           {filteredItems.map((item, index) => (
             <SortableItem
               key={item.id}
@@ -300,8 +336,8 @@ function CodexCard({
           <button
             onClick={handleCopy}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all active:scale-95 ${copied
-                ? "text-emerald-400 bg-emerald-500/10 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                : "text-slate-500 hover:text-white bg-white/5"
+              ? "text-emerald-400 bg-emerald-500/10 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+              : "text-slate-500 hover:text-white bg-white/5"
               }`}
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}{" "}
@@ -323,21 +359,35 @@ function CodexCard({
   return (
     <div
       className={`relative bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl ${isExpanded
-          ? "shadow-2xl h-[600px]" // Fixed height when expanded to allow internal resizing
-          : "shadow-lg h-[72px] md:h-16 hover:border-white/20"
+        ? "shadow-2xl h-[600px]" // Fixed height when expanded to allow internal resizing
+        : "shadow-lg h-[120px] md:h-16 hover:border-white/20"
         }`}
     >
       <div
-        className="w-full bg-black/40 px-4 md:px-5 h-[72px] md:h-16 flex items-center justify-between shrink-0 shadow-inner gap-3 z-20 relative"
+        className="w-full bg-black/40 px-4 md:px-5 py-3 md:py-0 min-h-[90px] md:min-h-16 h-auto md:h-16 flex flex-col md:flex-row items-stretch md:items-center justify-between shrink-0 shadow-inner gap-3 z-20 relative"
         onDoubleClick={() => setIsExpanded(!isExpanded)}
       >
-        {/* Left Side: Icon + Input */}
-        <div className="flex-1 flex items-center gap-3 min-w-0">
-          {isManualSort && (
-            <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
-              <GripVertical size={20} />
-            </DragHandle>
-          )}
+        {/* TOP ROW (Mobile): Title & Icon */}
+        <div className="flex-1 flex items-center gap-3 min-w-0 w-full">
+          {/* Mobile Drag Handle (Only visible here on mobile if sortable) */}
+          <div className="md:hidden">
+            {isManualSort && (
+              <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
+                <GripVertical size={20} />
+              </DragHandle>
+            )}
+          </div>
+
+          {/* Desktop Drag Handle (Hidden on mobile to save space? Or keep it?) 
+              Actually user wants title expanded. Let's keep icon/drag on left of title.
+          */}
+          <div className="hidden md:block">
+            {isManualSort && (
+              <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
+                <GripVertical size={20} />
+              </DragHandle>
+            )}
+          </div>
 
           <FileText
             size={18}
@@ -353,14 +403,19 @@ function CodexCard({
             className={`bg-transparent text-white font-black tracking-tight focus:outline-none flex-1 min-w-0 truncate ${!isExpanded ? "text-base text-slate-300" : "text-xl md:text-2xl"
               }`}
           />
+        </div>
 
-          {isChanged && (
+        {/* BOTTOM ROW (Mobile): Controls & Save */}
+        <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto pt-1 md:pt-0 border-t border-white/5 md:border-t-0">
+
+          {/* Save Button (Moved here on mobile effectively, or just kept in flow) */}
+          {isChanged ? (
             <button
               onClick={handleExplicitSave}
               disabled={isSaving}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shrink-0 ${isSaving
-                  ? "bg-slate-700 text-slate-300"
-                  : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 animate-pulse"
+              className={`flex items-center justify-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shrink-0 flex-1 md:flex-none ${isSaving
+                ? "bg-slate-700 text-slate-300"
+                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 animate-pulse"
                 }`}
             >
               {isSaving ? (
@@ -368,67 +423,67 @@ function CodexCard({
               ) : (
                 <Save size={14} />
               )}
-              <span className="hidden md:inline">{isSaving ? "SAVING..." : "SAVE"}</span>
+              <span className="inline">{isSaving ? "SAVING..." : "SAVE"}</span>
             </button>
-          )}
-        </div>
+          ) : <div className="flex-1 md:hidden"></div> /* Spacer for mobile layout balance if no save button */}
 
-        {/* Right Side Controls */}
-        <div className="flex items-center gap-1.5 shrink-0 flex-nowrap">
-          {/* UP/DOWN ARROWS */}
-          {isManualSort && onManualMove && (
-            <div className="flex items-center bg-white/5 rounded-xl border border-white/10 shadow-inner mr-1">
-              <button
-                disabled={isFirst}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onManualMove(item.id, "up");
-                }}
-                className="p-2 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
-                title="Move Up"
-              >
-                <ArrowUp size={16} />
-              </button>
-              <div className="w-px h-6 bg-white/10" />
-              <button
-                disabled={isLast}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onManualMove(item.id, "down");
-                }}
-                className="p-2 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
-                title="Move Down"
-              >
-                <ArrowDown size={16} />
-              </button>
-            </div>
-          )}
+          {/* Right Side Controls */}
+          <div className="flex items-center gap-1.5 shrink-0 flex-nowrap ml-auto">
+            {/* UP/DOWN ARROWS */}
+            {isManualSort && onManualMove && (
+              <div className="flex items-center bg-white/5 rounded-xl border border-white/10 shadow-inner mr-1">
+                <button
+                  disabled={isFirst}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onManualMove(item.id, "up");
+                  }}
+                  className="p-2 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
+                  title="Move Up"
+                >
+                  <ArrowUp size={16} />
+                </button>
+                <div className="w-px h-6 bg-white/10" />
+                <button
+                  disabled={isLast}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onManualMove(item.id, "down");
+                  }}
+                  className="p-2 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
+                  title="Move Down"
+                >
+                  <ArrowDown size={16} />
+                </button>
+              </div>
+            )}
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(item.id);
-            }}
-            className="p-3 md:p-2 rounded-xl text-slate-600 hover:text-rose-400 hover:bg-white/5 transition-colors"
-            title="Delete"
-          >
-            <Trash2 size={18} />
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(item.id);
+              }}
+              className="p-3 md:p-2 rounded-xl text-slate-600 hover:text-rose-400 hover:bg-white/5 transition-colors"
+              title="Delete"
+            >
+              <Trash2 size={18} />
+            </button>
 
-          <div className="w-px h-6 bg-white/10 mx-1 shrink-0"></div>
+            <div className="w-px h-6 bg-white/10 mx-1 shrink-0"></div>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
-            className="p-3 md:p-2 rounded-xl text-slate-400 hover:text-cyan-400 hover:bg-white/5 transition-colors"
-            title={isExpanded ? "Collapse" : "Expand"}
-          >
-            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="p-3 md:p-2 rounded-xl text-slate-400 hover:text-cyan-400 hover:bg-white/5 transition-colors"
+              title={isExpanded ? "Collapse" : "Expand"}
+            >
+              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+          </div>
         </div>
       </div>
 

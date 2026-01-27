@@ -37,6 +37,8 @@ import {
   Calendar as CalendarIcon,
   Lock,
   Unlock,
+  Search, // <--- Added Search icon
+  X, // <--- Added X icon
 } from "lucide-react";
 
 import { TaskItem, ViewType, SortOption } from "./types";
@@ -80,6 +82,8 @@ export default function ResourceGrid({
   onManualMove,
   onEdit,
 }: ResourceGridProps) {
+  // LOCAL SEARCH STATE
+  const [searchQuery, setSearchQuery] = useState("");
   const [activePeriod, setActivePeriod] = useState<string>("all");
 
   const timeline = useMemo(() => {
@@ -110,6 +114,16 @@ export default function ResourceGrid({
           if (itemKey !== activePeriod) return false;
         }
       }
+
+      // SEARCH FILTER
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = (item.title || "").toLowerCase().includes(query);
+        const contentMatch = (item.content || "").toLowerCase().includes(query); // Used for URL or simple content
+        const notesMatch = (item.metadata?.notes || "").toLowerCase().includes(query);
+        if (!titleMatch && !contentMatch && !notesMatch) return false;
+      }
+
       return true;
     })
     .sort((a, b) => {
@@ -152,29 +166,54 @@ export default function ResourceGrid({
 
   return (
     <div className="w-full">
-      {/* TIMELINE SCROLLER */}
-      <div className="flex items-center gap-2 mb-8 overflow-x-auto no-scrollbar mask-linear-fade pb-2">
-        <button
-          onClick={() => setActivePeriod("all")}
-          className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === "all"
-            ? "bg-white text-black shadow-lg shadow-white/20"
-            : "bg-white/5 text-slate-400 hover:text-white"
-            }`}
-        >
-          All Time
-        </button>
-        {timeline.map((period) => (
+      {/* SEARCH BAR & TIMELINE SCROLLER */}
+      <div className="flex flex-col md:flex-row items-center gap-4 mb-8">
+        {/* SEARCH BAR */}
+        <div className="relative group w-full md:w-64">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors"
+            size={14}
+          />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search Resources..."
+            className="w-full bg-black/20 border border-white/5 hover:border-white/10 focus:border-cyan-500/50 rounded-xl py-2 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide shadow-inner"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* TIMELINE SCROLLER */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade pb-2 w-full md:w-auto">
           <button
-            key={period}
-            onClick={() => setActivePeriod(period)}
-            className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === period
-              ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
+            onClick={() => setActivePeriod("all")}
+            className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === "all"
+              ? "bg-white text-black shadow-lg shadow-white/20"
               : "bg-white/5 text-slate-400 hover:text-white"
               }`}
           >
-            {formatPeriod(period)}
+            All Time
           </button>
-        ))}
+          {timeline.map((period) => (
+            <button
+              key={period}
+              onClick={() => setActivePeriod(period)}
+              className={`shrink-0 px-4 py-2.5 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === period
+                ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
+                : "bg-white/5 text-slate-400 hover:text-white"
+                }`}
+            >
+              {formatPeriod(period)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="pb-24 md:pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -369,24 +408,24 @@ function ResourceCard({
       className={`group flex flex-col h-full bg-slate-900/40 backdrop-blur-xl border border-white/5 ${borderHover} rounded-3xl overflow-hidden transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 relative w-full`}
     >
       {/* HEADER */}
-      <div className="p-5 flex items-start gap-4">
-        {/* THE FIX: PURE CSS CLASS DRAG HANDLE. ZERO EVENT CONFLICTS. */}
+      <div className="p-5 flex flex-col md:flex-row items-start gap-3 md:gap-4">
+        {/* Icon/Drag Handle - left side on desktop, top on mobile */}
         {isManualSort ? (
-          <DragHandle className="drag-handle mt-1 flex items-center justify-center bg-white/5 hover:bg-cyan-500/20 text-slate-600 hover:text-cyan-400 p-2 md:p-3 rounded-xl shadow-inner transition-colors cursor-grab active:cursor-grabbing touch-none shrink-0">
+          <DragHandle className="drag-handle flex items-center justify-center bg-white/5 hover:bg-cyan-500/20 text-slate-600 hover:text-cyan-400 p-2 md:p-3 rounded-xl shadow-inner transition-colors cursor-grab active:cursor-grabbing touch-none shrink-0">
             <GripVertical size={20} />
           </DragHandle>
         ) : (
           <div
-            className={`mt-1 p-2 md:p-3 rounded-xl ${accentBg} ${accentText} shadow-inner shrink-0`}
+            className={`p-2 md:p-3 rounded-xl ${accentBg} ${accentText} shadow-inner shrink-0`}
           >
             <MainIcon size={20} />
           </div>
         )}
 
-        <div className="flex-1 min-w-0 space-y-2">
-          {/* TITLE INPUT */}
+        <div className="flex-1 min-w-0 w-full space-y-2">
+          {/* TITLE - FULL WIDTH ON MOBILE */}
           {isLocked ? (
-            <h3 className="text-xs md:text-lg font-black text-slate-100 w-full line-clamp-2 md:truncate cursor-default">
+            <h3 className="text-sm md:text-lg font-black text-slate-100 w-full line-clamp-2 md:truncate cursor-default">
               {title}
             </h3>
           ) : (
@@ -396,13 +435,13 @@ function ResourceCard({
               onBlur={() => {
                 if (title !== item.title) onUpdateTitle(item.id, title);
               }}
-              className="bg-black/40 rounded px-2 py-0.5 text-xs md:text-lg font-black text-slate-100 w-full focus:outline-none placeholder:text-slate-600 border border-cyan-500/30"
+              className="bg-black/40 rounded px-2 py-0.5 text-sm md:text-lg font-black text-slate-100 w-full focus:outline-none placeholder:text-slate-600 border border-cyan-500/30"
               placeholder="Resource Title..."
               autoFocus
             />
           )}
 
-          {/* DATE & PLATFORM METADATA */}
+          {/* DATE & PLATFORM METADATA - SEPARATE LINE ON MOBILE */}
           <div className="text-[10px] md:text-[9px] text-slate-500 font-mono flex items-center gap-2 flex-wrap">
             <div
               className={`flex items-center gap-1 cursor-pointer transition-colors px-2 py-1 rounded-md -ml-2 ${isEdited ? "text-cyan-400 bg-cyan-500/10" : "hover:text-white hover:bg-white/10"}`}

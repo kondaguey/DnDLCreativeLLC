@@ -19,6 +19,8 @@ import {
   Sparkles,
   Star,
   Edit2,
+  Search, // <--- Added Search icon
+  X, // <--- Added X icon
 } from "lucide-react";
 import {
   DndContext,
@@ -97,6 +99,9 @@ export default function IdeaBoard({
   const [quickNote, setQuickNote] = useState("");
   const [noteFormat, setNoteFormat] = useState<"text" | "code">("text");
 
+  // LOCAL SEARCH STATE
+  const [searchQuery, setSearchQuery] = useState("");
+
   const timeline = useMemo(() => {
     const periods = new Set<string>();
     items.forEach((item) => {
@@ -145,6 +150,14 @@ export default function IdeaBoard({
         !filterTags.every((t) => item.tags?.includes(t))
       )
         return false;
+
+      // SEARCH FILTER
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = (item.title || "").toLowerCase().includes(query);
+        const contentMatch = (item.content || "").toLowerCase().includes(query);
+        if (!titleMatch && !contentMatch) return false;
+      }
 
       if (activePeriod !== "all") {
         const date = getEffectiveDate(item);
@@ -224,7 +237,30 @@ export default function IdeaBoard({
         </div>
 
         {/* TIMELINE & VIEW TOGGLE */}
-        <div className="flex items-center gap-3 w-full md:w-auto min-w-0">
+        {/* TIMELINE & VIEW TOGGLE */}
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto min-w-0">
+          {/* SEARCH BAR */}
+          <div className="relative group w-full md:w-48">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors"
+              size={14}
+            />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="w-full bg-black/20 border border-white/5 hover:border-white/10 focus:border-cyan-500/50 rounded-lg py-2 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
           <div className="hidden sm:flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner shrink-0">
             <button
               onClick={() => setViewMode("compact")}

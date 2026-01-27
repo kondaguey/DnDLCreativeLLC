@@ -30,6 +30,8 @@ import {
   ChevronDown,
   ChevronRight,
   CalendarDays,
+  Search, // <--- Added Search icon
+  X, // <--- Added X icon
 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -101,6 +103,9 @@ export default function LedgerView({
   const [activePeriod, setActivePeriod] = useState<string>("all");
   const [showCompleted, setShowCompleted] = useState(false);
 
+  // LOCAL SEARCH STATE
+  const [searchQuery, setSearchQuery] = useState("");
+
   // --- TIMELINE LOGIC ---
   const timeline = useMemo(() => {
     const periods = new Set<string>();
@@ -138,6 +143,14 @@ export default function LedgerView({
         const date = new Date(item.created_at);
         const itemKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         if (itemKey !== activePeriod) return false;
+      }
+
+      // SEARCH FILTER
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = (item.title || "").toLowerCase().includes(query);
+        const notesMatch = (item.content || "").toLowerCase().includes(query); // Content stores notes/details
+        if (!titleMatch && !notesMatch) return false;
       }
 
       return true;
@@ -193,20 +206,44 @@ export default function LedgerView({
       <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-4 md:p-5 mb-8 shadow-2xl space-y-4">
         {/* TOP ROW */}
         <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-          <div className="flex items-center gap-2 min-w-[140px]">
-            <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0">
-              <SortAsc size={12} /> Sort:
-            </span>
-            <select
-              value={ledgerSort}
-              onChange={(e) => setLedgerSort(e.target.value as any)}
-              className="bg-black/40 border border-white/10 rounded-xl text-base md:text-xs text-slate-200 px-4 py-3 md:py-2 focus:outline-none focus:border-purple-500 w-full transition-colors shadow-inner font-bold tracking-wide"
-            >
-              <option value="priority">By Urgency</option>
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="manual">Manual Order</option>
-            </select>
+          <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+            {/* SEARCH BAR */}
+            <div className="relative group w-full md:w-64">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors"
+                size={14}
+              />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full bg-black/40 border border-white/10 hover:border-white/20 focus:border-purple-500 rounded-xl py-2 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide shadow-inner"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 min-w-[140px]">
+              <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0">
+                <SortAsc size={12} /> Sort:
+              </span>
+              <select
+                value={ledgerSort}
+                onChange={(e) => setLedgerSort(e.target.value as any)}
+                className="bg-black/40 border border-white/10 rounded-xl text-base md:text-xs text-slate-200 px-4 py-3 md:py-2 focus:outline-none focus:border-purple-500 w-full transition-colors shadow-inner font-bold tracking-wide"
+              >
+                <option value="priority">By Urgency</option>
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="manual">Manual Order</option>
+              </select>
+            </div>
           </div>
 
           {/* PRIORITY TABS */}
@@ -525,11 +562,11 @@ function TicketCard({
       className={`group relative flex flex-col gap-3 md:gap-4 rounded-2xl md:rounded-3xl backdrop-blur-xl border border-white/5 transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 ${priorityColors[priority as keyof typeof priorityColors]} border-l-4 w-full p-3 md:p-6`}
     >
       {/* LEFT: STATUS */}
-      <div className="flex flex-row items-center gap-2 md:gap-3 shrink-0">
+      <div className="flex flex-row items-center gap-2 shrink-0">
         {/* DRAG HANDLE */}
         {isManualSort && (
           <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing">
-            <GripVertical size={16} className="md:w-5 md:h-5" />
+            <GripVertical size={12} />
           </DragHandle>
         )}
 
@@ -538,38 +575,18 @@ function TicketCard({
             e.stopPropagation();
             onToggleStatus(item.id, item.status);
           }}
-          className={`w-5 h-5 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center transition-all shadow-inner ${isCompleted ? "bg-emerald-500 border-emerald-500 text-slate-900" : "border-slate-500 hover:border-emerald-500 text-transparent"}`}
+          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shadow-inner ${isCompleted ? "bg-emerald-500 border-emerald-500 text-slate-900" : "border-slate-500 hover:border-emerald-500 text-transparent"}`}
         >
-          <CheckCircle2 size={12} className="md:w-3.5 md:h-3.5" />
+          <CheckCircle2 size={10} />
         </button>
       </div>
 
       {/* CENTER: CONTENT */}
-      <div className="flex-1 min-w-0 flex flex-col gap-2 md:gap-3 w-full">
-        {/* Header Row */}
-        <div className="flex flex-col md:flex-row md:items-center gap-2 md:justify-between">
-          <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-            <div
-              className={`flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[9px] md:text-[10px] font-black uppercase tracking-widest border ${typeConfig.bg} ${typeConfig.color} ${typeConfig.border}`}
-            >
-              <Icon size={10} className="md:w-3 md:h-3" /> {typeConfig.label}
-            </div>
-            {priority !== "normal" && priority !== "low" && (
-              <div
-                className={`flex items-center gap-0.5 md:gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[9px] md:text-[10px] font-black uppercase tracking-widest border bg-black/40 ${priority === "critical" ? "text-rose-500 border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]" : "text-orange-400 border-orange-500/50"}`}
-              >
-                <AlertTriangle size={10} className="md:w-3 md:h-3" /> {priority}
-              </div>
-            )}
-          </div>
-          <span className="text-[9px] font-mono text-slate-500 bg-black/40 px-2 py-1 rounded-md flex items-center gap-1 whitespace-nowrap shrink-0 border border-white/5 w-fit">
-            <Clock size={9} className="md:w-2.5 md:h-2.5" /> {dateStr}
-          </span>
-        </div>
-
+      <div className="flex-1 min-w-0 flex flex-col gap-2 w-full">
+        {/* TITLE - FULL WIDTH */}
         {isLocked ? (
           <h3
-            className={`text-xs md:text-xl font-black w-full min-w-0 pb-1 cursor-pointer transition-colors leading-tight ${isCompleted ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}
+            className={`flex-1 text-sm md:text-base font-bold w-full min-w-0 cursor-pointer transition-colors leading-tight line-clamp-1 ${isCompleted ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}
             onClick={(e) => {
               e.stopPropagation();
               setExpanded(!expanded);
@@ -588,10 +605,71 @@ function TicketCard({
             }}
             onPointerDown={stopProp}
             onKeyDown={stopProp}
-            className={`bg-transparent text-xs md:text-xl font-black w-full min-w-0 focus:outline-none focus:border-b focus:border-purple-500/50 pb-1 transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100"}`}
+            className={`flex-1 bg-transparent text-sm md:text-base font-bold w-full min-w-0 focus:outline-none focus:border-b focus:border-purple-500/50 pb-1 transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100"}`}
             autoFocus
           />
         )}
+
+        {/* METADATA ROW */}
+        <div className="flex items-center gap-2 text-[10px] flex-wrap justify-between w-full">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div
+              className={`flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${typeConfig.bg} ${typeConfig.color} ${typeConfig.border}`}
+            >
+              <Icon size={8} /> {typeConfig.label}
+            </div>
+            {priority !== "normal" && priority !== "low" && (
+              <div
+                className={`flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border bg-black/40 ${priority === "critical" ? "text-rose-500 border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]" : "text-orange-400 border-orange-500/50"}`}
+              >
+                <AlertTriangle size={8} /> {priority}
+              </div>
+            )}
+            {totalSub > 0 && (
+              <span className="text-[10px] font-mono text-slate-500 bg-black/20 px-1.5 rounded flex items-center gap-1 shrink-0">
+                <CheckSquare size={10} />
+                {completedSub}/{totalSub}
+              </span>
+            )}
+            <span className="text-[9px] font-mono text-slate-500 bg-black/40 px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap shrink-0 border border-white/5">
+              <Clock size={9} /> {dateStr}
+            </span>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsLocked(!isLocked);
+              }}
+              className={`p-1.5 rounded transition-colors ${!isLocked ? "text-cyan-400 bg-cyan-500/10" : "text-slate-500 hover:text-white hover:bg-white/5"}`}
+              title={isLocked ? "Unlock to Edit" : "Lock Task"}
+            >
+              {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onArchive(item.id);
+              }}
+              className="text-slate-500 hover:text-purple-400 hover:bg-purple-500/10 p-1.5 rounded transition-colors"
+              title="Archive"
+            >
+              <Archive size={12} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(item.id);
+              }}
+              className="text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded transition-colors"
+              title="Delete"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        </div>
 
         {/* TAGS & CONTROLS ROW */}
         <div className="flex flex-col gap-2 md:gap-3 mt-1 w-full">
@@ -609,31 +687,12 @@ function TicketCard({
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 w-full">
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded(!expanded);
-              }}
-              className={`flex items-center gap-1 text-[9px] md:text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all w-full md:w-fit rounded-md select-none shrink-0 border border-transparent px-2 py-1.5 md:py-1 ${expanded
-                ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
-                : "text-slate-500 hover:text-white bg-white/5"
-                }`}
-            >
-              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              {totalSub > 0 ? (
-                <>
-                  {completedSub}/{totalSub} Subtasks
-                </>
-              ) : (
-                "Add Subtasks"
-              )}
-            </div>
-
+            {/* Task Type & Priority Dropdowns - FIRST */}
             <div className="flex gap-2 w-full md:w-auto">
               <select
                 value={type}
                 onChange={(e) => handleMetaChange("ticket_type", e.target.value)}
-                className="appearance-none bg-black/40 text-xs md:text-xs font-bold uppercase tracking-wider text-slate-400 border border-white/10 rounded-xl px-2 py-2 md:px-2 md:py-1 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center flex-1 md:flex-initial"
+                className="appearance-none bg-black/40 text-[9px] font-bold uppercase tracking-wide text-slate-400 border border-white/10 rounded px-1.5 py-0.5 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center flex-1 md:flex-initial"
               >
                 <option value="task">Task</option>
                 <option value="bug">Bug</option>
@@ -648,7 +707,7 @@ function TicketCard({
               <select
                 value={priority}
                 onChange={(e) => handleMetaChange("priority", e.target.value)}
-                className={`appearance-none bg-black/40 text-xs md:text-xs font-bold uppercase tracking-wider border border-white/10 rounded-xl px-2 py-2 md:px-2 md:py-1 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center flex-1 md:flex-initial
+                className={`appearance-none bg-black/40 text-[9px] font-bold uppercase tracking-wide border border-white/10 rounded px-1.5 py-0.5 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center flex-1 md:flex-initial
                     ${priority === "critical"
                     ? "text-rose-400"
                     : priority === "high"
@@ -662,6 +721,27 @@ function TicketCard({
                 <option value="high">High</option>
                 <option value="critical">Critical</option>
               </select>
+            </div>
+
+            {/* Subtasks Toggle - LAST */}
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              className={`flex items-center gap-1 text-[9px] md:text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all w-full md:w-fit rounded-md select-none shrink-0 border border-transparent px-2 py-1 ${expanded
+                ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                : "text-slate-500 hover:text-white bg-white/5"
+                }`}
+            >
+              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              {totalSub > 0 ? (
+                <>
+                  {completedSub}/{totalSub} Subtasks
+                </>
+              ) : (
+                "Add Subtasks"
+              )}
             </div>
           </div>
         </div>
@@ -757,71 +837,6 @@ function TicketCard({
             )}
           </div>
         )}
-      </div>
-
-      {/* ACTIONS ROW (No more parent event-blockers here) */}
-      <div className="flex flex-row md:flex-col gap-2 items-center justify-end md:justify-start pt-4 md:pt-0 md:pl-5 md:border-l md:border-white/5 shrink-0 flex-wrap">
-        {/* THE FIX: BULLETPROOF CLICK HANDLERS */}
-        {isManualSort && onManualMove && (
-          <div className="flex items-center md:flex-col bg-white/5 rounded-lg border border-white/10 shadow-inner mr-auto md:mr-0 md:mb-auto">
-            <button
-              disabled={isFirst}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onManualMove(item.id, "up");
-              }}
-              className="p-3 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
-              title="Move Up"
-            >
-              <ArrowUp size={16} />
-            </button>
-            <div className="w-px h-6 bg-white/10 md:w-6 md:h-px" />
-            <button
-              disabled={isLast}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onManualMove(item.id, "down");
-              }}
-              className="p-3 md:p-1.5 text-slate-500 hover:text-white disabled:opacity-20 transition-all active:scale-95"
-              title="Move Down"
-            >
-              <ArrowDown size={16} />
-            </button>
-          </div>
-        )}
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onArchive(item.id);
-          }}
-          className="p-3 md:p-1.5 rounded-lg bg-purple-500/10 md:bg-transparent hover:bg-purple-500/20 md:hover:bg-white/10 text-purple-400 md:text-slate-600 md:hover:text-purple-400 transition-colors"
-          title="Archive"
-        >
-          <Archive size={16} />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsLocked(!isLocked);
-          }}
-          className={`p-3 md:p-1.5 rounded-lg bg-cyan-500/10 md:bg-transparent hover:bg-cyan-500/20 md:hover:bg-white/10 transition-colors ${!isLocked ? "text-cyan-400" : "text-slate-500 md:text-slate-600 md:hover:text-cyan-400"}`}
-          title={isLocked ? "Unlock to Edit" : "Lock Task"}
-        >
-          {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(item.id);
-          }}
-          className="p-3 md:p-1.5 rounded-lg bg-rose-500/10 md:bg-transparent hover:bg-rose-500/20 md:hover:bg-white/10 text-rose-400 md:text-slate-600 md:hover:text-rose-400 transition-colors"
-          title="Delete"
-        >
-          <Trash2 size={16} />
-        </button>
       </div>
     </div>
   );
