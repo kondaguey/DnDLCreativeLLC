@@ -635,15 +635,14 @@ export default function TaskMasterShell({
     <>
       <MobileNav activeView={activeView} onChange={handleSwitchView} />
       <div
-        className={`fixed inset-0 flex flex-col md:flex-row bg-[#020617] text-slate-200 overflow-hidden ${styles.taskMasterContainer}`}
-        style={{ height: "100dvh" }} // Inline style fallback or priority for dvh
+        className={`flex flex-col md:flex-row h-screen min-h-0 bg-[#020617] text-slate-200 overflow-hidden ${styles.taskMasterContainer}`}
       >
         <div className="hidden md:block w-20 xl:w-64 shrink-0 border-r border-white/5 bg-[#020617]/50 backdrop-blur-xl z-20">
           <SidebarNav activeView={activeView} onChange={handleSwitchView} />
         </div>
 
-        <main className="flex-1 flex flex-col min-w-0 relative z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/50 via-[#020617] to-[#020617]">
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 pt-20 md:p-8 relative scroll-smooth">
+        <main className="flex-1 flex flex-col min-h-0 min-w-0 relative z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/50 via-[#020617] to-[#020617]">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 pt-20 md:p-8 md:pt-8 relative scroll-smooth">
             {/* BACKGROUND EFFECTS */}
             <div className="fixed inset-0 pointer-events-none z-0">
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] opacity-20" />
