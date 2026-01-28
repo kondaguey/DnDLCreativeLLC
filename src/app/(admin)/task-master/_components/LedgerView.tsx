@@ -17,7 +17,6 @@ import {
   Server,
   Circle,
   Filter,
-  SortAsc,
   ArrowUp,
   ArrowDown,
   Lock,
@@ -29,9 +28,9 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  CalendarDays,
-  Search, // <--- Added Search icon
-  X, // <--- Added X icon
+  List,
+  StretchVertical,
+  LayoutGrid,
 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -45,6 +44,7 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
+  rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableItem, DragHandle } from "./SortableItem";
 
@@ -56,19 +56,35 @@ interface LedgerViewProps {
   sortOption: SortOption;
   filterTags: string[];
   allSystemTags?: string[];
+  searchQuery?: string;
+  activePeriod?: string;
   onUpdateMetadata: (id: string, metadata: any) => void;
   onUpdateTitle: (id: string, title: string) => void;
   onUpdateTags?: (id: string, tags: string[]) => void;
   onDelete: (id: string) => void;
   onToggleStatus: (id: string, status: string) => void;
   onArchive: (id: string) => void;
-  onReorder: (draggedId: string, targetId: string) => void;
+  onReorder?: (draggedId: string, targetId: string) => void;
   onManualMove?: (id: string, direction: "up" | "down") => void;
   onEdit?: (item: TaskItem) => void;
   onAddSubtask?: (parentId: string, title: string) => void;
-  onToggleSubtask?: (parentId: string, subtaskId: string, currentStatus: string) => void;
+  onToggleSubtask?: (
+    parentId: string,
+    subtaskId: string,
+    currentStatus: string,
+  ) => void;
   onDeleteSubtask?: (parentId: string, subtaskId: string) => void;
-  onReorderSubtask?: (parentId: string, subtaskId: string, direction: "up" | "down") => void;
+  onReorderSubtask?: (
+    parentId: string,
+    subtaskId: string,
+    direction: "up" | "down",
+  ) => void;
+  onUpdateSubtaskTitle?: (
+    parentId: string,
+    subtaskId: string,
+    title: string,
+  ) => void;
+  onBulkDelete?: (ids: string[]) => void;
 }
 
 const PRIORITY_WEIGHT: Record<string, number> = {
@@ -80,7 +96,11 @@ const PRIORITY_WEIGHT: Record<string, number> = {
 
 export default function LedgerView({
   items,
+  sortOption,
+  filterTags,
   allSystemTags = [],
+  searchQuery = "",
+  activePeriod = "all",
   onUpdateMetadata,
   onUpdateTitle,
   onUpdateTags,
@@ -94,38 +114,16 @@ export default function LedgerView({
   onToggleSubtask,
   onDeleteSubtask,
   onReorderSubtask,
+  onUpdateSubtaskTitle,
+  onBulkDelete,
 }: LedgerViewProps) {
-  const [ledgerSort, setLedgerSort] = useState<
-    "priority" | "newest" | "oldest" | "manual"
-  >("priority");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
-  const [activePeriod, setActivePeriod] = useState<string>("all");
   const [showCompleted, setShowCompleted] = useState(false);
-
-  // LOCAL SEARCH STATE
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // --- TIMELINE LOGIC ---
-  const timeline = useMemo(() => {
-    const periods = new Set<string>();
-    items.forEach((item) => {
-      // Ledger items use created_at
-      const date = new Date(item.created_at);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      periods.add(key);
-    });
-    return Array.from(periods).sort().reverse();
-  }, [items]);
-
-  const formatPeriod = (key: string) => {
-    const [year, month] = key.split("-");
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString(undefined, {
-      month: "short",
-      year: "2-digit",
-    });
-  };
+  const [viewMode, setViewMode] = useState<"list" | "grid" | "compact">("list");
+  const [selectedCompleted, setSelectedCompleted] = useState<Set<string>>(
+    new Set(),
+  );
 
   const processedItems = items
     .filter((item) => {
@@ -138,26 +136,30 @@ export default function LedgerView({
         return false;
       if (filterType !== "all" && itemType !== filterType) return false;
 
-      // Date Filter
+      if (
+        filterTags.length > 0 &&
+        !filterTags.every((t) => item.tags?.includes(t))
+      ) {
+        return false;
+      }
+
       if (activePeriod !== "all") {
         const date = new Date(item.created_at);
         const itemKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         if (itemKey !== activePeriod) return false;
       }
 
-      // SEARCH FILTER
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const titleMatch = (item.title || "").toLowerCase().includes(query);
-        const notesMatch = (item.content || "").toLowerCase().includes(query); // Content stores notes/details
+        const notesMatch = (item.content || "").toLowerCase().includes(query);
         if (!titleMatch && !notesMatch) return false;
       }
 
       return true;
     })
     .sort((a, b) => {
-      // STRICT MANUAL SORT
-      if (ledgerSort === "manual") {
+      if (sortOption === "manual") {
         const posDiff = (a.position || 0) - (b.position || 0);
         if (posDiff !== 0) return posDiff;
         return (
@@ -165,7 +167,7 @@ export default function LedgerView({
         );
       }
 
-      if (ledgerSort === "priority") {
+      if (sortOption === "priority_desc") {
         const aWeight = PRIORITY_WEIGHT[a.metadata?.priority || "normal"] || 0;
         const bWeight = PRIORITY_WEIGHT[b.metadata?.priority || "normal"] || 0;
         if (aWeight !== bWeight) return bWeight - aWeight;
@@ -174,20 +176,36 @@ export default function LedgerView({
         );
       }
 
-      if (ledgerSort === "oldest") {
+      if (sortOption === "priority_asc") {
+        const aWeight = PRIORITY_WEIGHT[a.metadata?.priority || "normal"] || 0;
+        const bWeight = PRIORITY_WEIGHT[b.metadata?.priority || "normal"] || 0;
+        if (aWeight !== bWeight) return aWeight - bWeight;
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+
+      if (sortOption === "created_desc" || sortOption === "date_desc") {
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+
+      if (sortOption === "date_asc") {
         return (
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
       }
 
-      // Default: "newest"
       return (
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     });
 
   const activeTickets = processedItems.filter((i) => i.status !== "completed");
-  const completedTickets = processedItems.filter((i) => i.status === "completed");
+  const completedTickets = processedItems.filter(
+    (i) => i.status === "completed",
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -196,41 +214,34 @@ export default function LedgerView({
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      onReorder(active.id, over.id);
+      onReorder?.(active.id, over.id);
+    }
+  };
+
+  const toggleSelection = (id: string) => {
+    const next = new Set(selectedCompleted);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedCompleted(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedCompleted.size === completedTickets.length) {
+      setSelectedCompleted(new Set());
+    } else {
+      setSelectedCompleted(new Set(completedTickets.map((i) => i.id)));
     }
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto w-full">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-32 w-full">
       {/* CUSTOM LEDGER CONTROL DECK */}
       <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-4 md:p-5 mb-8 shadow-2xl space-y-4">
-        {/* TOP ROW */}
+        {/* TOP ROW: Priority Filters + Desktop View Toggle */}
         <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-          <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-1">
-            {/* PRIORITY TABS + SEARCH */}
-            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar mask-linear-fade">
-              {/* SEARCH BAR (MOVED HERE) - Desktop */}
-              <div className="relative group w-48 hidden md:block shrink-0">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors"
-                  size={14}
-                />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="w-full bg-black/40 border border-white/10 hover:border-white/20 focus:border-purple-500 rounded-xl py-2 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide shadow-inner"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-
+          {/* Priority Filters */}
+          <div className="flex-1 w-full md:w-auto overflow-x-auto no-scrollbar mask-linear-fade">
+            <div className="flex items-center gap-2">
               <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0 ml-2">
                 <AlertTriangle size={12} /> Priority:
               </span>
@@ -238,64 +249,52 @@ export default function LedgerView({
                 <button
                   key={prio}
                   onClick={() => setFilterPriority(prio)}
-                  className={`shrink-0 px-4 py-3 md:px-3 md:py-1.5 rounded-xl text-xs md:text-[10px] font-black uppercase tracking-wider transition-all shadow-inner ${filterPriority === prio
-                    ? prio === "critical"
-                      ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
-                      : prio === "high"
-                        ? "bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]"
-                        : "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                    : "bg-black/40 text-slate-400 border border-white/5 hover:text-white"
-                    }`}
+                  className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-inner ${
+                    filterPriority === prio
+                      ? prio === "critical"
+                        ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                        : prio === "high"
+                          ? "bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]"
+                          : "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                      : "bg-black/40 text-slate-400 border border-white/5 hover:text-white"
+                  }`}
                 >
                   {prio}
                 </button>
               ))}
             </div>
-
-            {/* MOBILE SEARCH (Visible only on mobile) */}
-            <div className="relative group w-full md:hidden">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors"
-                size={14}
-              />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="w-full bg-black/40 border border-white/10 hover:border-white/20 focus:border-purple-500 rounded-xl py-2 pl-9 pr-8 text-xs font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all uppercase tracking-wide shadow-inner"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
           </div>
 
-          <div className="flex items-center gap-2 min-w-[140px]">
-            <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0">
-              <SortAsc size={12} /> Sort:
-            </span>
-            <select
-              value={ledgerSort}
-              onChange={(e) => setLedgerSort(e.target.value as any)}
-              className="bg-black/40 border border-white/10 rounded-xl text-base md:text-xs text-slate-200 px-4 py-3 md:py-2 focus:outline-none focus:border-purple-500 w-full transition-colors shadow-inner font-bold tracking-wide"
+          {/* DESKTOP VIEW TOGGLE (HIDDEN ON MOBILE) */}
+          <div className="hidden md:flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner shrink-0 self-end md:self-auto">
+            <button
+              onClick={() => setViewMode("compact")}
+              className={`p-2 rounded-lg transition-all ${viewMode === "compact" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+              title="Compact View"
             >
-              <option value="priority">By Urgency</option>
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="manual">Manual Order</option>
-            </select>
+              <List size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+              title="List View"
+            >
+              <StretchVertical size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+              title="Grid View"
+            >
+              <LayoutGrid size={16} />
+            </button>
           </div>
         </div>
 
         <div className="h-px bg-white/5 w-full" />
 
-        {/* BOTTOM ROW: Ticket Type */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade pb-1">
+        {/* BOTTOM ROW: Ticket Type (Centered on mobile) */}
+        <div className="flex items-center justify-center md:justify-start gap-2 overflow-x-auto no-scrollbar mask-linear-fade pb-1">
           <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0">
             <Filter size={12} /> Type:
           </span>
@@ -312,44 +311,44 @@ export default function LedgerView({
             <button
               key={type}
               onClick={() => setFilterType(type)}
-              className={`shrink-0 px-3 py-2 md:py-1.5 rounded-lg text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all border ${filterType === type
-                ? "bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-lg"
-                : "bg-transparent text-slate-500 border-transparent hover:bg-white/5 hover:text-slate-300"
-                }`}
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${
+                filterType === type
+                  ? "bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-lg"
+                  : "bg-transparent text-slate-500 border-transparent hover:bg-white/5 hover:text-slate-300"
+              }`}
             >
               {type === "performance" ? "Perf" : type}
             </button>
           ))}
         </div>
 
-        <div className="h-px bg-white/5 w-full" />
+        <div className="h-px bg-white/5 w-full md:hidden" />
 
-        {/* TIMELINE TABS */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade pb-1">
-          <span className="hidden sm:flex text-[10px] uppercase font-bold text-slate-500 tracking-widest items-center gap-1 shrink-0">
-            <CalendarDays size={12} /> Date:
-          </span>
-          <button
-            onClick={() => setActivePeriod("all")}
-            className={`shrink-0 px-4 py-2 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === "all"
-              ? "bg-white text-black shadow-lg shadow-white/20"
-              : "bg-white/5 text-slate-400 hover:text-white"
-              }`}
-          >
-            All Time
-          </button>
-          {timeline.map((period) => (
+        {/* MOBILE VIEW TOGGLE (STRICTLY BELOW EVERYTHING) */}
+        <div className="flex md:hidden justify-center w-full pt-2">
+          <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner shrink-0">
             <button
-              key={period}
-              onClick={() => setActivePeriod(period)}
-              className={`shrink-0 px-4 py-2 md:py-1.5 rounded-full text-xs md:text-[10px] font-bold uppercase tracking-wider transition-all ${activePeriod === period
-                ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
-                : "bg-white/5 text-slate-400 hover:text-white"
-                }`}
+              onClick={() => setViewMode("compact")}
+              className={`p-2 rounded-lg transition-all ${viewMode === "compact" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+              title="Compact View"
             >
-              {formatPeriod(period)}
+              <List size={16} />
             </button>
-          ))}
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+              title="List View"
+            >
+              <StretchVertical size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+              title="Grid View"
+            >
+              <LayoutGrid size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -368,19 +367,32 @@ export default function LedgerView({
         >
           <SortableContext
             items={activeTickets.map((i) => i.id)}
-            strategy={verticalListSortingStrategy}
+            strategy={
+              viewMode === "grid"
+                ? rectSortingStrategy
+                : verticalListSortingStrategy
+            }
           >
-            <div className="space-y-4 pb-20 w-full">
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch"
+                  : viewMode === "compact"
+                    ? "space-y-1"
+                    : "space-y-4"
+              }
+            >
               {activeTickets.map((item, index) => (
                 <SortableItem
                   key={item.id}
                   id={item.id}
-                  disabled={ledgerSort !== "manual"}
+                  disabled={sortOption !== "manual"}
                 >
                   <TicketCard
                     item={item}
+                    viewMode={viewMode}
                     allSystemTags={allSystemTags}
-                    isManualSort={ledgerSort === "manual"}
+                    isManualSort={sortOption === "manual"}
                     isFirst={index === 0}
                     isLast={index === activeTickets.length - 1}
                     onUpdateMetadata={onUpdateMetadata}
@@ -395,6 +407,7 @@ export default function LedgerView({
                     onToggleSubtask={onToggleSubtask}
                     onDeleteSubtask={onDeleteSubtask}
                     onReorderSubtask={onReorderSubtask}
+                    onUpdateSubtaskTitle={onUpdateSubtaskTitle}
                   />
                 </SortableItem>
               ))}
@@ -404,41 +417,85 @@ export default function LedgerView({
           {/* COMPLETED SECTION */}
           {completedTickets.length > 0 && (
             <div className="mt-8 border-t border-white/10 pt-8 opacity-80">
-              <button
-                onClick={() => setShowCompleted(!showCompleted)}
-                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors mb-6"
-              >
-                {showCompleted ? (
-                  <ChevronDown size={14} />
-                ) : (
-                  <ChevronRight size={14} />
+              <div className="flex items-center justify-between mb-6">
+                <button
+                  onClick={() => setShowCompleted(!showCompleted)}
+                  className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
+                >
+                  {showCompleted ? (
+                    <ChevronDown size={14} />
+                  ) : (
+                    <ChevronRight size={14} />
+                  )}
+                  Completed Entries ({completedTickets.length})
+                </button>
+
+                {showCompleted && (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={toggleSelectAll}
+                      className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white transition-colors"
+                    >
+                      {selectedCompleted.size === completedTickets.length
+                        ? "Deselect All"
+                        : "Select All"}
+                    </button>
+                    {selectedCompleted.size > 0 && onBulkDelete && (
+                      <button
+                        onClick={() =>
+                          onBulkDelete(Array.from(selectedCompleted))
+                        }
+                        className="flex items-center gap-1 bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+                      >
+                        <Trash2 size={12} />
+                        Delete ({selectedCompleted.size})
+                      </button>
+                    )}
+                  </div>
                 )}
-                Completed Entries ({completedTickets.length})
-              </button>
+              </div>
 
               {showCompleted && (
                 <div className="space-y-4">
                   {completedTickets.map((item) => (
-                    <div key={item.id} className="opacity-60 hover:opacity-100 transition-opacity">
-                      <TicketCard
-                        item={item}
-                        allSystemTags={allSystemTags}
-                        isManualSort={false} // Disable Sort for Completed
-                        isFirst={false}
-                        isLast={false}
-                        onUpdateMetadata={onUpdateMetadata}
-                        onUpdateTitle={onUpdateTitle}
-                        onUpdateTags={onUpdateTags}
-                        onDelete={onDelete}
-                        onToggleStatus={onToggleStatus}
-                        onArchive={onArchive}
-                        onEdit={onEdit}
-                        onManualMove={onManualMove}
-                        onAddSubtask={onAddSubtask}
-                        onToggleSubtask={onToggleSubtask}
-                        onDeleteSubtask={onDeleteSubtask}
-                        onReorderSubtask={onReorderSubtask}
-                      />
+                    <div
+                      key={item.id}
+                      className="group/item flex items-start gap-4 transition-opacity"
+                    >
+                      <button
+                        onClick={() => toggleSelection(item.id)}
+                        className={`mt-6 shrink-0 w-5 h-5 rounded border transition-all flex items-center justify-center ${
+                          selectedCompleted.has(item.id)
+                            ? "bg-purple-500 border-purple-500 text-white"
+                            : "border-white/10 text-transparent hover:border-white/30"
+                        }`}
+                      >
+                        <Check size={12} />
+                      </button>
+
+                      <div className="flex-1 opacity-60 hover:opacity-100 transition-opacity">
+                        <TicketCard
+                          item={item}
+                          viewMode={viewMode}
+                          allSystemTags={allSystemTags}
+                          isManualSort={false}
+                          isFirst={false}
+                          isLast={false}
+                          onUpdateMetadata={onUpdateMetadata}
+                          onUpdateTitle={onUpdateTitle}
+                          onUpdateTags={onUpdateTags}
+                          onDelete={onDelete}
+                          onToggleStatus={onToggleStatus}
+                          onArchive={onArchive}
+                          onEdit={onEdit}
+                          onManualMove={onManualMove}
+                          onAddSubtask={onAddSubtask}
+                          onToggleSubtask={onToggleSubtask}
+                          onDeleteSubtask={onDeleteSubtask}
+                          onReorderSubtask={onReorderSubtask}
+                          onUpdateSubtaskTitle={onUpdateSubtaskTitle}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -454,6 +511,7 @@ export default function LedgerView({
 // --- TICKET CARD COMPONENT ---
 function TicketCard({
   item,
+  viewMode,
   allSystemTags = [],
   isManualSort,
   isFirst,
@@ -470,6 +528,7 @@ function TicketCard({
   onToggleSubtask,
   onDeleteSubtask,
   onReorderSubtask,
+  onUpdateSubtaskTitle,
 }: any) {
   const meta = item.metadata || {};
   const [title, setTitle] = useState(item.title);
@@ -477,8 +536,10 @@ function TicketCard({
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [isLocked, setIsLocked] = useState(true);
 
-  // Sync internal title state if prop changes
-  if (item.title !== title && document.activeElement?.id !== `title-${item.id}`) {
+  if (
+    item.title !== title &&
+    document.activeElement?.id !== `title-${item.id}`
+  ) {
     setTitle(item.title);
   }
 
@@ -488,7 +549,6 @@ function TicketCard({
     year: "2-digit",
   });
   const isCompleted = item.status === "completed";
-
   const type = meta.ticket_type || "task";
   const priority = meta.priority || "normal";
 
@@ -506,7 +566,7 @@ function TicketCard({
   const safeSubtasks = item.subtasks || [];
   const totalSub = safeSubtasks.length;
   const completedSub = safeSubtasks.filter(
-    (s: any) => s.status === "completed"
+    (s: any) => s.status === "completed",
   ).length;
 
   const typeConfig = {
@@ -575,14 +635,80 @@ function TicketCard({
   };
 
   const Icon = typeConfig.icon;
-
-  // Generic prevent default for internal inputs
   const stopProp = (e: any) => e.stopPropagation();
 
+  // DYNAMIC CLASSES BASED ON VIEW MODE
+  let containerClasses = `group relative flex flex-col gap-3 md:gap-4 rounded-2xl md:rounded-3xl backdrop-blur-xl border border-white/5 transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 ${priorityColors[priority as keyof typeof priorityColors]} border-l-4 w-full p-3 md:p-6`;
+
+  if (viewMode === "compact") {
+    containerClasses = `group relative flex flex-row items-center gap-3 rounded-xl border border-white/5 transition-all hover:bg-white/5 ${priorityColors[priority as keyof typeof priorityColors]} border-l-4 w-full px-3 py-2`;
+  }
+
+  // --- COMPACT RENDER ---
+  if (viewMode === "compact") {
+    return (
+      <div className={containerClasses}>
+        {isManualSort && (
+          <DragHandle className="text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
+            <GripVertical size={12} />
+          </DragHandle>
+        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleStatus(item.id, item.status);
+          }}
+          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isCompleted ? "bg-emerald-500 border-emerald-500 text-slate-900" : "border-slate-500 hover:border-emerald-500 text-transparent"}`}
+        >
+          <CheckCircle2 size={10} />
+        </button>
+        <div className="flex-1 min-w-0 flex items-center gap-3">
+          <span
+            className={`text-sm font-bold truncate ${isCompleted ? "text-slate-600 line-through" : "text-slate-200"}`}
+          >
+            {title}
+          </span>
+          <div
+            className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${typeConfig.bg} ${typeConfig.color} ${typeConfig.border}`}
+          >
+            <Icon size={8} /> {typeConfig.label}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {totalSub > 0 && (
+            <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+              <CheckSquare size={10} /> {completedSub}/{totalSub}
+            </span>
+          )}
+          <span className="text-[10px] font-mono text-slate-500 hidden sm:block">
+            {dateStr}
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit && onEdit(item);
+            }}
+            className="p-1.5 text-slate-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Edit2 size={12} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item.id);
+            }}
+            className="p-1.5 text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- STANDARD / GRID RENDER ---
   return (
-    <div
-      className={`group relative flex flex-col gap-3 md:gap-4 rounded-2xl md:rounded-3xl backdrop-blur-xl border border-white/5 transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 ${priorityColors[priority as keyof typeof priorityColors]} border-l-4 w-full p-3 md:p-6`}
-    >
+    <div className={containerClasses}>
       {/* LEFT: STATUS */}
       <div className="flex flex-row items-center gap-2 shrink-0">
         {/* DRAG HANDLE */}
@@ -605,10 +731,10 @@ function TicketCard({
 
       {/* CENTER: CONTENT */}
       <div className="flex-1 min-w-0 flex flex-col gap-2 w-full">
-        {/* TITLE - FULL WIDTH */}
+        {/* TITLE - BIGGER TEXT ON DESKTOP */}
         {isLocked ? (
           <h3
-            className={`flex-1 text-sm md:text-base font-bold w-full min-w-0 cursor-pointer transition-colors leading-tight line-clamp-1 ${isCompleted ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}
+            className={`flex-1 text-sm md:text-lg font-bold w-full min-w-0 cursor-pointer transition-colors leading-tight line-clamp-1 ${isCompleted ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}
             onClick={(e) => {
               e.stopPropagation();
               setExpanded(!expanded);
@@ -627,7 +753,7 @@ function TicketCard({
             }}
             onPointerDown={stopProp}
             onKeyDown={stopProp}
-            className={`flex-1 bg-transparent text-sm md:text-base font-bold w-full min-w-0 focus:outline-none focus:border-b focus:border-purple-500/50 pb-1 transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100"}`}
+            className={`flex-1 bg-transparent text-sm md:text-lg font-bold w-full min-w-0 focus:outline-none focus:border-b focus:border-purple-500/50 pb-1 transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100"}`}
             autoFocus
           />
         )}
@@ -713,7 +839,9 @@ function TicketCard({
             <div className="flex gap-2 w-full md:w-auto">
               <select
                 value={type}
-                onChange={(e) => handleMetaChange("ticket_type", e.target.value)}
+                onChange={(e) =>
+                  handleMetaChange("ticket_type", e.target.value)
+                }
                 className="appearance-none bg-black/40 text-[9px] font-bold uppercase tracking-wide text-slate-400 border border-white/10 rounded px-1.5 py-0.5 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center flex-1 md:flex-initial"
               >
                 <option value="task">Task</option>
@@ -730,12 +858,13 @@ function TicketCard({
                 value={priority}
                 onChange={(e) => handleMetaChange("priority", e.target.value)}
                 className={`appearance-none bg-black/40 text-[9px] font-bold uppercase tracking-wide border border-white/10 rounded px-1.5 py-0.5 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center flex-1 md:flex-initial
-                    ${priority === "critical"
-                    ? "text-rose-400"
-                    : priority === "high"
-                      ? "text-orange-400"
-                      : "text-slate-400"
-                  }
+                    ${
+                      priority === "critical"
+                        ? "text-rose-400"
+                        : priority === "high"
+                          ? "text-orange-400"
+                          : "text-slate-400"
+                    }
                 `}
               >
                 <option value="low">Low</option>
@@ -751,12 +880,17 @@ function TicketCard({
                 e.stopPropagation();
                 setExpanded(!expanded);
               }}
-              className={`flex items-center gap-1 text-[9px] md:text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all w-full md:w-fit rounded-md select-none shrink-0 border border-transparent px-2 py-1 ${expanded
-                ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
-                : "text-slate-500 hover:text-white bg-white/5"
-                }`}
+              className={`flex items-center gap-1 text-[9px] md:text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all w-full md:w-fit rounded-md select-none shrink-0 border border-transparent px-2 py-1 ${
+                expanded
+                  ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                  : "text-slate-500 hover:text-white bg-white/5"
+              }`}
             >
-              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              {expanded ? (
+                <ChevronDown size={12} />
+              ) : (
+                <ChevronRight size={12} />
+              )}
               {totalSub > 0 ? (
                 <>
                   {completedSub}/{totalSub} Subtasks
@@ -786,7 +920,8 @@ function TicketCard({
                       disabled={idx === 0}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onReorderSubtask && onReorderSubtask(item.id, sub.id, "up");
+                        onReorderSubtask &&
+                          onReorderSubtask(item.id, sub.id, "up");
                       }}
                       className="text-slate-600 hover:text-white disabled:opacity-20"
                     >
@@ -796,7 +931,8 @@ function TicketCard({
                       disabled={idx === safeSubtasks.length - 1}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onReorderSubtask && onReorderSubtask(item.id, sub.id, "down");
+                        onReorderSubtask &&
+                          onReorderSubtask(item.id, sub.id, "down");
                       }}
                       className="text-slate-600 hover:text-white disabled:opacity-20"
                     >
@@ -805,26 +941,60 @@ function TicketCard({
                   </div>
 
                   <button
-                    onClick={() => onToggleSubtask && onToggleSubtask(item.id, sub.id, sub.status)}
-                    className={`w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center shrink-0 transition-all ${sub.status === "completed"
-                      ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                      : "border-slate-500 hover:border-indigo-400"
-                      }`}
+                    onClick={() =>
+                      onToggleSubtask &&
+                      onToggleSubtask(item.id, sub.id, sub.status)
+                    }
+                    className={`w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center shrink-0 transition-all ${
+                      sub.status === "completed"
+                        ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                        : "border-slate-500 hover:border-indigo-400"
+                    }`}
                   >
                     {sub.status === "completed" && (
                       <Check size={10} className="text-white font-black" />
                     )}
                   </button>
-                  <span
-                    className={`text-sm break-words leading-relaxed pt-0.5 transition-all ${sub.status === "completed"
-                      ? "line-through text-slate-600"
-                      : "text-slate-200 font-medium"
+
+                  {/* EDITABLE SUBTASK INPUT */}
+                  {!isLocked && onUpdateSubtaskTitle ? (
+                    <input
+                      type="text"
+                      defaultValue={sub.title}
+                      onBlur={(e) => {
+                        if (e.target.value !== sub.title) {
+                          onUpdateSubtaskTitle(item.id, sub.id, e.target.value);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.currentTarget.blur();
+                        }
+                        e.stopPropagation();
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      className={`flex-1 bg-transparent text-sm border-b border-transparent focus:border-purple-500/50 focus:outline-none transition-all ${
+                        sub.status === "completed"
+                          ? "line-through text-slate-600"
+                          : "text-slate-200 font-medium"
                       }`}
-                  >
-                    {sub.title}
-                  </span>
+                    />
+                  ) : (
+                    <span
+                      className={`text-sm break-words leading-relaxed pt-0.5 transition-all ${
+                        sub.status === "completed"
+                          ? "line-through text-slate-600"
+                          : "text-slate-200 font-medium"
+                      }`}
+                    >
+                      {sub.title}
+                    </span>
+                  )}
+
                   <button
-                    onClick={() => onDeleteSubtask && onDeleteSubtask(item.id, sub.id)}
+                    onClick={() =>
+                      onDeleteSubtask && onDeleteSubtask(item.id, sub.id)
+                    }
                     className="md:opacity-0 group-hover/sub:opacity-100 text-slate-600 hover:text-rose-400 ml-auto p-1"
                   >
                     <Trash2 size={12} />
@@ -846,12 +1016,16 @@ function TicketCard({
                   type="text"
                   value={subtaskTitle}
                   onChange={(e) => setSubtaskTitle(e.target.value)}
-                  placeholder="New step..."
+                  onPointerDown={stopProp}
+                  onKeyDown={stopProp}
+                  // Removed isLocked check for adding subtasks - always allowed if item is not archived
+                  placeholder={isLocked ? "Unlock to add..." : "New step..."}
                   className="bg-transparent text-sm text-white font-medium w-full px-2 py-2.5 focus:outline-none placeholder:text-slate-600"
                 />
                 <button
                   type="submit"
-                  className="text-slate-500 hover:text-purple-400 p-2 pr-3 transition-colors"
+                  disabled={isLocked}
+                  className="text-slate-500 hover:text-purple-400 p-2 pr-3 transition-colors disabled:opacity-50"
                 >
                   <Plus size={16} />
                 </button>

@@ -54,8 +54,8 @@ const Toast = ({ message, type, onClose }) => {
   return (
     <div
       className={`fixed bottom-8 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-8 z-[300] px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border animate-in slide-in-from-bottom-5 fade-in duration-300 backdrop-blur-xl ${type === "error"
-          ? "bg-red-950/90 border-red-500 text-red-200"
-          : "bg-black/80 border-white/20 text-white"
+        ? "bg-red-950/90 border-red-500 text-red-200"
+        : "bg-black/80 border-white/20 text-white"
         }`}
     >
       {type === "error" ? (
@@ -650,8 +650,8 @@ export default function ClientVibeWriter({ initialDrafts }) {
                 <button
                   onClick={toggleVibeMode}
                   className={`p-2 md:p-3 rounded-xl border transition-all ${vibeMode === "sexy"
-                      ? "bg-pink-500/20 border-pink-500 text-pink-500"
-                      : "bg-white/5 border-white/10 text-slate-400"
+                    ? "bg-pink-500/20 border-pink-500 text-pink-500"
+                    : "bg-white/5 border-white/10 text-slate-400"
                     }`}
                 >
                   {vibeMode === "sexy" ? (
@@ -664,8 +664,8 @@ export default function ClientVibeWriter({ initialDrafts }) {
               <button
                 onClick={toggleTheme}
                 className={`p-2 md:p-3 rounded-xl border transition-all ${theme === "light"
-                    ? "bg-white border-slate-200 text-amber-500"
-                    : "bg-white/5 border-white/10 hover:text-white"
+                  ? "bg-white border-slate-200 text-amber-500"
+                  : "bg-white/5 border-white/10 hover:text-white"
                   }`}
               >
                 {theme === "light" ? (
@@ -683,8 +683,8 @@ export default function ClientVibeWriter({ initialDrafts }) {
               <button
                 onClick={() => setShowMobileActions(!showMobileActions)}
                 className={`p-2 rounded-xl border ${isDark
-                    ? "bg-white/10 border-white/20 text-white"
-                    : "bg-slate-100 border-slate-300 text-slate-800"
+                  ? "bg-white/10 border-white/20 text-white"
+                  : "bg-slate-100 border-slate-300 text-slate-800"
                   }`}
               >
                 <Menu size={20} />
@@ -757,7 +757,7 @@ export default function ClientVibeWriter({ initialDrafts }) {
       <div className="relative z-10 w-full pt-24 md:pt-32 pb-20 px-4 md:px-16 max-w-[1600px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* LEFT COLUMN (META) */}
-          <div className="lg:col-span-4 space-y-6 lg:space-y-8 order-2 lg:order-1">
+          <div className="lg:col-span-4 space-y-6 lg:space-y-8 order-2 lg:order-1 h-full">
             <PopulateMeta
               date={date}
               setDate={(val) => updateState(setDate, val)}
@@ -950,8 +950,8 @@ export default function ClientVibeWriter({ initialDrafts }) {
                         toggleVisibility(e, draft.id, draft.published)
                       }
                       className={`p-2 rounded border transition-all ${draft.published
-                          ? "bg-emerald-900/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
-                          : "bg-slate-800/50 border-slate-700 text-slate-500 hover:bg-slate-700 hover:text-slate-300"
+                        ? "bg-emerald-900/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                        : "bg-slate-800/50 border-slate-700 text-slate-500 hover:bg-slate-700 hover:text-slate-300"
                         }`}
                     >
                       {draft.published ? (

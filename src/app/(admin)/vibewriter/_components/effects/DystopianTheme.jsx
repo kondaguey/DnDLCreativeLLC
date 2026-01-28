@@ -205,9 +205,10 @@ const RainSystem = ({ theme, intensity, windVector }) => {
   const meshRef = useRef();
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  // Mobile optimization: reduce particle count significantly
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-  const count = isMobile ? 4000 : 20000;
+  const { size } = useThree();
+  const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isMobile = size.width < 768 || isIOS;
+  const count = isMobile ? 1500 : 20000;
   const xBound = 60;
   const yBound = 50;
   const zMin = -80;
@@ -220,7 +221,7 @@ const RainSystem = ({ theme, intensity, windVector }) => {
       z: zMin + Math.random() * (zMax - zMin),
       speed: 2.0 + Math.random() * 2.0,
     }));
-  }, []);
+  }, [count, zMin, zMax]);
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
@@ -255,7 +256,7 @@ const RainSystem = ({ theme, intensity, windVector }) => {
 
       dummy.position.set(p.x, p.y, p.z);
       dummy.rotation.z = rotationAngle;
-      dummy.scale.set(0.008, 3.0 + Math.abs(windVector) * 0.5, 1);
+      dummy.scale.set(isMobile ? 0.012 : 0.008, 3.0 + Math.abs(windVector) * 0.5, 1);
 
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);

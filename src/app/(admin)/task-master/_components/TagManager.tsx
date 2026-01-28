@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom"; // <--- THE FIX: Allows us to escape the card
+import { createPortal } from "react-dom";
 import {
   Tag,
   Plus,
@@ -19,6 +19,7 @@ interface TagManagerProps {
   onUpdateTags: (newTags: string[]) => void;
   disabled?: boolean;
 }
+
 export default function TagManager({
   selectedTags = [],
   allSystemTags = [],
@@ -30,7 +31,6 @@ export default function TagManager({
   const [isCreating, setIsCreating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Refs for portal positioning
   const triggerRef = useRef<HTMLDivElement>(null);
   const [dropdownCoords, setDropdownCoords] = useState({
     top: 0,
@@ -38,7 +38,6 @@ export default function TagManager({
     width: 0,
   });
 
-  // Check mobile status
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -67,10 +66,10 @@ export default function TagManager({
       const MENU_HEIGHT = 240;
       const spaceBelow = window.innerHeight - rect.bottom;
 
-      // FLIP UP if not enough space
-      const topPos = spaceBelow < MENU_HEIGHT + 20
-        ? rect.top - MENU_HEIGHT - 8
-        : rect.bottom + 8;
+      const topPos =
+        spaceBelow < MENU_HEIGHT + 20
+          ? rect.top - MENU_HEIGHT - 8
+          : rect.bottom + 8;
 
       setDropdownCoords({
         top: topPos,
@@ -79,14 +78,12 @@ export default function TagManager({
       });
     }
     setIsOpen(true);
-    // iOS fix: Give a tiny delay before focusing to let the layout settle
     setTimeout(() => {
       const input = document.getElementById("tag-search-input");
       if (input) input.focus();
     }, 50);
   };
 
-  // Close on outside click or scroll
   useEffect(() => {
     function handleInteraction(event: Event) {
       if (
@@ -94,7 +91,6 @@ export default function TagManager({
         triggerRef.current &&
         !triggerRef.current.contains(event.target as Node)
       ) {
-        // If the click is inside the portal itself, don't close
         const dropdown = document.getElementById("tag-portal-menu");
         if (dropdown && dropdown.contains(event.target as Node)) return;
 
@@ -105,9 +101,9 @@ export default function TagManager({
 
     if (isOpen) {
       document.addEventListener("mousedown", handleInteraction);
-      document.addEventListener("touchstart", handleInteraction); // Mobile touch
-      // On desktop, close on scroll. On mobile, we lock scroll usually, but for now just ignore.
-      if (!isMobile) window.addEventListener("scroll", () => setIsOpen(false), true);
+      document.addEventListener("touchstart", handleInteraction);
+      if (!isMobile)
+        window.addEventListener("scroll", () => setIsOpen(false), true);
     }
 
     return () => {
@@ -151,39 +147,40 @@ export default function TagManager({
         {selectedTags.map((tag) => (
           <span
             key={tag}
-            className="flex items-center gap-1 text-xs md:text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 md:px-2 md:py-1 rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/20 shadow-inner"
+            className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 shadow-inner"
           >
             {tag}
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (!disabled) onUpdateTags(selectedTags.filter((t) => t !== tag));
+                if (!disabled)
+                  onUpdateTags(selectedTags.filter((t) => t !== tag));
               }}
               className={`transition-colors ${disabled ? "opacity-50 cursor-not-allowed" : "hover:text-white"}`}
               disabled={disabled}
             >
-              <X size={12} />
+              <X size={10} />
             </button>
           </span>
         ))}
 
+        {/* FIXED: Compact '+' Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             isOpen ? setIsOpen(false) : openDropdown();
           }}
-          className={`flex items-center gap-1.5 text-xs md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 md:px-2 md:py-1 rounded-lg border transition-all shadow-inner ${disabled ? "opacity-50 cursor-not-allowed bg-white/5 border-white/10 text-slate-500" : isOpen
-            ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-            : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-            }`}
+          className={`flex items-center justify-center w-6 h-6 rounded-md border transition-all shadow-inner ${
+            disabled
+              ? "opacity-50 cursor-not-allowed bg-white/5 border-white/10 text-slate-500"
+              : isOpen
+                ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10"
+          }`}
           disabled={disabled}
+          title="Add Tag"
         >
-          <Tag size={12} />
-          {selectedTags.length === 0 ? "Add Tag" : "Add"}
-          <ChevronDown
-            size={12}
-            className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
-          />
+          <Plus size={12} strokeWidth={3} />
         </button>
       </div>
 
@@ -192,7 +189,6 @@ export default function TagManager({
         typeof document !== "undefined" &&
         createPortal(
           <>
-            {/* Mobile Backdrop Overlay */}
             {isMobile && (
               <div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99998] animate-in fade-in duration-200"
@@ -208,41 +204,43 @@ export default function TagManager({
               style={
                 isMobile
                   ? {
-                    position: 'fixed',
-                    bottom: '0',
-                    left: '0',
-                    right: '0',
-                    top: 'auto',
-                    width: '100%',
-                    maxHeight: '80vh',
-                    borderRadius: '24px 24px 0 0',
-                    transform: 'none'
-                  }
+                      position: "fixed",
+                      bottom: "0",
+                      left: "0",
+                      right: "0",
+                      top: "auto",
+                      width: "100%",
+                      maxHeight: "80vh",
+                      borderRadius: "24px 24px 0 0",
+                      transform: "none",
+                    }
                   : {
-                    position: "fixed",
-                    top: `${dropdownCoords.top}px`,
-                    left: `${dropdownCoords.left}px`,
-                    width: `${dropdownCoords.width}px`,
-                  }
+                      position: "fixed",
+                      top: `${dropdownCoords.top}px`,
+                      left: `${dropdownCoords.left}px`,
+                      width: `${dropdownCoords.width}px`,
+                    }
               }
-              className={`flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 shadow-2xl z-[99999] p-4 md:p-2 animate-in duration-200 ${isMobile ? "slide-in-from-bottom-10 fade-in" : "rounded-2xl zoom-in-95 fade-in"
-                }`}
+              className={`flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 shadow-2xl z-[99999] p-2 animate-in duration-200 ${
+                isMobile
+                  ? "slide-in-from-bottom-10 fade-in"
+                  : "rounded-2xl zoom-in-95 fade-in"
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Mobile drag indicator */}
               {isMobile && (
-                <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-4" />
+                <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-4 mt-2" />
               )}
 
-              <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-xl px-3 py-3 md:py-2.5 mb-2 shadow-inner">
+              <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-xl px-3 py-2.5 mb-2 shadow-inner">
                 <Search size={14} className="text-slate-500 shrink-0" />
                 <input
                   id="tag-search-input"
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Search to add..."
-                  className="w-full bg-transparent text-base md:text-xs font-bold text-white placeholder:text-slate-600 focus:outline-none"
+                  placeholder="Search tags..."
+                  className="w-full bg-transparent text-xs font-bold text-white placeholder:text-slate-600 focus:outline-none uppercase tracking-wide"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -269,10 +267,11 @@ export default function TagManager({
                         e.stopPropagation();
                         toggleTag(tag);
                       }}
-                      className={`w-full text-left px-3 py-3 md:py-2 rounded-xl text-sm md:text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${isSelected
-                        ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
-                        : "hover:bg-white/5 text-slate-300 hover:text-white"
-                        }`}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${
+                        isSelected
+                          ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+                          : "hover:bg-white/5 text-slate-300 hover:text-white"
+                      }`}
                     >
                       {tag} {isSelected && <Check size={14} />}
                     </button>
@@ -286,7 +285,7 @@ export default function TagManager({
                       handleCreateTag();
                     }}
                     disabled={isCreating}
-                    className="w-full text-left px-3 py-3 md:py-2 rounded-xl text-sm md:text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 mt-2 border border-emerald-500/20"
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 mt-2 border border-emerald-500/20"
                   >
                     {isCreating ? (
                       <Loader2 size={14} className="animate-spin" />

@@ -12,6 +12,7 @@ import {
   Radio,
   Minimize2,
   Maximize2,
+  ExternalLink,
 } from "lucide-react";
 
 export default function VibeTunes({ url, onClose, isDark }) {
@@ -24,6 +25,15 @@ export default function VibeTunes({ url, onClose, isDark }) {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // --- DETECT MOBILE ---
+  useEffect(() => {
+    if (typeof navigator !== "undefined") {
+      const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+    }
+  }, []);
 
   // --- DETECT TYPE ---
   const isSoundCloud = url?.toLowerCase().includes("soundcloud");
@@ -91,9 +101,8 @@ export default function VibeTunes({ url, onClose, isDark }) {
 
     return (
       <div
-        className={`fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[250] transition-all duration-500 ease-in-out border backdrop-blur-xl overflow-hidden ${bgClass} ${
-          minimized ? "w-16 h-16 rounded-full" : "w-80 rounded-2xl h-52"
-        }`}
+        className={`fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[250] transition-all duration-500 ease-in-out border backdrop-blur-xl overflow-hidden ${bgClass} ${minimized ? "w-16 h-16 rounded-full" : "w-80 rounded-2xl h-52"
+          }`}
       >
         {!minimized && (
           <div className="flex items-center justify-between p-2 border-b border-white/5 bg-[#1DB954]/10 h-10">
@@ -104,6 +113,15 @@ export default function VibeTunes({ url, onClose, isDark }) {
               </span>
             </div>
             <div className="flex items-center gap-1">
+              {isMobile && (
+                <button
+                  onClick={() => window.open(url, "_blank")}
+                  className="p-1 rounded hover:bg-white/10 transition-colors text-[#1DB954]"
+                  title="Open in Spotify App"
+                >
+                  <ExternalLink size={14} />
+                </button>
+              )}
               <button
                 onClick={() => setMinimized(true)}
                 className="p-1 rounded hover:bg-white/10 transition-colors"
@@ -141,7 +159,8 @@ export default function VibeTunes({ url, onClose, isDark }) {
             height="100%"
             frameBorder="0"
             allowtransparency="true"
-            allow="encrypted-media"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-popups-to-escape-sandbox"
             title="Spotify Player"
             className="bg-black"
           ></iframe>
@@ -158,9 +177,8 @@ export default function VibeTunes({ url, onClose, isDark }) {
 
     return (
       <div
-        className={`fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[250] transition-all duration-500 ease-in-out border backdrop-blur-xl overflow-hidden ${bgClass} ${
-          minimized ? "w-16 h-16 rounded-full" : "w-80 rounded-2xl"
-        }`}
+        className={`fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[250] transition-all duration-500 ease-in-out border backdrop-blur-xl overflow-hidden ${bgClass} ${minimized ? "w-16 h-16 rounded-full" : "w-80 rounded-2xl"
+          }`}
       >
         {!minimized && (
           <div className="flex items-center justify-between p-3 border-b border-white/5 bg-white/5 h-12">
@@ -171,6 +189,15 @@ export default function VibeTunes({ url, onClose, isDark }) {
               </span>
             </div>
             <div className="flex items-center gap-1">
+              {isMobile && (
+                <button
+                  onClick={() => window.open(url, "_blank")}
+                  className="p-1 rounded hover:bg-white/10 transition-colors text-[#ff5500]"
+                  title="Open in SoundCloud App"
+                >
+                  <ExternalLink size={14} />
+                </button>
+              )}
               <button
                 onClick={() => setMinimized(true)}
                 className="p-1 rounded hover:bg-white/10 transition-colors"
@@ -207,7 +234,7 @@ export default function VibeTunes({ url, onClose, isDark }) {
             height="100%"
             scrolling="no"
             frameBorder="no"
-            allow="autoplay"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             src={scUrl}
             title="SoundCloud Player"
           ></iframe>
@@ -221,9 +248,8 @@ export default function VibeTunes({ url, onClose, isDark }) {
   // ---------------------------------------------------------
   return (
     <div
-      className={`fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[250] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] border backdrop-blur-xl overflow-hidden ${bgClass} ${
-        minimized ? "w-48 rounded-xl" : "w-80 rounded-2xl"
-      }`}
+      className={`fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[250] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] border backdrop-blur-xl overflow-hidden ${bgClass} ${minimized ? "w-48 rounded-xl" : "w-80 rounded-2xl"
+        }`}
     >
       {/* FULL HEADER */}
       {!minimized && (

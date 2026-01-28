@@ -114,18 +114,16 @@ export default function SidebarNav({ activeView, onChange }: SidebarNavProps) {
             key={item.id}
             onClick={() => onChange(item.id as ViewType)}
             /* iPad scaling: Wider min-width, larger padding (md:p-5), and rounded-3xl for that iOS feel */
-            className={`snap-center shrink-0 min-w-[140px] md:min-w-[180px] max-w-[200px] h-full flex flex-col p-4 md:p-5 rounded-3xl md:rounded-[32px] border text-left transition-all shadow-lg active:scale-95 ${
-              activeView === item.id
+            className={`snap-center shrink-0 min-w-[140px] md:min-w-[180px] max-w-[200px] h-full flex flex-col p-4 md:p-5 rounded-3xl md:rounded-[32px] border text-left transition-all shadow-lg active:scale-95 ${activeView === item.id
                 ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
                 : "bg-slate-900/60 backdrop-blur-md border-white/5 hover:bg-white/5"
-            }`}
+              }`}
           >
             <div
-              className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl w-fit ${
-                activeView === item.id
+              className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl w-fit ${activeView === item.id
                   ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]"
                   : "bg-white/5 text-slate-400"
-              } transition-all`}
+                } transition-all`}
             >
               {item.icon}
             </div>
@@ -153,11 +151,10 @@ function NavButton({ active, isCollapsed, onClick, icon, label, sub }: any) {
     <button
       onClick={onClick}
       title={isCollapsed ? `${label} - ${sub}` : undefined}
-      className={`group w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${
-        active
+      className={`group w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${active
           ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
           : "bg-transparent border-transparent hover:bg-white/5 hover:border-white/10"
-      } ${isCollapsed ? "justify-center" : "justify-start"}`}
+        } ${isCollapsed ? "justify-center" : "justify-start"}`}
     >
       <div
         className={`p-2 rounded-xl shrink-0 transition-all ${active ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]" : "bg-white/5 text-slate-400 group-hover:text-slate-200"}`}

@@ -110,11 +110,10 @@ export default function AssetSidebar({
 
     return (
       <div
-        className={`group relative flex items-center gap-2 p-2 rounded-xl border mb-3 transition-all animate-in fade-in slide-in-from-right-4 duration-300 ${
-          isDark
-            ? "bg-black/40 border-white/5 hover:border-teal-500/30"
-            : "bg-white border-slate-200 hover:border-teal-500/30"
-        } ${isPendingDelete ? "border-red-500/50 bg-red-500/5" : ""}`}
+        className={`group relative flex items-center gap-2 p-2 rounded-xl border mb-3 transition-all animate-in fade-in slide-in-from-right-4 duration-300 ${isDark
+          ? "bg-black/40 border-white/5 hover:border-teal-500/30"
+          : "bg-white border-slate-200 hover:border-teal-500/30"
+          } ${isPendingDelete ? "border-red-500/50 bg-red-500/5" : ""}`}
       >
         {/* REORDER CONTROLS */}
         <div className="flex flex-col gap-1 items-center justify-center pr-2 border-r border-white/5">
@@ -207,11 +206,10 @@ export default function AssetSidebar({
                 setDeletingId(assetKey);
               }
             }}
-            className={`p-2 rounded-lg transition-colors ${
-              isPendingDelete
-                ? "bg-red-500 text-white hover:bg-red-600"
-                : "hover:bg-red-500/10 hover:text-red-500 text-slate-600"
-            }`}
+            className={`p-2 rounded-lg transition-colors ${isPendingDelete
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : "hover:bg-red-500/10 hover:text-red-500 text-slate-600"
+              }`}
           >
             {isPendingDelete ? (
               <CheckCircle2 size={14} />
@@ -227,15 +225,14 @@ export default function AssetSidebar({
   // --- MAIN RENDER ---
   return (
     <div
-      className={`w-full h-[500px] lg:h-[750px] rounded-[2.5rem] border-2 overflow-hidden flex flex-col transition-all duration-300 ${
-        isSticky ? "sticky top-24 z-30" : "relative"
-      } ${isDark ? "border-white/10" : "bg-white border-slate-200"}`}
+      className={`w-full h-[500px] lg:h-[750px] rounded-[2.5rem] border-2 overflow-hidden flex flex-col transition-all duration-300 ${isSticky ? "sticky top-24 md:top-36 z-40 shadow-2xl" : "relative"
+        } ${isDark ? "border-white/10" : "bg-white border-slate-200"}`}
       style={
         isDark
           ? {
-              backgroundColor: `rgba(0, 0, 0, ${bgOpacity / 100})`,
-              backdropFilter: `blur(${bgOpacity * 0.2}px)`,
-            }
+            backgroundColor: `rgba(0, 0, 0, ${bgOpacity / 100})`,
+            backdropFilter: `blur(${bgOpacity * 0.2}px)`,
+          }
           : {}
       }
     >
@@ -252,13 +249,12 @@ export default function AssetSidebar({
         {/* PIN TOGGLE */}
         <button
           onClick={() => setIsSticky(!isSticky)}
-          className={`p-2 rounded-lg transition-all ${
-            isSticky
-              ? "bg-teal-500 text-black shadow-[0_0_15px_rgba(20,184,166,0.4)]"
-              : isDark
-                ? "text-slate-500 hover:text-teal-400 hover:bg-white/5"
-                : "text-slate-400 hover:text-teal-600 hover:bg-slate-100"
-          }`}
+          className={`p-2 rounded-lg transition-all ${isSticky
+            ? "bg-teal-500 text-black shadow-[0_0_15px_rgba(20,184,166,0.4)]"
+            : isDark
+              ? "text-slate-500 hover:text-teal-400 hover:bg-white/5"
+              : "text-slate-400 hover:text-teal-600 hover:bg-slate-100"
+            }`}
           title={isSticky ? "Unpin Sidebar" : "Pin Sidebar"}
         >
           {isSticky ? <Pin size={14} /> : <PinOff size={14} />}
@@ -281,13 +277,12 @@ export default function AssetSidebar({
           <button
             onClick={() => !isFull && setIsAddMenuOpen(true)}
             disabled={isFull}
-            className={`w-full py-4 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all group ${
-              isFull
-                ? "opacity-50 cursor-not-allowed border-slate-700 text-slate-700"
-                : isDark
-                  ? "border-white/10 text-slate-500 hover:border-teal-500/50 hover:text-teal-400 hover:bg-teal-500/5"
-                  : "border-slate-200 text-slate-400 hover:border-teal-500/50 hover:text-teal-600 hover:bg-teal-50"
-            }`}
+            className={`w-full py-4 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all group ${isFull
+              ? "opacity-50 cursor-not-allowed border-slate-700 text-slate-700"
+              : isDark
+                ? "border-white/10 text-slate-500 hover:border-teal-500/50 hover:text-teal-400 hover:bg-teal-500/5"
+                : "border-slate-200 text-slate-400 hover:border-teal-500/50 hover:text-teal-600 hover:bg-teal-50"
+              }`}
           >
             {isFull ? (
               "Stream Full"
@@ -429,13 +424,12 @@ export default function AssetSidebar({
                 <button
                   onClick={handleManualSubmit}
                   disabled={!manualUrl}
-                  className={`w-full py-3 rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-                    !manualUrl
-                      ? "opacity-50 cursor-not-allowed bg-slate-800 text-slate-500"
-                      : isDark
-                        ? "bg-teal-500 text-black hover:bg-teal-400"
-                        : "bg-teal-600 text-white hover:bg-teal-700"
-                  }`}
+                  className={`w-full py-3 rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${!manualUrl
+                    ? "opacity-50 cursor-not-allowed bg-slate-800 text-slate-500"
+                    : isDark
+                      ? "bg-teal-500 text-black hover:bg-teal-400"
+                      : "bg-teal-600 text-white hover:bg-teal-700"
+                    }`}
                 >
                   <CheckCircle2 size={14} />
                   Confirm Add

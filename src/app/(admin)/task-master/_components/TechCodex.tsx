@@ -41,6 +41,7 @@ interface TechCodexProps {
   sortOption: SortOption;
   filterTags: string[];
   allSystemTags: string[];
+  searchQuery?: string; // Global search from FilterBar
   onUpdateTags: (id: string, tags: string[]) => void;
   onUpdateCodexData: (
     id: string,
@@ -58,14 +59,14 @@ export default function TechCodex({
   sortOption,
   filterTags,
   allSystemTags,
+  searchQuery = "", // Use global search
   onUpdateTags,
   onUpdateCodexData,
   onDelete,
   onReorder,
   onManualMove,
 }: TechCodexProps) {
-  // LOCAL SEARCH STATE
-  const [searchQuery, setSearchQuery] = useState("");
+  // LOCAL SEARCH STATE REMOVED
 
   const filteredItems = items
     .filter((item) => {
@@ -154,27 +155,7 @@ export default function TechCodex({
         strategy={verticalListSortingStrategy}
       >
         <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-20 max-w-4xl mx-auto w-full">
-          {/* SEARCH BAR */}
-          <div className="relative group w-full mb-2">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors"
-              size={16}
-            />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search Codex..."
-              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-emerald-500/50 rounded-2xl py-3 pl-10 pr-10 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
+
           {filteredItems.map((item, index) => (
             <SortableItem
               key={item.id}
