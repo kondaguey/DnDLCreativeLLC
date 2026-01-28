@@ -635,7 +635,8 @@ export default function TaskMasterShell({
     <>
       <MobileNav activeView={activeView} onChange={handleSwitchView} />
       <div
-        className={`flex flex-col md:flex-row h-screen bg-[#020617] text-slate-200 overflow-hidden ${styles.taskMasterContainer}`}
+        className={`fixed inset-0 flex flex-col md:flex-row bg-[#020617] text-slate-200 overflow-hidden ${styles.taskMasterContainer}`}
+        style={{ height: "100dvh" }} // Inline style fallback or priority for dvh
       >
         <div className="hidden md:block w-20 xl:w-64 shrink-0 border-r border-white/5 bg-[#020617]/50 backdrop-blur-xl z-20">
           <SidebarNav activeView={activeView} onChange={handleSwitchView} />

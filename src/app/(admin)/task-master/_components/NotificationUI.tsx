@@ -276,11 +276,10 @@ export function PromoteModal({
                   <button
                     key={freq}
                     onClick={() => setRecurrence(freq)}
-                    className={`px-3 py-3 md:py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all flex items-center justify-center gap-2 ${
-                      recurrence === freq
+                    className={`px-3 py-3 md:py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all flex items-center justify-center gap-2 ${recurrence === freq
                         ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20"
                         : "bg-black/40 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
-                    }`}
+                      }`}
                   >
                     {freq === "one_off" ? (
                       <Calendar size={12} />
@@ -322,4 +321,5 @@ export type EditableFields = {
   due_date?: string | null;
   tags?: string[];
   metadata?: Record<string, any>;
+  status?: string;
 };
