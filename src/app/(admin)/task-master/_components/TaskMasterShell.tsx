@@ -3,7 +3,15 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, Plus, Code, AlignLeft, FileText, Link as LinkIcon, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Code,
+  AlignLeft,
+  FileText,
+  Link as LinkIcon,
+  ExternalLink,
+} from "lucide-react";
 import styles from "../task-master.module.css";
 import { TaskItem, ViewType, RecurrenceType, SortOption } from "./types";
 
@@ -87,9 +95,6 @@ export default function TaskMasterShell({
     null,
   );
 
-  // =========================================================================
-  // THE FIX: Only store the ID, so the modal always gets the LIVE data.
-  // =========================================================================
   const [recurringItemId, setRecurringItemId] = useState<string | null>(null);
   const activeRecurringItem =
     items.find((i) => i.id === recurringItemId) || null;
@@ -102,8 +107,8 @@ export default function TaskMasterShell({
   const handleSwitchView = (view: ViewType) => {
     setActiveView(view);
     setFilterTags([]);
-    setGlobalSearchQuery(""); // Clear search when switching views
-    setGlobalActivePeriod("all"); // Reset date filter when switching views
+    setGlobalSearchQuery("");
+    setGlobalActivePeriod("all");
   };
 
   const handleAddItem = async (e: React.FormEvent) => {
@@ -185,7 +190,10 @@ export default function TaskMasterShell({
       setNewResourceTitle("");
       setNewResourceLink("");
       setNewResourceNotes("");
-      showToast("success", activeView === "resource" ? "Resource added." : "Added.");
+      showToast(
+        "success",
+        activeView === "resource" ? "Resource added." : "Added.",
+      );
     }
     setIsAdding(false);
   };
@@ -293,19 +301,16 @@ export default function TaskMasterShell({
     const item = items.find((i) => i.id === id);
     if (!item) return;
 
-    // 1. IS THIS A RECURRING TASK?
     if (
       item.recurrence &&
       item.recurrence !== "one_off" &&
       currentStatus === "active"
     ) {
-      // --- UNIFIED RECURRENCE LOGIC (Log & Roll) ---
       const { getTodayString, calcNextDueDate } = await import("./dateUtils");
 
       const todayVal = getTodayString();
       const currentLog = (item.metadata?.completed_dates as string[]) || [];
 
-      // Prevent double-logging for the same day
       if (currentLog.includes(todayVal)) {
         showToast("success", "Already checked in today!");
         return;
@@ -334,7 +339,6 @@ export default function TaskMasterShell({
       return;
     }
 
-    // 2. ONE-OFF / SUBTASK / ALREADY COMPLETED -> STANDARD TOGGLE
     const newStatus = currentStatus === "active" ? "completed" : "active";
     setItems((prevItems) =>
       prevItems.map((item) => {
@@ -366,9 +370,6 @@ export default function TaskMasterShell({
       .eq("id", id);
   };
 
-  // =========================================================================
-  // PRIORITY UPDATE HANDLER
-  // =========================================================================
   const handleUpdatePriority = async (id: string, priority: string) => {
     const targetItem = items.find((i) => i.id === id);
     if (!targetItem) return;
@@ -403,11 +404,11 @@ export default function TaskMasterShell({
       prev.map((i) =>
         i.id === id
           ? {
-            ...i,
-            title: newTitle,
-            content: newContent,
-            metadata: updatedMetadata,
-          }
+              ...i,
+              title: newTitle,
+              content: newContent,
+              metadata: updatedMetadata,
+            }
           : i,
       ),
     );
@@ -432,7 +433,6 @@ export default function TaskMasterShell({
   const confirmDelete = async () => {
     setIsDeleting(true);
 
-    // SINGLE DELETE
     if (deleteCandidate) {
       const { error } = await supabase
         .from("task_master_items")
@@ -455,7 +455,6 @@ export default function TaskMasterShell({
       setDeleteCandidate(null);
     }
 
-    // BULK DELETE
     if (bulkDeleteCandidates && bulkDeleteCandidates.length > 0) {
       const { error } = await supabase
         .from("task_master_items")
@@ -608,18 +607,15 @@ export default function TaskMasterShell({
       .eq("id", parentId);
   };
 
-  // --- VIEW FILTERING ---
   const currentViewItems = items.filter((item) => {
     if (activeView === "resource")
       return item.type === "resource" || item.type === "social_bookmark";
     return item.type === activeView;
   });
 
-  // DATE HELPER & TIMELINE GENERATION
   const timeline = useMemo(() => {
     const periods = new Set<string>();
     currentViewItems.forEach((item) => {
-      // FIX: Check due_date for ALL types first, fallback to created_at
       const dateStr = item.due_date || item.created_at;
       const date = new Date(dateStr);
 
@@ -642,7 +638,8 @@ export default function TaskMasterShell({
         </div>
 
         <main className="flex-1 flex flex-col min-h-0 min-w-0 relative z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/50 via-[#020617] to-[#020617]">
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 pt-20 md:p-8 md:pt-8 relative scroll-smooth">
+          {/* Mobile Padding Fix: p-2 on mobile, p-8 on desktop */}
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2 pt-20 md:p-8 md:pt-8 relative scroll-smooth">
             {/* BACKGROUND EFFECTS */}
             <div className="fixed inset-0 pointer-events-none z-0">
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] opacity-20" />
@@ -651,8 +648,8 @@ export default function TaskMasterShell({
 
             <div className="relative z-10 max-w-7xl mx-auto w-full">
               <header className="flex flex-col gap-6 md:gap-8 mb-8 md:mb-12">
-                <div className="flex flex-col gap-2 items-center md:items-start text-center md:text-left">
-                  <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white drop-shadow-2xl flex items-center justify-center md:justify-start gap-3">
+                <div className="flex flex-col gap-2 items-center md:items-start text-center md:text-left px-2">
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-white drop-shadow-2xl flex items-center justify-center md:justify-start gap-3">
                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
                       {activeView === "task" && "Task Master"}
                       {activeView === "code_snippet" && "Tech Codex"}
@@ -662,7 +659,7 @@ export default function TaskMasterShell({
                       {activeView === "idea_board" && "Idea Board"}
                     </span>
                   </h1>
-                  <p className="text-sm font-bold uppercase tracking-widest text-slate-500">
+                  <p className="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-500">
                     {activeView === "task" && "Command Center"}
                     {activeView === "code_snippet" && "Knowledge Base"}
                     {activeView === "resource" && "Asset Library"}
@@ -672,129 +669,134 @@ export default function TaskMasterShell({
                   </p>
                 </div>
 
-                {/* INPUT BAR (Only for Task, Codex, Resource) */}
                 {(activeView === "task" ||
                   activeView === "code_snippet" ||
                   activeView === "resource") && (
-                    <form
-                      onSubmit={handleAddItem}
-                      className={`relative group bg-[#0A0F1E] border border-white/10 rounded-2xl p-2 flex flex-col md:flex-row gap-2 transition-all shadow-xl hover:shadow-2xl hover:border-white/20 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-[#020617] z-30 ${activeView === "code_snippet"
+                  <form
+                    onSubmit={handleAddItem}
+                    className={`relative group bg-[#0A0F1E] border border-white/10 rounded-2xl p-2 flex flex-col md:flex-row gap-2 transition-all shadow-xl hover:shadow-2xl hover:border-white/20 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-[#020617] z-30 mx-1 ${
+                      activeView === "code_snippet"
                         ? "focus-within:ring-emerald-500/50"
                         : "focus-within:ring-purple-500/50"
-                        }`}
-                    >
-                      {activeView === "code_snippet" ? (
-                        <div className="flex flex-col gap-2 w-full p-2">
-                          <div className="flex gap-2 border-b border-white/5 pb-2">
-                            <Code
-                              className="text-emerald-500 shrink-0 mt-1"
-                              size={18}
-                            />
-                            <input
-                              type="text"
-                              value={newCodexTitle}
-                              onChange={(e) => setNewCodexTitle(e.target.value)}
-                              placeholder="Snippet Title..."
-                              className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
-                            />
-                          </div>
-                          <div className="flex gap-2 items-start">
-                            <AlignLeft
-                              className="text-slate-600 shrink-0 mt-1"
-                              size={18}
-                            />
-                            <textarea
-                              value={newCodexNotes}
-                              onChange={(e) => setNewCodexNotes(e.target.value)}
-                              placeholder="Description / Context..."
-                              className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-10 placeholder:text-slate-700"
-                            />
-                          </div>
-                          <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5 font-mono">
-                            <FileText
-                              className="text-slate-600 shrink-0 mt-1"
-                              size={18}
-                            />
-                            <textarea
-                              value={newCodexCode}
-                              onChange={(e) => setNewCodexCode(e.target.value)}
-                              placeholder="// Paste code..."
-                              className="bg-transparent text-xs text-emerald-400 w-full focus:outline-none resize-none h-20 placeholder:text-slate-800"
-                            />
-                          </div>
+                    }`}
+                  >
+                    {activeView === "code_snippet" ? (
+                      <div className="flex flex-col gap-2 w-full p-2">
+                        <div className="flex gap-2 border-b border-white/5 pb-2">
+                          <Code
+                            className="text-emerald-500 shrink-0 mt-1"
+                            size={18}
+                          />
+                          <input
+                            type="text"
+                            value={newCodexTitle}
+                            onChange={(e) => setNewCodexTitle(e.target.value)}
+                            placeholder="Snippet Title..."
+                            className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
+                          />
                         </div>
-                      ) : activeView === "resource" ? (
-                        <div className="flex flex-col gap-2 w-full p-2">
-                          <div className="flex gap-2 border-b border-white/5 pb-2">
-                            <LinkIcon
-                              className="text-cyan-500 shrink-0 mt-1"
-                              size={18}
-                            />
-                            <input
-                              type="text"
-                              value={newResourceTitle}
-                              onChange={(e) => setNewResourceTitle(e.target.value)}
-                              placeholder="Resource Title..."
-                              className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
-                            />
-                          </div>
-                          <div className="flex gap-2 items-center">
-                            <ExternalLink
-                              className="text-slate-600 shrink-0"
-                              size={16}
-                            />
-                            <input
-                              type="text"
-                              value={newResourceLink}
-                              onChange={(e) => setNewResourceLink(e.target.value)}
-                              placeholder="URL..."
-                              className="bg-transparent text-xs text-cyan-400 w-full focus:outline-none placeholder:text-slate-700 font-mono"
-                            />
-                          </div>
-                          <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5">
-                            <AlignLeft
-                              className="text-slate-600 shrink-0 mt-0.5"
-                              size={16}
-                            />
-                            <textarea
-                              value={newResourceNotes}
-                              onChange={(e) => setNewResourceNotes(e.target.value)}
-                              placeholder="Context / Description..."
-                              className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-12 placeholder:text-slate-700"
-                            />
-                          </div>
+                        <div className="flex gap-2 items-start">
+                          <AlignLeft
+                            className="text-slate-600 shrink-0 mt-1"
+                            size={18}
+                          />
+                          <textarea
+                            value={newCodexNotes}
+                            onChange={(e) => setNewCodexNotes(e.target.value)}
+                            placeholder="Description / Context..."
+                            className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-10 placeholder:text-slate-700"
+                          />
                         </div>
-                      ) : (
-                        <input
-                          type="text"
-                          value={newItemInput}
-                          onChange={(e) => setNewItemInput(e.target.value)}
-                          placeholder={`+ Add entry...`}
-                          className="bg-transparent px-3 py-3 text-sm text-white w-full focus:outline-none"
-                        />
-                      )}
+                        <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5 font-mono">
+                          <FileText
+                            className="text-slate-600 shrink-0 mt-1"
+                            size={18}
+                          />
+                          <textarea
+                            value={newCodexCode}
+                            onChange={(e) => setNewCodexCode(e.target.value)}
+                            placeholder="// Paste code..."
+                            className="bg-transparent text-xs text-emerald-400 w-full focus:outline-none resize-none h-20 placeholder:text-slate-800"
+                          />
+                        </div>
+                      </div>
+                    ) : activeView === "resource" ? (
+                      <div className="flex flex-col gap-2 w-full p-2">
+                        <div className="flex gap-2 border-b border-white/5 pb-2">
+                          <LinkIcon
+                            className="text-cyan-500 shrink-0 mt-1"
+                            size={18}
+                          />
+                          <input
+                            type="text"
+                            value={newResourceTitle}
+                            onChange={(e) =>
+                              setNewResourceTitle(e.target.value)
+                            }
+                            placeholder="Resource Title..."
+                            className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
+                          />
+                        </div>
+                        <div className="flex gap-2 items-center">
+                          <ExternalLink
+                            className="text-slate-600 shrink-0"
+                            size={16}
+                          />
+                          <input
+                            type="text"
+                            value={newResourceLink}
+                            onChange={(e) => setNewResourceLink(e.target.value)}
+                            placeholder="URL..."
+                            className="bg-transparent text-xs text-cyan-400 w-full focus:outline-none placeholder:text-slate-700 font-mono"
+                          />
+                        </div>
+                        <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5">
+                          <AlignLeft
+                            className="text-slate-600 shrink-0 mt-0.5"
+                            size={16}
+                          />
+                          <textarea
+                            value={newResourceNotes}
+                            onChange={(e) =>
+                              setNewResourceNotes(e.target.value)
+                            }
+                            placeholder="Context / Description..."
+                            className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-12 placeholder:text-slate-700"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={newItemInput}
+                        onChange={(e) => setNewItemInput(e.target.value)}
+                        placeholder={`+ Add entry...`}
+                        className="bg-transparent px-3 py-3 text-sm text-white w-full focus:outline-none"
+                      />
+                    )}
 
-                      <button
-                        disabled={isAdding}
-                        className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${activeView === "code_snippet"
+                    <button
+                      disabled={isAdding}
+                      className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${
+                        activeView === "code_snippet"
                           ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
                           : activeView === "resource"
                             ? "bg-cyan-600 hover:bg-cyan-500 shadow-cyan-500/20"
                             : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
-                          } shadow-lg`}
-                      >
-                        {isAdding ? (
-                          <Loader2 className="animate-spin" size={20} />
-                        ) : activeView === "code_snippet" ? (
-                          <Code size={20} />
-                        ) : activeView === "resource" ? (
-                          <Plus size={20} />
-                        ) : (
-                          <Plus size={20} />
-                        )}
-                      </button>
-                    </form>
-                  )}
+                      } shadow-lg`}
+                    >
+                      {isAdding ? (
+                        <Loader2 className="animate-spin" size={20} />
+                      ) : activeView === "code_snippet" ? (
+                        <Code size={20} />
+                      ) : activeView === "resource" ? (
+                        <Plus size={20} />
+                      ) : (
+                        <Plus size={20} />
+                      )}
+                    </button>
+                  </form>
+                )}
               </header>
 
               <div className={styles.panel}>
@@ -823,11 +825,10 @@ export default function TaskMasterShell({
                               ? "Search ledger..."
                               : "Search..."
                   }
-                  // --- NEW PROPS FOR DATE FILTERING ---
                   activePeriod={globalActivePeriod}
                   onPeriodChange={setGlobalActivePeriod}
                   timeline={timeline}
-                  showDateFilter={true} // Enabled for all views (logic handled inside views)
+                  showDateFilter={true}
                 />
 
                 {activeView === "task" && (
@@ -866,7 +867,6 @@ export default function TaskMasterShell({
                     onDeleteSubtask={handleDeleteSubtask}
                     onReorderSubtask={handleManualSubtaskMove}
                     onUpdateSubtaskTitle={handleUpdateSubtaskTitle}
-                    // --- PASSING THE ID INSTEAD OF THE OBJECT ---
                     onOpenRecurring={(item) => setRecurringItemId(item.id)}
                     onBulkDelete={requestBulkDelete}
                   />
@@ -964,35 +964,34 @@ export default function TaskMasterShell({
                 )}
                 {(activeView === "social_bookmark" ||
                   activeView === "resource") && (
-                    <ResourceGrid
-                      items={currentViewItems}
-                      type={activeView}
-                      sortOption={sortOption}
-                      filterTags={filterTags}
-                      allSystemTags={allSystemTags}
-                      searchQuery={globalSearchQuery}
-                      activePeriod={globalActivePeriod}
-                      onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
-                      onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
-                      onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                      onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
-                      onUpdateMetadata={(id, m) =>
-                        handleUpdate(id, "metadata", m)
-                      }
-                      onDelete={requestDelete}
-                      onArchive={(id) => handleUpdate(id, "status", "archived")}
-                      onReorder={handleReorder}
-                      onManualMove={handleManualMove}
-                    />
-                  )}
+                  <ResourceGrid
+                    items={currentViewItems}
+                    type={activeView}
+                    sortOption={sortOption}
+                    filterTags={filterTags}
+                    allSystemTags={allSystemTags}
+                    searchQuery={globalSearchQuery}
+                    activePeriod={globalActivePeriod}
+                    onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                    onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
+                    onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                    onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
+                    onUpdateMetadata={(id, m) =>
+                      handleUpdate(id, "metadata", m)
+                    }
+                    onDelete={requestDelete}
+                    onArchive={(id) => handleUpdate(id, "status", "archived")}
+                    onReorder={handleReorder}
+                    onManualMove={handleManualMove}
+                  />
+                )}
               </div>
             </div>
-          </div >
-        </main >
-      </div >
+          </div>
+        </main>
+      </div>
 
-      {toast && <Toast toast={toast} onClose={() => setToast(null)} />
-      }
+      {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
       <ConfirmModal
         isOpen={!!deleteCandidate || !!bulkDeleteCandidates}
         onClose={() => {
@@ -1014,29 +1013,27 @@ export default function TaskMasterShell({
         isDestructive={true}
       />
 
-      {
-        activeView === "idea_board" ? (
-          <IdeaDetailModal
-            isOpen={!!editCandidate}
-            item={editCandidate!}
-            allSystemTags={allSystemTags}
-            TagManagerComponent={TagManager}
-            onSave={handleEditSave}
-            onClose={() => setEditCandidate(null)}
-            onPromote={setPromoteCandidate}
-          />
-        ) : (
-          <EditModal
-            isOpen={!!editCandidate}
-            item={editCandidate}
-            itemType={activeView}
-            onSave={handleEditSave}
-            onClose={() => setEditCandidate(null)}
-            TagManagerComponent={TagManager}
-            allSystemTags={allSystemTags}
-          />
-        )
-      }
+      {activeView === "idea_board" ? (
+        <IdeaDetailModal
+          isOpen={!!editCandidate}
+          item={editCandidate!}
+          allSystemTags={allSystemTags}
+          TagManagerComponent={TagManager}
+          onSave={handleEditSave}
+          onClose={() => setEditCandidate(null)}
+          onPromote={setPromoteCandidate}
+        />
+      ) : (
+        <EditModal
+          isOpen={!!editCandidate}
+          item={editCandidate}
+          itemType={activeView}
+          onSave={handleEditSave}
+          onClose={() => setEditCandidate(null)}
+          TagManagerComponent={TagManager}
+          allSystemTags={allSystemTags}
+        />
+      )}
 
       <PromoteModal
         isOpen={!!promoteCandidate}
@@ -1045,16 +1042,14 @@ export default function TaskMasterShell({
         onCancel={() => setPromoteCandidate(null)}
       />
 
-      {
-        activeRecurringItem && (
-          <RecurringModal
-            isOpen={!!recurringItemId}
-            onClose={() => setRecurringItemId(null)}
-            item={activeRecurringItem}
-            onUpdateMetadata={(id, meta) => handleUpdate(id, "metadata", meta)}
-          />
-        )
-      }
+      {activeRecurringItem && (
+        <RecurringModal
+          isOpen={!!recurringItemId}
+          onClose={() => setRecurringItemId(null)}
+          item={activeRecurringItem}
+          onUpdateMetadata={(id, meta) => handleUpdate(id, "metadata", meta)}
+        />
+      )}
     </>
   );
 }

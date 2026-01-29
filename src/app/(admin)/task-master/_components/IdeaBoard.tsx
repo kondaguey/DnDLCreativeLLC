@@ -509,26 +509,16 @@ function SparkCard({
   });
 
   // DYNAMIC STYLES BASED ON VIEW MODE
-  let dynamicPadding = "p-5";
-  let containerClasses = `group flex bg-slate-900/60 backdrop-blur-2xl border rounded-2xl relative overflow-hidden transition-all shadow-md hover:shadow-2xl hover:-translate-y-0.5 ${isFav ? "border-amber-500/50 shadow-amber-900/20" : "border-white/5"} cursor-pointer hover:bg-white/5 `;
+  let containerClasses = `group flex flex-col h-full bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden transition-all shadow-lg hover:shadow-2xl hover:-translate-y-0.5 relative w-full ${isFav ? "border-amber-500/50 shadow-amber-900/20" : "hover:border-white/20"} p-3.5 md:p-6.5`;
 
-  if (viewMode === "grid") {
-    containerClasses += " flex-col h-full w-full aspect-square";
-    dynamicPadding = "p-5";
-  } else if (viewMode === "compact") {
-    containerClasses +=
-      " flex-row items-center w-full h-14 md:h-12 border-b border-r-0 border-l-0 border-t-0 rounded-none bg-transparent hover:bg-white/5";
-    dynamicPadding = "px-4";
-  } else {
-    // LIST (Expanded)
-    containerClasses += " flex-col w-full min-h-[140px]";
-    dynamicPadding = "p-5";
+  if (viewMode === "compact") {
+    containerClasses = `group flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/40 border border-white/5 relative w-full hover:bg-white/5 ${isFav ? "border-amber-500/30" : ""}`;
+  } else if (viewMode === "list") {
+    containerClasses = `group flex flex-col bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl relative w-full ${isFav ? "border-amber-500/50" : "hover:border-white/20"} p-3.5 md:p-6.5`;
   }
 
-  const baseCardStyle = containerClasses + " " + dynamicPadding;
-
   return (
-    <div className={baseCardStyle}>
+    <div className={containerClasses}>
       {/* FLOATING DRAG HANDLE */}
       {isManualSort && viewMode !== "compact" && (
         <DragHandle className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center bg-black/95 backdrop-blur-md px-8 py-2 md:px-3 md:py-1 rounded-full border border-white/10 shadow-xl text-slate-400 active:bg-amber-500/20 active:text-amber-400 transition-all cursor-grab active:cursor-grabbing">
@@ -538,51 +528,55 @@ function SparkCard({
 
       {/* --- COMPACT VIEW --- */}
       {viewMode === "compact" && (
-        <>
+        <div className="flex items-center w-full min-w-0 gap-2 md:gap-3">
           {isManualSort && (
-            <DragHandle className="mr-3 text-slate-600 hover:text-white cursor-grab active:cursor-grabbing">
+            <DragHandle className="mr-1 md:mr-3 text-slate-600 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
               <GripHorizontal size={14} />
             </DragHandle>
           )}
-          <span className="text-[10px] font-mono text-slate-600 shrink-0 w-[80px] flex items-center gap-1">
+          <span className="text-[9px] md:text-[10px] font-mono text-slate-600 shrink-0 hidden sm:flex items-center gap-1 w-[70px] whitespace-nowrap">
             <Clock size={10} /> {dateStr}
           </span>
           <div className="flex-1 min-w-0 flex items-center gap-2">
-            <span className="font-bold text-slate-200 text-xs truncate max-w-[120px]">
+            <span className="font-bold text-slate-200 text-xs truncate max-w-[100px] md:max-w-[150px]">
               {item.title}
             </span>
-            <span className="text-slate-500 text-xs">-</span>
-            <div className="flex-1 truncate text-xs text-slate-400 font-medium">
+            <span className="text-slate-500 text-xs hidden sm:inline">-</span>
+            <div className="flex-1 truncate text-xs text-slate-400 font-medium hidden sm:block">
               {isCode && (
                 <span className="text-emerald-500 mr-2 font-mono">//</span>
               )}
               {item.content || "Empty Note"}
             </div>
           </div>
-          <TagManager
-            selectedTags={item.tags || []}
-            allSystemTags={allSystemTags}
-            onUpdateTags={() => { }}
-          />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit && onEdit(item);
-            }}
-            className="p-2 text-slate-600 hover:text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <Edit2 size={14} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(item.id);
-            }}
-            className="p-2 text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <Trash2 size={14} />
-          </button>
-        </>
+          <div className="hidden md:flex shrink-0">
+            <TagManager
+              selectedTags={item.tags || []}
+              allSystemTags={allSystemTags}
+              onUpdateTags={() => { }}
+            />
+          </div>
+          <div className="flex items-center gap-1 shrink-0 ml-auto bg-slate-900/50 rounded-lg p-0.5">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit && onEdit(item);
+              }}
+              className="p-1.5 text-slate-500 hover:text-cyan-400 transition-colors"
+            >
+              <Edit2 size={12} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(item.id);
+              }}
+              className="p-1.5 text-slate-500 hover:text-rose-500 transition-colors"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* --- GRID & EXPANDED VIEW --- */}
@@ -702,19 +696,19 @@ function IncubatorCard({
   });
 
   // DYNAMIC STYLES BASED ON VIEW MODE
-  let dynamicPadding = "p-6";
+  let dynamicPadding = "p-6.5";
   let containerClasses = `group flex bg-violet-900/10 backdrop-blur-2xl border ${isFav ? "border-amber-500/50" : "border-violet-500/20"} rounded-3xl relative overflow-hidden transition-all shadow-xl hover:border-violet-500/40 cursor-pointer hover:bg-violet-900/20 `;
 
   if (viewMode === "grid") {
     containerClasses += " flex-col h-full w-full aspect-[4/5]";
-    dynamicPadding = "p-5";
+    dynamicPadding = "p-5.5";
   } else if (viewMode === "compact") {
     containerClasses += " flex-row items-center w-full h-16 rounded-lg mb-1";
-    dynamicPadding = "px-4";
+    dynamicPadding = "px-4.5";
   } else {
     // LIST (Expanded)
     containerClasses += " flex-col md:flex-row gap-6 w-full"; // Standard wide card
-    dynamicPadding = "p-6";
+    dynamicPadding = "p-6.5";
   }
 
   const baseCardStyle = containerClasses + " " + dynamicPadding;
@@ -764,10 +758,10 @@ function IncubatorCard({
                     {item.metadata.incubator_metadata.effort && (
                       <span
                         className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${item.metadata.incubator_metadata.effort === "high"
-                            ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                            : item.metadata.incubator_metadata.effort === "low"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                          : item.metadata.incubator_metadata.effort === "low"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
                           }`}
                       >
                         {item.metadata.incubator_metadata.effort}
@@ -776,10 +770,10 @@ function IncubatorCard({
                     {item.metadata.incubator_metadata.impact && (
                       <span
                         className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${item.metadata.incubator_metadata.impact === "high"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                            : item.metadata.incubator_metadata.impact === "low"
-                              ? "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                              : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : item.metadata.incubator_metadata.impact === "low"
+                            ? "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                            : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
                           }`}
                       >
                         {item.metadata.incubator_metadata.impact}
@@ -887,11 +881,11 @@ function IncubatorCard({
                           </span>
                           <span
                             className={`text-[10px] font-black uppercase ${item.metadata.incubator_metadata.effort === "high"
-                                ? "text-rose-400"
-                                : item.metadata.incubator_metadata.effort ===
-                                  "low"
-                                  ? "text-emerald-400"
-                                  : "text-amber-400"
+                              ? "text-rose-400"
+                              : item.metadata.incubator_metadata.effort ===
+                                "low"
+                                ? "text-emerald-400"
+                                : "text-amber-400"
                               }`}
                           >
                             {item.metadata.incubator_metadata.effort}
@@ -905,11 +899,11 @@ function IncubatorCard({
                           </span>
                           <span
                             className={`text-[10px] font-black uppercase ${item.metadata.incubator_metadata.impact === "high"
-                                ? "text-emerald-400"
-                                : item.metadata.incubator_metadata.impact ===
-                                  "low"
-                                  ? "text-slate-400"
-                                  : "text-cyan-400"
+                              ? "text-emerald-400"
+                              : item.metadata.incubator_metadata.impact ===
+                                "low"
+                                ? "text-slate-400"
+                                : "text-cyan-400"
                               }`}
                           >
                             {item.metadata.incubator_metadata.impact}
