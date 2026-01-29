@@ -57,7 +57,7 @@ import {
   getTodayString,
   calculateStats,
 } from "./dateUtils";
-import RecurrenceDashboard from "./RecurrenceDashboard";
+import ItemStatsModal from "./ItemStatsModal";
 
 const PRIORITY_VALUES: Record<string, number> = {
   critical: 4,
@@ -310,8 +310,20 @@ export default function TaskView({
     return { total, completed: completedTasks.length, streak: 0 };
   }, [items, activeTasks, completedTasks, activeRecurrence]);
 
+  // Stats Modal State
+  const [statsItem, setStatsItem] = useState<TaskItem | null>(null);
+
   return (
     <div className="w-full max-w-5xl mx-auto pb-24 md:pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      {/* ... tabs ... */}
+
+      {/* RENDER MODAL */}
+      <ItemStatsModal
+        isOpen={!!statsItem}
+        item={statsItem}
+        onClose={() => setStatsItem(null)}
+      />
       {/* 1. TIMEFRAME TABS */}
       {/* 1. TIMEFRAME TABS */}
       <div className="shrink-0 flex overflow-x-auto gap-2 mb-6 no-scrollbar pb-2 mask-linear-fade snap-x snap-mandatory px-1">
@@ -335,11 +347,6 @@ export default function TaskView({
           icon={<Archive size={14} />}
         />
       </div>
-
-      {/* 2. RECURRENCE DASHBOARD */}
-      {activeRecurrence !== "one_off" && (
-        <RecurrenceDashboard items={items} activeRecurrence={activeRecurrence} />
-      )}
 
       {/* 2. QUICK ADD (New Location: Below tabs, above list) */}
       {onQuickAdd && activeRecurrence !== "archived" && (
@@ -476,7 +483,7 @@ export default function TaskView({
               <div
                 className={
                   viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch"
+                    ? "grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch"
                     : viewMode === "compact"
                       ? "space-y-1"
                       : "space-y-6" // List view
@@ -507,6 +514,7 @@ export default function TaskView({
                         onDeleteSubtask={onDeleteSubtask}
                         onUpdateSubtaskTitle={onUpdateSubtaskTitle}
                         onOpenRecurring={onOpenRecurring}
+                        onOpenStats={() => setStatsItem(item)}
                       />
                     ) : (
                       <GridCard
@@ -532,6 +540,7 @@ export default function TaskView({
                         onDeleteSubtask={onDeleteSubtask}
                         onUpdateSubtaskTitle={onUpdateSubtaskTitle}
                         onOpenRecurring={onOpenRecurring}
+                        onOpenStats={() => setStatsItem(item)}
                       />
                     )}
                   </SortableItem>
@@ -588,7 +597,7 @@ export default function TaskView({
               <div
                 className={
                   viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6 items-stretch animate-in fade-in slide-in-from-top-4 duration-300"
+                    ? "grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 items-stretch animate-in fade-in slide-in-from-top-4 duration-300"
                     : "space-y-6 md:space-y-5 mt-6 animate-in fade-in slide-in-from-top-4 duration-300"
                 }
               >

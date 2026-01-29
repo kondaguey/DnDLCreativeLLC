@@ -34,6 +34,7 @@ import {
   PromoteModal,
 } from "./NotificationUI";
 import ConfirmModal from "./ConfirmModal";
+import ConfirmationModal from "./ConfirmationModal"; // NEW Custom Modal
 import EditModal from "./EditModal";
 import RecurringModal from "./RecurringModal";
 import IdeaDetailModal from "./IdeaDetailModal";
@@ -94,6 +95,8 @@ export default function TaskMasterShell({
   const [promoteCandidate, setPromoteCandidate] = useState<TaskItem | null>(
     null,
   );
+
+  const [uncheckCandidate, setUncheckCandidate] = useState<string | null>(null); // NEW
 
   const [recurringItemId, setRecurringItemId] = useState<string | null>(null);
   const activeRecurringItem =
@@ -306,22 +309,27 @@ export default function TaskMasterShell({
       item.recurrence !== "one_off" &&
       currentStatus === "active"
     ) {
-      const { getTodayString, calcNextDueDate } = await import("./dateUtils");
+      const { getTodayString, calcNextDueDate, calculateStats } = await import("./dateUtils");
 
       const todayVal = getTodayString();
       const currentLog = (item.metadata?.completed_dates as string[]) || [];
 
+      // UNCHECK LOGIC
       if (currentLog.includes(todayVal)) {
-        showToast("success", "Already checked in today!");
+        setUncheckCandidate(id);
         return;
       }
 
+      // CHECK LOGIC
       const newLog = [...currentLog, todayVal];
       const nextDate = calcNextDueDate(item.due_date || null, item.recurrence);
+
+      const stats = calculateStats(newLog, item.created_at, item.recurrence);
 
       const newMeta = {
         ...item.metadata,
         completed_dates: newLog,
+        streak: stats.streak
       };
 
       setItems((prev) =>
@@ -404,11 +412,11 @@ export default function TaskMasterShell({
       prev.map((i) =>
         i.id === id
           ? {
-              ...i,
-              title: newTitle,
-              content: newContent,
-              metadata: updatedMetadata,
-            }
+            ...i,
+            title: newTitle,
+            content: newContent,
+            metadata: updatedMetadata,
+          }
           : i,
       ),
     );
@@ -672,131 +680,129 @@ export default function TaskMasterShell({
                 {(activeView === "task" ||
                   activeView === "code_snippet" ||
                   activeView === "resource") && (
-                  <form
-                    onSubmit={handleAddItem}
-                    className={`relative group bg-[#0A0F1E] border border-white/10 rounded-2xl p-2 flex flex-col md:flex-row gap-2 transition-all shadow-xl hover:shadow-2xl hover:border-white/20 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-[#020617] z-30 mx-1 ${
-                      activeView === "code_snippet"
+                    <form
+                      onSubmit={handleAddItem}
+                      className={`relative group bg-[#0A0F1E] border border-white/10 rounded-2xl p-2 flex flex-col md:flex-row gap-2 transition-all shadow-xl hover:shadow-2xl hover:border-white/20 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-[#020617] z-30 mx-1 ${activeView === "code_snippet"
                         ? "focus-within:ring-emerald-500/50"
                         : "focus-within:ring-purple-500/50"
-                    }`}
-                  >
-                    {activeView === "code_snippet" ? (
-                      <div className="flex flex-col gap-2 w-full p-2">
-                        <div className="flex gap-2 border-b border-white/5 pb-2">
-                          <Code
-                            className="text-emerald-500 shrink-0 mt-1"
-                            size={18}
-                          />
-                          <input
-                            type="text"
-                            value={newCodexTitle}
-                            onChange={(e) => setNewCodexTitle(e.target.value)}
-                            placeholder="Snippet Title..."
-                            className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
-                          />
+                        }`}
+                    >
+                      {activeView === "code_snippet" ? (
+                        <div className="flex flex-col gap-2 w-full p-2">
+                          <div className="flex gap-2 border-b border-white/5 pb-2">
+                            <Code
+                              className="text-emerald-500 shrink-0 mt-1"
+                              size={18}
+                            />
+                            <input
+                              type="text"
+                              value={newCodexTitle}
+                              onChange={(e) => setNewCodexTitle(e.target.value)}
+                              placeholder="Snippet Title..."
+                              className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
+                            />
+                          </div>
+                          <div className="flex gap-2 items-start">
+                            <AlignLeft
+                              className="text-slate-600 shrink-0 mt-1"
+                              size={18}
+                            />
+                            <textarea
+                              value={newCodexNotes}
+                              onChange={(e) => setNewCodexNotes(e.target.value)}
+                              placeholder="Description / Context..."
+                              className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-10 placeholder:text-slate-700"
+                            />
+                          </div>
+                          <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5 font-mono">
+                            <FileText
+                              className="text-slate-600 shrink-0 mt-1"
+                              size={18}
+                            />
+                            <textarea
+                              value={newCodexCode}
+                              onChange={(e) => setNewCodexCode(e.target.value)}
+                              placeholder="// Paste code..."
+                              className="bg-transparent text-xs text-emerald-400 w-full focus:outline-none resize-none h-20 placeholder:text-slate-800"
+                            />
+                          </div>
                         </div>
-                        <div className="flex gap-2 items-start">
-                          <AlignLeft
-                            className="text-slate-600 shrink-0 mt-1"
-                            size={18}
-                          />
-                          <textarea
-                            value={newCodexNotes}
-                            onChange={(e) => setNewCodexNotes(e.target.value)}
-                            placeholder="Description / Context..."
-                            className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-10 placeholder:text-slate-700"
-                          />
+                      ) : activeView === "resource" ? (
+                        <div className="flex flex-col gap-2 w-full p-2">
+                          <div className="flex gap-2 border-b border-white/5 pb-2">
+                            <LinkIcon
+                              className="text-cyan-500 shrink-0 mt-1"
+                              size={18}
+                            />
+                            <input
+                              type="text"
+                              value={newResourceTitle}
+                              onChange={(e) =>
+                                setNewResourceTitle(e.target.value)
+                              }
+                              placeholder="Resource Title..."
+                              className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
+                            />
+                          </div>
+                          <div className="flex gap-2 items-center">
+                            <ExternalLink
+                              className="text-slate-600 shrink-0"
+                              size={16}
+                            />
+                            <input
+                              type="text"
+                              value={newResourceLink}
+                              onChange={(e) => setNewResourceLink(e.target.value)}
+                              placeholder="URL..."
+                              className="bg-transparent text-xs text-cyan-400 w-full focus:outline-none placeholder:text-slate-700 font-mono"
+                            />
+                          </div>
+                          <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5">
+                            <AlignLeft
+                              className="text-slate-600 shrink-0 mt-0.5"
+                              size={16}
+                            />
+                            <textarea
+                              value={newResourceNotes}
+                              onChange={(e) =>
+                                setNewResourceNotes(e.target.value)
+                              }
+                              placeholder="Context / Description..."
+                              className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-12 placeholder:text-slate-700"
+                            />
+                          </div>
                         </div>
-                        <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5 font-mono">
-                          <FileText
-                            className="text-slate-600 shrink-0 mt-1"
-                            size={18}
-                          />
-                          <textarea
-                            value={newCodexCode}
-                            onChange={(e) => setNewCodexCode(e.target.value)}
-                            placeholder="// Paste code..."
-                            className="bg-transparent text-xs text-emerald-400 w-full focus:outline-none resize-none h-20 placeholder:text-slate-800"
-                          />
-                        </div>
-                      </div>
-                    ) : activeView === "resource" ? (
-                      <div className="flex flex-col gap-2 w-full p-2">
-                        <div className="flex gap-2 border-b border-white/5 pb-2">
-                          <LinkIcon
-                            className="text-cyan-500 shrink-0 mt-1"
-                            size={18}
-                          />
-                          <input
-                            type="text"
-                            value={newResourceTitle}
-                            onChange={(e) =>
-                              setNewResourceTitle(e.target.value)
-                            }
-                            placeholder="Resource Title..."
-                            className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
-                          />
-                        </div>
-                        <div className="flex gap-2 items-center">
-                          <ExternalLink
-                            className="text-slate-600 shrink-0"
-                            size={16}
-                          />
-                          <input
-                            type="text"
-                            value={newResourceLink}
-                            onChange={(e) => setNewResourceLink(e.target.value)}
-                            placeholder="URL..."
-                            className="bg-transparent text-xs text-cyan-400 w-full focus:outline-none placeholder:text-slate-700 font-mono"
-                          />
-                        </div>
-                        <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5">
-                          <AlignLeft
-                            className="text-slate-600 shrink-0 mt-0.5"
-                            size={16}
-                          />
-                          <textarea
-                            value={newResourceNotes}
-                            onChange={(e) =>
-                              setNewResourceNotes(e.target.value)
-                            }
-                            placeholder="Context / Description..."
-                            className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-12 placeholder:text-slate-700"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={newItemInput}
-                        onChange={(e) => setNewItemInput(e.target.value)}
-                        placeholder={`+ Add entry...`}
-                        className="bg-transparent px-3 py-3 text-sm text-white w-full focus:outline-none"
-                      />
-                    )}
+                      ) : (
+                        <input
+                          type="text"
+                          value={newItemInput}
+                          onChange={(e) => setNewItemInput(e.target.value)}
+                          placeholder={`+ Add entry...`}
+                          className="bg-transparent px-3 py-3 text-sm text-white w-full focus:outline-none"
+                        />
+                      )}
 
-                    <button
-                      disabled={isAdding}
-                      className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${
-                        activeView === "code_snippet"
+                      <button
+                        disabled={isAdding}
+                        className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${activeView === "code_snippet"
                           ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
                           : activeView === "resource"
                             ? "bg-cyan-600 hover:bg-cyan-500 shadow-cyan-500/20"
                             : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
-                      } shadow-lg`}
-                    >
-                      {isAdding ? (
-                        <Loader2 className="animate-spin" size={20} />
-                      ) : activeView === "code_snippet" ? (
-                        <Code size={20} />
-                      ) : activeView === "resource" ? (
-                        <Plus size={20} />
-                      ) : (
-                        <Plus size={20} />
-                      )}
-                    </button>
-                  </form>
-                )}
+                          } shadow-lg`}
+                      >
+                        {isAdding ? (
+                          <Loader2 className="animate-spin" size={20} />
+                        ) : activeView === "code_snippet" ? (
+                          <Code size={20} />
+                        ) : activeView === "resource" ? (
+                          <Plus size={20} />
+                        ) : (
+                          <Plus size={20} />
+                        )}
+                      </button>
+                    </form>
+                  )}
               </header>
 
               <div className={styles.panel}>
@@ -964,27 +970,27 @@ export default function TaskMasterShell({
                 )}
                 {(activeView === "social_bookmark" ||
                   activeView === "resource") && (
-                  <ResourceGrid
-                    items={currentViewItems}
-                    type={activeView}
-                    sortOption={sortOption}
-                    filterTags={filterTags}
-                    allSystemTags={allSystemTags}
-                    searchQuery={globalSearchQuery}
-                    activePeriod={globalActivePeriod}
-                    onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
-                    onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
-                    onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
-                    onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
-                    onUpdateMetadata={(id, m) =>
-                      handleUpdate(id, "metadata", m)
-                    }
-                    onDelete={requestDelete}
-                    onArchive={(id) => handleUpdate(id, "status", "archived")}
-                    onReorder={handleReorder}
-                    onManualMove={handleManualMove}
-                  />
-                )}
+                    <ResourceGrid
+                      items={currentViewItems}
+                      type={activeView}
+                      sortOption={sortOption}
+                      filterTags={filterTags}
+                      allSystemTags={allSystemTags}
+                      searchQuery={globalSearchQuery}
+                      activePeriod={globalActivePeriod}
+                      onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                      onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
+                      onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
+                      onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
+                      onUpdateMetadata={(id, m) =>
+                        handleUpdate(id, "metadata", m)
+                      }
+                      onDelete={requestDelete}
+                      onArchive={(id) => handleUpdate(id, "status", "archived")}
+                      onReorder={handleReorder}
+                      onManualMove={handleManualMove}
+                    />
+                  )}
               </div>
             </div>
           </div>
@@ -1050,6 +1056,35 @@ export default function TaskMasterShell({
           onUpdateMetadata={(id, meta) => handleUpdate(id, "metadata", meta)}
         />
       )}
+      <ConfirmationModal
+        isOpen={!!uncheckCandidate}
+        onClose={() => setUncheckCandidate(null)}
+        onConfirm={() => {
+          if (uncheckCandidate) {
+            // Execute uncheck logic here
+            const id = uncheckCandidate;
+            const item = items.find(i => i.id === id);
+            if (item) {
+              import("./dateUtils").then(({ getTodayString, calculateStats }) => {
+                const todayVal = getTodayString();
+                const currentLog = (item.metadata?.completed_dates as string[]) || [];
+                const newLog = currentLog.filter(d => d !== todayVal);
+                const nextDate = todayVal;
+                const stats = calculateStats(newLog, item.created_at, item.recurrence || "daily");
+                const newMeta = { ...item.metadata, completed_dates: newLog, streak: stats.streak };
+
+                setItems(prev => prev.map(i => i.id === id ? { ...i, due_date: nextDate, metadata: newMeta } : i));
+                supabase.from("task_master_items").update({ due_date: nextDate, metadata: newMeta }).eq("id", id).then();
+                showToast("success", "Task unchecked. Due today.");
+              });
+            }
+          }
+        }}
+        title="Uncheck Task?"
+        message="This will remove today's completion and reset your streak calculation for today. Are you sure?"
+        confirmLabel="Yes, Uncheck"
+        isDanger={true}
+      />
     </>
   );
 }

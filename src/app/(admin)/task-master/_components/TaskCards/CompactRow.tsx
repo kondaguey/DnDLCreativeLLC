@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Check, ChevronDown, GripVertical, Lock, Unlock, Repeat, Calendar, Flag } from "lucide-react";
 import { DragHandle } from "../SortableItem";
-import { formatDate, getTodayString } from "../dateUtils";
+import { formatDate, getTodayString, isTaskOverdue } from "../dateUtils";
 import TaskDetails from "./TaskDetails";
 import RecurringTasks from "../RecurringTasks";
 import CountdownTimer from "../CountdownTimer";
@@ -25,6 +25,11 @@ export default function CompactRow({ item, isManualSort, ...props }: any) {
 
     if (priority === "critical") {
         containerClasses += " border-rose-500/20";
+    }
+
+    const isSkipped = !isCompleted && isTaskOverdue(item.due_date);
+    if (isSkipped) {
+        containerClasses += " border-rose-600/50 bg-rose-950/20";
     }
 
     if (isCompleted) {
@@ -122,7 +127,20 @@ export default function CompactRow({ item, isManualSort, ...props }: any) {
                         )}
                     </button>
 
-                    {/* Recurrence Trigger */}
+                    <span className="text-sm font-medium text-slate-200 truncate flex-1 flex items-center">
+                        {item.title}
+                        {item.recurrence && item.recurrence !== 'one_off' && props.onOpenStats && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    props.onOpenStats?.();
+                                }}
+                                className="ml-2 text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full hover:bg-slate-700 hover:text-white transition-colors border border-white/5 uppercase tracking-wide font-bold hidden sm:inline-block"
+                            >
+                                Stats
+                            </button>
+                        )}
+                    </span>
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -157,6 +175,11 @@ export default function CompactRow({ item, isManualSort, ...props }: any) {
                         </span>
                     )}
 
+                    {item.metadata?.streak > 0 && (
+                        <span className="text-[9px] font-black uppercase tracking-wider hidden sm:flex items-center gap-1 text-orange-400">
+                            🔥 {item.metadata.streak}
+                        </span>
+                    )}
 
                     <ChevronDown
                         size={14}

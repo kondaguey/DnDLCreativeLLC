@@ -14,6 +14,7 @@ import {
 import { TaskItem, RecurrenceType } from "./types";
 import { getTodayString, calculateStats } from "./dateUtils";
 import { createClient } from "@/lib/supabase/client";
+import RecurrenceChart from "./RecurrenceChart";
 
 interface RecurrenceDashboardProps {
     items: TaskItem[];
@@ -93,9 +94,10 @@ function DailyDashboard({ items, stats }: any) {
                     <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-2">Aggregate Streak</span>
                 </div>
 
-                {/* HEATMAP PLACEHOLDER (To Be Built) */}
-                <div className="md:col-span-2 bg-black/40 rounded-2xl p-5 border border-white/5 flex items-center justify-center text-slate-500 text-sm italic">
-                    (Calendar Visualization Coming Soon)
+                {/* HEATMAP REPLACED BY CHART */}
+                <div className="md:col-span-2 bg-black/40 rounded-2xl p-5 border border-white/5">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Completion Trend</span>
+                    <RecurrenceChart items={items} period="daily" />
                 </div>
             </div>
         </div>

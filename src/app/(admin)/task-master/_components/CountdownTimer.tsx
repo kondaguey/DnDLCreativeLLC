@@ -13,14 +13,13 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
     useEffect(() => {
         const calculateTimeLeft = () => {
             const now = new Date();
-            const target = new Date(targetDate);
-
-            // If target is just a date (YYYY-MM-DD), assume midnight of that date?
-            // Or if it's "Next Available", it might be midnight tomorrow.
-            // Let's assume targetDate is the *start* of the next active period.
-            // If targetDate has no time, set it to midnight local time?
-            if (targetDate.length === 10) {
+            let target: Date;
+            if (targetDate.length === 10 && targetDate.includes("-")) {
+                const [y, m, d] = targetDate.split("-").map(Number);
+                target = new Date(y, m - 1, d); // Local Midnight
                 target.setHours(0, 0, 0, 0);
+            } else {
+                target = new Date(targetDate);
             }
 
             const diff = target.getTime() - now.getTime();

@@ -11,7 +11,8 @@ import {
     Unlock,
     Repeat,
     Calendar,
-    Flag
+    Flag,
+    Flame
 } from "lucide-react";
 import CountdownTimer from "../CountdownTimer";
 import { DragHandle } from "../SortableItem";
@@ -19,7 +20,7 @@ import TagManager from "../TagManager";
 import { DateControl, PrioritySwitcher, ActionButton } from "./shared";
 import TaskDetails from "./TaskDetails";
 import RecurringTasks from "../RecurringTasks";
-import { getTodayString } from "../dateUtils";
+import { getTodayString, isTaskOverdue } from "../dateUtils";
 import RecurringBadge from "./RecurringBadge";
 
 export default function GridCard({
@@ -42,27 +43,7 @@ export default function GridCard({
     // ... (Container styles existing logic)
 
     // ... (Render)
-    {/* VISUAL DATE & PRIORITY ROW (Replaces Status Bar) */ }
-    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-        {item.due_date && (
-            <span className={`text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border ${priority === 'critical' ? 'text-rose-400 border-rose-500/20 bg-rose-500/10' : 'text-slate-400 border-white/5 bg-white/5'}`}>
-                <Calendar size={12} />
-                {new Date(item.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-            </span>
-        )}
-        {priority !== "normal" && (
-            <span className={`text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border text-slate-400 border-white/5 bg-white/5 uppercase tracking-wider`}>
-                <Flag size={12} className={priority === "critical" ? "fill-rose-500 text-rose-500" : "fill-orange-500 text-orange-500"} />
-                {priority}
-            </span>
-        )}
 
-        <RecurringBadge
-            recurrence={item.recurrence}
-            dueDate={item.due_date}
-            isDoneToday={isDoneToday}
-        />
-    </div>
 
     // --- DYNAMIC STYLES (MATCHING INCUBATOR) ---
     // Base: Glassmorphism, rounded-3xl, border-white/5
@@ -78,6 +59,11 @@ export default function GridCard({
         containerClasses += " border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.1)]";
     } else if (priority === "high") {
         containerClasses += " border-orange-500/30";
+    }
+
+    const isSkipped = !isCompleted && isTaskOverdue(item.due_date);
+    if (isSkipped) {
+        containerClasses += " border-rose-600/50 shadow-[0_0_20px_rgba(225,29,72,0.15)] bg-rose-950/20";
     }
 
     if (isCompleted) {
@@ -116,6 +102,13 @@ export default function GridCard({
 
                     <div className="flex-1 min-w-0">
                         {/* TITLE */}
+                        {isSkipped && (
+                            <div className="mb-1">
+                                <span className="text-[10px] font-black uppercase tracking-widest bg-rose-600 text-white px-2 py-0.5 rounded shadow-sm animate-pulse">
+                                    SKIPPED / LATE
+                                </span>
+                            </div>
+                        )}
                         {isEditing ? (
                             <textarea
                                 value={item.title}
@@ -135,9 +128,20 @@ export default function GridCard({
                             />
                         ) : (
                             <h3
-                                className={`font-black text-xl md:text-2xl leading-tight break-words tracking-tight ${isCompleted ? "line-through text-slate-500" : "text-slate-100"}`}
+                                className={`font-black text-lg md:text-xl leading-snug tracking-tight ${isCompleted ? "line-through text-slate-500" : "text-slate-100"}`}
                             >
                                 {item.title}
+                                {item.recurrence && item.recurrence !== 'one_off' && props.onOpenStats && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            props.onOpenStats?.();
+                                        }}
+                                        className="ml-2 text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full hover:bg-slate-700 hover:text-white transition-colors border border-white/5 uppercase tracking-wide font-bold"
+                                    >
+                                        Stats
+                                    </button>
+                                )}
                             </h3>
                         )}
                     </div>
@@ -156,27 +160,43 @@ export default function GridCard({
 
                 {/* VISUAL DATE & PRIORITY ROW (Replaces Status Bar) */}
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                    {item.due_date && (
+                    {isEditing ? (
+                        <DateControl
+                            dueDate={item.due_date}
+                            onChange={(d) => props.onUpdateDate(item.id, d)}
+                            statusColor={priority === "critical" ? "rose" : "slate"}
+                            disabled={false}
+                        />
+                    ) : (item.due_date && (
                         <span className={`text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border ${priority === 'critical' ? 'text-rose-400 border-rose-500/20 bg-rose-500/10' : 'text-slate-400 border-white/5 bg-white/5'}`}>
                             <Calendar size={12} />
                             {new Date(item.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </span>
-                    )}
-                    {priority !== "normal" && (
+                    ))}
+                    {isEditing ? (
+                        <PrioritySwitcher
+                            current={priority}
+                            onChange={(p) => props.onUpdatePriority(item.id, p)}
+                            disabled={false}
+                        />
+                    ) : (priority !== "normal" && (
                         <span className={`text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border text-slate-400 border-white/5 bg-white/5 uppercase tracking-wider`}>
                             <Flag size={12} className={priority === "critical" ? "fill-rose-500 text-rose-500" : "fill-orange-500 text-orange-500"} />
                             {priority}
                         </span>
+                    ))}
+
+                    {item.metadata?.streak > 0 && (
+                        <span className="text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border border-orange-500/20 bg-orange-500/10 text-orange-400 uppercase tracking-wider">
+                            <Flame size={12} className="fill-orange-500" /> {item.metadata.streak}
+                        </span>
                     )}
-                    {item.recurrence && item.recurrence !== "one_off" && (
-                        isDoneToday && item.due_date ? (
-                            <CountdownTimer targetDate={item.due_date} />
-                        ) : (
-                            <span className="text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border border-purple-500/20 bg-purple-500/10 text-purple-400 uppercase tracking-wider">
-                                <Repeat size={12} /> {item.recurrence}
-                            </span>
-                        )
-                    )}
+
+                    <RecurringBadge
+                        recurrence={item.recurrence}
+                        dueDate={item.due_date}
+                        isDoneToday={isDoneToday}
+                    />
                 </div>
             </div>
 
@@ -189,7 +209,7 @@ export default function GridCard({
                     {expanded ? (
                         <div className="animate-in fade-in slide-in-from-top-2 duration-300 w-full">
                             <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
-                                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Details</span>
+                                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Subtasks & Notes</span>
                                 <button
                                     onClick={() => setExpanded(false)}
                                     className="p-1.5 bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors"
@@ -204,6 +224,10 @@ export default function GridCard({
                             className="w-full cursor-pointer group/content"
                             onClick={() => setExpanded(true)}
                         >
+                            <div className="flex items-center justify-between opacity-50 group-hover/content:opacity-100 transition-opacity mb-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Subtasks & Notes</span>
+                                <ChevronDown size={14} className="text-slate-500" />
+                            </div>
                             <p className={`text-slate-400 leading-relaxed font-medium ${viewMode === "list" ? "text-sm line-clamp-2" : "text-sm line-clamp-4"}`}>
                                 {item.content || "Add details..."}
                             </p>
@@ -219,38 +243,15 @@ export default function GridCard({
                     }
                 `}>
 
-                    {/* EDITABLE CONTROLS (Only visible when editing) */}
-                    {isEditing ? (
-                        <div className="flex flex-col gap-3 w-full">
-                            <DateControl
-                                dueDate={item.due_date}
-                                onChange={(d) => props.onUpdateDate(item.id, d)}
-                                statusColor={priority === "critical" ? "rose" : "slate"}
-                                disabled={false}
-                            />
-                            <PrioritySwitcher
-                                current={priority}
-                                onChange={(p) => props.onUpdatePriority(item.id, p)}
-                                disabled={false}
-                            />
-                            <TagManager
-                                selectedTags={item.tags || []}
-                                allSystemTags={props.allSystemTags}
-                                onUpdateTags={(t: string[]) => props.onUpdateTags(item.id, t)}
-                                disabled={false}
-                            />
-                        </div>
-                    ) : (
-                        // READ ONLY META
-                        <div className={`w-full ${viewMode === 'list' ? '' : 'flex-1'}`}>
-                            <TagManager
-                                selectedTags={item.tags || []}
-                                allSystemTags={props.allSystemTags}
-                                onUpdateTags={(t: string[]) => props.onUpdateTags(item.id, t)}
-                                disabled={true}
-                            />
-                        </div>
-                    )}
+                    {/* FOOTER CONTROLS - REDUCED */}
+                    <div className={`w-full ${viewMode === 'list' ? '' : 'flex-1'}`}>
+                        <TagManager
+                            selectedTags={item.tags || []}
+                            allSystemTags={props.allSystemTags}
+                            onUpdateTags={(t: string[]) => props.onUpdateTags(item.id, t)}
+                            disabled={!isEditing}
+                        />
+                    </div>
 
                     {/* ACTION BUTTONS */}
                     <div className="flex items-center gap-1 shrink-0 ml-auto">

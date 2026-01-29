@@ -20,6 +20,12 @@ export function toInputDate(dateString: string | null | undefined): string {
   return dateString.split("T")[0];
 }
 
+export function isTaskOverdue(dateString: string | null): boolean {
+  if (!dateString) return false;
+  const today = getTodayString();
+  return dateString < today;
+}
+
 // Check urgency
 export function getDaysUntil(dateString: string | null): number {
   if (!dateString) return 999;
