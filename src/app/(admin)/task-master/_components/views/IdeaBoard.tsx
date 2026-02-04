@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useId } from "react";
+import { useState, useEffect, useMemo, useId } from "react";
 import {
   Zap,
   BrainCircuit,
@@ -13,6 +13,7 @@ import {
   List,
   StretchVertical,
   Send,
+  Loader2,
   Sparkles,
   Star,
   Edit2,
@@ -38,9 +39,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 
-import { TaskItem, SortOption } from "./types";
-import TagManager from "./TagManager";
-import { SortableItem, DragHandle } from "./SortableItem";
+import { TaskItem, SortOption } from "../utils/types";
+import TagManager from "../navigation/TagManager";
+import { SortableItem, DragHandle } from "../widgets/SortableItem";
+import { parseSafeDate } from "../utils/dateUtils";
 
 interface IdeaBoardProps {
   items: TaskItem[];
@@ -59,11 +61,12 @@ interface IdeaBoardProps {
   onReorder: (draggedId: string, targetId: string) => void;
   onManualMove?: (id: string, direction: "up" | "down") => void;
   onEdit?: (item: TaskItem) => void;
-  onArchive?: (id: string) => void; // Added optional archive handler support if needed locally
+  onArchive?: (id: string) => void;
+  isAdding?: boolean;
 }
 
 const getEffectiveDate = (item: TaskItem): Date =>
-  item.due_date ? new Date(item.due_date) : new Date(item.created_at);
+  item.due_date ? parseSafeDate(item.due_date) : parseSafeDate(item.created_at);
 
 const getSortText = (item: TaskItem): string => {
   const title = item.title || "";
@@ -94,12 +97,19 @@ export default function IdeaBoard({
   onReorder,
   onManualMove,
   onEdit,
+  onArchive,
+  isAdding,
 }: IdeaBoardProps) {
   const dndId = useId();
   const [activeTab, setActiveTab] = useState<
     "sparks" | "solidified" | "archived" | "favorites"
   >("sparks");
   const [viewMode, setViewMode] = useState<"grid" | "list" | "compact">("grid");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [newItemTitle, setNewItemTitle] = useState("");
   const [quickNote, setQuickNote] = useState("");
@@ -286,194 +296,197 @@ export default function IdeaBoard({
         </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        {activeTab === "sparks" && (
-          <div className="space-y-6 md:space-y-8 w-full">
-            <form
-              onSubmit={handleQuickAdd}
-              className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl shadow-black/50 w-full max-w-4xl mx-auto transition-all focus-within:border-amber-500/30 focus-within:shadow-amber-900/10"
-            >
-              <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                <div className="bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20">
-                  <Zap
-                    size={14}
-                    className="text-amber-500"
-                    fill="currentColor"
+      {mounted && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          {activeTab === "sparks" && (
+            <div className="space-y-6 md:space-y-8 w-full">
+              <form
+                onSubmit={handleQuickAdd}
+                className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl shadow-black/50 w-full max-w-4xl mx-auto transition-all focus-within:border-amber-500/30 focus-within:shadow-amber-900/10"
+              >
+                <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                  <div className="bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20">
+                    <Zap
+                      size={14}
+                      className="text-amber-500"
+                      fill="currentColor"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={newItemTitle}
+                    onChange={(e) => setNewItemTitle(e.target.value)}
+                    placeholder="New Idea Title..."
+                    className="bg-transparent w-full text-sm md:text-base font-black text-white placeholder:text-slate-600 focus:outline-none"
                   />
                 </div>
-                <input
-                  type="text"
-                  value={newItemTitle}
-                  onChange={(e) => setNewItemTitle(e.target.value)}
-                  placeholder="New Idea Title..."
-                  className="bg-transparent w-full text-sm md:text-base font-black text-white placeholder:text-slate-600 focus:outline-none"
-                />
-              </div>
 
-              <textarea
-                value={quickNote}
-                onChange={(e) => setQuickNote(e.target.value)}
-                placeholder={
-                  noteFormat === "code"
-                    ? "// Paste code snippet..."
-                    : "Capture the details... (Expandable)"
-                }
-                className={`w-full bg-black/20 rounded-xl p-4 text-sm focus:outline-none resize-y min-h-[120px] placeholder:text-slate-600 border border-white/5 focus:border-white/10 ${noteFormat === "code" ? "font-mono text-emerald-300" : "text-slate-300"}`}
-              />
-
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setNoteFormat(noteFormat === "text" ? "code" : "text")
+                <textarea
+                  value={quickNote}
+                  onChange={(e) => setQuickNote(e.target.value)}
+                  placeholder={
+                    noteFormat === "code"
+                      ? "// Paste code snippet..."
+                      : "Capture the details... (Expandable)"
                   }
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${noteFormat === "code" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-slate-400 border-white/5 hover:text-white"}`}
-                >
-                  {noteFormat === "text" ? (
-                    <Type size={12} />
-                  ) : (
-                    <Code size={12} />
-                  )}
-                  {noteFormat === "text" ? "Text Mode" : "Code Mode"}
-                </button>
+                  className={`w-full bg-black/20 rounded-xl p-4 text-sm focus:outline-none resize-y min-h-[120px] placeholder:text-slate-600 border border-white/5 focus:border-white/10 ${noteFormat === "code" ? "font-mono text-emerald-300" : "text-slate-300"}`}
+                />
 
-                <button
-                  type="submit"
-                  disabled={!quickNote.trim() && !newItemTitle.trim()}
-                  className="bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-600 text-black px-4 py-2 md:px-6 md:py-2 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:shadow-none hover:shadow-amber-500/20"
-                >
-                  Save Spark <Send size={12} />
-                </button>
-              </div>
-            </form>
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNoteFormat(noteFormat === "text" ? "code" : "text")
+                    }
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${noteFormat === "code" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-slate-400 border-white/5 hover:text-white"}`}
+                  >
+                    {noteFormat === "text" ? (
+                      <Type size={12} />
+                    ) : (
+                      <Code size={12} />
+                    )}
+                    {noteFormat === "text" ? "Text Mode" : "Code Mode"}
+                  </button>
 
-            <SortableContext
-              items={filteredItems.map((i) => i.id)}
-              strategy={
-                viewMode === "grid"
-                  ? rectSortingStrategy
-                  : verticalListSortingStrategy
-              }
-            >
-              <div
-                className={
+                  <button
+                    type="submit"
+                    disabled={isAdding || (!quickNote.trim() && !newItemTitle.trim())}
+                    className="bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-600 text-black px-4 py-2 md:px-6 md:py-2 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:shadow-none hover:shadow-amber-500/20"
+                  >
+                    {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Save Spark"}
+                    {!isAdding && <Send size={12} />}
+                  </button>
+                </div>
+              </form>
+
+              <SortableContext
+                items={filteredItems.map((i) => i.id)}
+                strategy={
                   viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 w-full"
-                    : "flex flex-col gap-3 w-full max-w-5xl mx-auto"
+                    ? rectSortingStrategy
+                    : verticalListSortingStrategy
                 }
               >
-                {filteredItems.map((item, index) => (
-                  <SortableItem
-                    key={item.id}
-                    id={item.id}
-                    disabled={sortOption !== "manual"}
-                  >
-                    <SparkCard
-                      item={item}
-                      viewMode={viewMode}
-                      isManualSort={sortOption === "manual"}
-                      isFirst={index === 0}
-                      isLast={index === filteredItems.length - 1}
-                      allSystemTags={allSystemTags}
-                      onUpdateContent={onUpdateContent}
-                      onUpdateTags={onUpdateTags}
-                      onDelete={onDelete}
-                      onManualMove={onManualMove}
-                      onEdit={onEdit}
-                      onToggleFavorite={() =>
-                        onUpdateMetadata(item.id, {
-                          ...item.metadata,
-                          is_favorite: !item.metadata?.is_favorite,
-                        })
-                      }
-                      onArchive={() =>
-                        onUpdateMetadata(item.id, { status: "archived" })
-                      }
-                      onSolidify={() =>
-                        onUpdateMetadata(item.id, {
-                          ...item.metadata,
-                          stage: "solidified",
-                        })
-                      }
-                    />
-                  </SortableItem>
-                ))}
-              </div>
-            </SortableContext>
-          </div>
-        )}
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 w-full"
+                      : "flex flex-col gap-3 w-full max-w-5xl mx-auto"
+                  }
+                >
+                  {filteredItems.map((item, index) => (
+                    <SortableItem
+                      key={item.id}
+                      id={item.id}
+                      disabled={sortOption !== "manual"}
+                    >
+                      <SparkCard
+                        item={item}
+                        viewMode={viewMode}
+                        isManualSort={sortOption === "manual"}
+                        isFirst={index === 0}
+                        isLast={index === filteredItems.length - 1}
+                        allSystemTags={allSystemTags}
+                        onUpdateContent={onUpdateContent}
+                        onUpdateTags={onUpdateTags}
+                        onDelete={onDelete}
+                        onManualMove={onManualMove}
+                        onEdit={onEdit}
+                        onToggleFavorite={() =>
+                          onUpdateMetadata(item.id, {
+                            ...item.metadata,
+                            is_favorite: !item.metadata?.is_favorite,
+                          })
+                        }
+                        onArchive={() =>
+                          onUpdateMetadata(item.id, { status: "archived" })
+                        }
+                        onSolidify={() =>
+                          onUpdateMetadata(item.id, {
+                            ...item.metadata,
+                            stage: "solidified",
+                          })
+                        }
+                      />
+                    </SortableItem>
+                  ))}
+                </div>
+              </SortableContext>
+            </div>
+          )}
 
-        {activeTab !== "sparks" && (
-          <div className="space-y-4 max-w-5xl mx-auto mt-4 w-full">
-            <SortableContext
-              items={filteredItems.map((i) => i.id)}
-              strategy={
-                viewMode === "grid"
-                  ? rectSortingStrategy
-                  : verticalListSortingStrategy
-              }
-            >
-              <div
-                className={
+          {activeTab !== "sparks" && (
+            <div className="space-y-4 max-w-5xl mx-auto mt-4 w-full">
+              <SortableContext
+                items={filteredItems.map((i) => i.id)}
+                strategy={
                   viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
-                    : "flex flex-col gap-3 w-full"
+                    ? rectSortingStrategy
+                    : verticalListSortingStrategy
                 }
               >
-                {filteredItems.map((item, index) => (
-                  <SortableItem
-                    key={item.id}
-                    id={item.id}
-                    disabled={sortOption !== "manual"}
-                  >
-                    <IncubatorCard
-                      item={item}
-                      isManualSort={
-                        sortOption === "manual" && activeTab !== "favorites"
-                      }
-                      isFirst={index === 0}
-                      isLast={index === filteredItems.length - 1}
-                      allSystemTags={allSystemTags}
-                      onUpdateTitle={onUpdateTitle}
-                      onUpdateContent={onUpdateContent}
-                      onUpdateTags={onUpdateTags}
-                      onDelete={onDelete}
-                      onManualMove={onManualMove}
-                      onEdit={onEdit}
-                      onToggleFavorite={() =>
-                        onUpdateMetadata(item.id, {
-                          ...item.metadata,
-                          is_favorite: !item.metadata?.is_favorite,
-                        })
-                      }
-                      onArchive={() =>
-                        onUpdateMetadata(item.id, { status: "archived" })
-                      }
-                      onPromote={() => onPromoteToTask(item)}
-                      viewMode={viewMode}
-                    />
-                  </SortableItem>
-                ))}
-              </div>
-            </SortableContext>
-          </div>
-        )}
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
+                      : "flex flex-col gap-3 w-full"
+                  }
+                >
+                  {filteredItems.map((item, index) => (
+                    <SortableItem
+                      key={item.id}
+                      id={item.id}
+                      disabled={sortOption !== "manual"}
+                    >
+                      <IncubatorCard
+                        item={item}
+                        isManualSort={
+                          sortOption === "manual" && activeTab !== "favorites"
+                        }
+                        isFirst={index === 0}
+                        isLast={index === filteredItems.length - 1}
+                        allSystemTags={allSystemTags}
+                        onUpdateTitle={onUpdateTitle}
+                        onUpdateContent={onUpdateContent}
+                        onUpdateTags={onUpdateTags}
+                        onDelete={onDelete}
+                        onManualMove={onManualMove}
+                        onEdit={onEdit}
+                        onToggleFavorite={() =>
+                          onUpdateMetadata(item.id, {
+                            ...item.metadata,
+                            is_favorite: !item.metadata?.is_favorite,
+                          })
+                        }
+                        onArchive={() =>
+                          onUpdateMetadata(item.id, { status: "archived" })
+                        }
+                        onPromote={() => onPromoteToTask(item)}
+                        viewMode={viewMode}
+                      />
+                    </SortableItem>
+                  ))}
+                </div>
+              </SortableContext>
+            </div>
+          )}
 
-        {filteredItems.length === 0 && (
-          <div className="text-center py-20 opacity-30">
-            <Sparkles size={48} className="mx-auto mb-4 text-amber-500" />
-            <p className="text-sm font-bold uppercase tracking-widest text-white">
-              {activeTab === "favorites"
-                ? "No favorites yet."
-                : "Mind is clear. Start capturing."}
-            </p>
-          </div>
-        )}
-      </DndContext>
+          {filteredItems.length === 0 && (
+            <div className="text-center py-20 opacity-30">
+              <Sparkles size={48} className="mx-auto mb-4 text-amber-500" />
+              <p className="text-sm font-bold uppercase tracking-widest text-white">
+                {activeTab === "favorites"
+                  ? "No favorites yet."
+                  : "Mind is clear. Start capturing."}
+              </p>
+            </div>
+          )}
+        </DndContext>
+      )}
     </div>
   );
 }
@@ -500,8 +513,8 @@ function SparkCard({
   const isFav = item.metadata?.is_favorite;
 
   const effectiveDate = item.due_date
-    ? new Date(item.due_date)
-    : new Date(item.created_at);
+    ? parseSafeDate(item.due_date)
+    : parseSafeDate(item.created_at);
   const dateStr = effectiveDate.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -538,13 +551,16 @@ function SparkCard({
             <Clock size={10} /> {dateStr}
           </span>
           <div className="flex-1 min-w-0 flex items-center gap-2">
-            <span className="font-bold text-slate-200 text-xs truncate max-w-[100px] md:max-w-[150px]">
+            <span className="font-bold text-slate-200 text-xs truncate max-w-[120px] md:max-w-[200px] shrink-0">
               {item.title}
             </span>
-            <span className="text-slate-500 text-xs hidden sm:inline">-</span>
-            <div className="flex-1 truncate text-xs text-slate-400 font-medium hidden sm:block">
+            {isFav && (
+              <Star size={10} className="text-amber-400 fill-amber-400 shrink-0" />
+            )}
+            <span className="text-slate-500 text-[10px] hidden md:inline">|</span>
+            <div className="flex-1 truncate text-[11px] text-slate-400 font-medium italic opacity-70">
               {isCode && (
-                <span className="text-emerald-500 mr-2 font-mono">//</span>
+                <span className="text-emerald-500 mr-1 font-mono">//</span>
               )}
               {item.content || "Empty Note"}
             </div>
@@ -687,8 +703,8 @@ function IncubatorCard({
 }: any) {
   const isFav = item.metadata?.is_favorite;
   const effectiveDate = item.due_date
-    ? new Date(item.due_date)
-    : new Date(item.created_at);
+    ? parseSafeDate(item.due_date)
+    : parseSafeDate(item.created_at);
   const dateStr = effectiveDate.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -718,22 +734,40 @@ function IncubatorCard({
       {/* --- COMPACT VIEW --- */}
       {viewMode === "compact" && (
         <>
-          <div className="flex flex-col min-w-[200px]">
-            <span className="font-bold text-violet-100 truncate text-sm">
-              {item.title}
-            </span>
+          <div className="flex flex-col min-w-[150px] md:min-w-[250px] shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-violet-100 truncate text-sm">
+                {item.title}
+              </span>
+              {isFav && (
+                <Star size={10} className="text-amber-400 fill-amber-400 shrink-0" />
+              )}
+            </div>
             <span className="text-[10px] text-slate-500 font-mono">
               {dateStr}
             </span>
           </div>
-          <div className="flex-1 px-4 text-xs text-slate-400 truncate hidden md:block">
+          <div className="flex-1 px-4 text-xs text-slate-400 truncate opacity-70 italic hidden md:block">
             {item.content || "No description..."}
           </div>
-          <TagManager
-            selectedTags={item.tags || []}
-            allSystemTags={allSystemTags}
-            onUpdateTags={() => { }}
-          />
+          <div className="hidden lg:block shrink-0 px-2">
+            <TagManager
+              selectedTags={item.tags || []}
+              allSystemTags={allSystemTags}
+              onUpdateTags={() => { }}
+            />
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto mr-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPromote();
+              }}
+              className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black px-3 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all border border-emerald-500/20"
+            >
+              Promote
+            </button>
+          </div>
         </>
       )}
 

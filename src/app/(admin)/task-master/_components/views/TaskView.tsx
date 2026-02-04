@@ -43,21 +43,23 @@ import {
   Send,
   Type,
   Code,
+  Loader2,
 } from "lucide-react";
-import { TaskItem, RecurrenceType, SortOption } from "./types";
-import TagManager from "./TagManager";
-import CompactRow from "./TaskCards/CompactRow";
-import GridCard from "./TaskCards/GridCard";
-import StickyStats from "./StickyStats";
-import CountdownTimer from "./CountdownTimer";
+import { TaskItem, RecurrenceType, SortOption } from "../utils/types";
+import TagManager from "../navigation/TagManager";
+import CompactRow from "../task-cards/CompactRow";
+import GridCard from "../task-cards/GridCard";
+import StickyStats from "../widgets/StickyStats";
+import CountdownTimer from "../widgets/CountdownTimer";
 import {
   formatDate,
   toInputDate,
   getDaysUntil,
   getTodayString,
   calculateStats,
-} from "./dateUtils";
-import ItemStatsModal from "./ItemStatsModal";
+  parseSafeDate,
+} from "../utils/dateUtils";
+import ItemStatsModal from "../modals/ItemStatsModal";
 
 const PRIORITY_VALUES: Record<string, number> = {
   critical: 4,
@@ -78,7 +80,7 @@ import {
   verticalListSortingStrategy,
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
-import { SortableItem, DragHandle } from "./SortableItem";
+import { SortableItem, DragHandle } from "../widgets/SortableItem";
 
 interface TaskViewProps {
   items: TaskItem[];
@@ -123,6 +125,7 @@ interface TaskViewProps {
   onOpenRecurring: (item: TaskItem) => void;
   onBulkDelete?: (ids: string[]) => void;
   onQuickAdd?: (title: string, content: string) => void;
+  isAdding?: boolean;
 }
 
 export default function TaskView({
@@ -156,10 +159,16 @@ export default function TaskView({
   onOpenRecurring,
   onBulkDelete,
   onQuickAdd,
+  isAdding,
 }: TaskViewProps) {
   const [showActive, setShowActive] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid" | "compact">("list");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Quick Add State
   const [newItemTitle, setNewItemTitle] = useState("");
@@ -174,7 +183,7 @@ export default function TaskView({
   const safeFilterTags = filterTags || [];
 
   const getEffectiveDate = (item: TaskItem): Date => {
-    return item.due_date ? new Date(item.due_date) : new Date(item.created_at);
+    return item.due_date ? parseSafeDate(item.due_date) : parseSafeDate(item.created_at);
   };
 
   const filteredItems = safeItems
@@ -212,12 +221,12 @@ export default function TaskView({
       if (sortOption === "date_asc") {
         if (!a.due_date) return 1;
         if (!b.due_date) return -1;
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        return parseSafeDate(a.due_date).getTime() - parseSafeDate(b.due_date).getTime();
       }
       if (sortOption === "date_desc") {
         if (!a.due_date) return 1;
         if (!b.due_date) return -1;
-        return new Date(b.due_date).getTime() - new Date(a.due_date).getTime();
+        return parseSafeDate(b.due_date).getTime() - parseSafeDate(a.due_date).getTime();
       }
       if (sortOption === "created_desc") {
         return (
@@ -311,7 +320,10 @@ export default function TaskView({
   }, [items, activeTasks, completedTasks, activeRecurrence]);
 
   // Stats Modal State
-  const [statsItem, setStatsItem] = useState<TaskItem | null>(null);
+  const [statsItemId, setStatsItemId] = useState<string | null>(null);
+  const activeStatsItem = useMemo(() =>
+    items.find(i => i.id === statsItemId) || null
+    , [items, statsItemId]);
 
   return (
     <div className="w-full max-w-5xl mx-auto pb-24 md:pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -320,9 +332,10 @@ export default function TaskView({
 
       {/* RENDER MODAL */}
       <ItemStatsModal
-        isOpen={!!statsItem}
-        item={statsItem}
-        onClose={() => setStatsItem(null)}
+        isOpen={!!statsItemId}
+        item={activeStatsItem}
+        onClose={() => setStatsItemId(null)}
+        onUpdateMetadata={onUpdateMetadata}
       />
       {/* 1. TIMEFRAME TABS */}
       {/* 1. TIMEFRAME TABS */}
@@ -392,10 +405,11 @@ export default function TaskView({
 
             <button
               type="submit"
-              disabled={!quickNote.trim() && !newItemTitle.trim()}
+              disabled={isAdding || (!quickNote.trim() && !newItemTitle.trim())}
               className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-4 py-2 md:px-6 md:py-2 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:shadow-none hover:shadow-purple-500/20"
             >
-              Add Task <Plus size={12} />
+              {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Add Task"}
+              {!isAdding && <Plus size={12} />}
             </button>
           </div>
         </form>
@@ -466,7 +480,7 @@ export default function TaskView({
         )}
 
         {/* --- ACTIVE TASKS SECTION --- */}
-        {showActive && activeTasks.length > 0 && (
+        {showActive && activeTasks.length > 0 && mounted && (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -514,7 +528,7 @@ export default function TaskView({
                         onDeleteSubtask={onDeleteSubtask}
                         onUpdateSubtaskTitle={onUpdateSubtaskTitle}
                         onOpenRecurring={onOpenRecurring}
-                        onOpenStats={() => setStatsItem(item)}
+                        onOpenStats={() => setStatsItemId(item.id)}
                       />
                     ) : (
                       <GridCard
@@ -540,7 +554,7 @@ export default function TaskView({
                         onDeleteSubtask={onDeleteSubtask}
                         onUpdateSubtaskTitle={onUpdateSubtaskTitle}
                         onOpenRecurring={onOpenRecurring}
-                        onOpenStats={() => setStatsItem(item)}
+                        onOpenStats={() => setStatsItemId(item.id)}
                       />
                     )}
                   </SortableItem>

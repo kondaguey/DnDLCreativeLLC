@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, X, Plus } from "lucide-react";
+import { Check, X, Plus, Clock, List as ListIcon } from "lucide-react";
 
 export default function TaskDetails({
     item,
@@ -119,6 +119,31 @@ export default function TaskDetails({
                     </div>
                 )}
             </div>
+
+            {/* Completed History Ledger */}
+            {item.recurrence && item.recurrence !== "one_off" && item.metadata?.completed_dates?.length > 0 && (
+                <div className="pt-6 border-t border-white/5 bg-slate-950/20 rounded-2xl p-4 mt-6">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
+                        <ListIcon size={12} className="text-purple-400" />
+                        Log Ledger History
+                    </h4>
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                        {item.metadata.completed_dates.slice().reverse().map((log: string, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between gap-3 text-xs text-slate-500 py-2 px-3 bg-white/[0.02] border border-white/5 rounded-xl italic opacity-80 group hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[8px] font-black text-emerald-500/50">
+                                        {item.metadata.completed_dates.length - idx}
+                                    </div>
+                                    <span className="font-mono text-[10px] line-through decoration-slate-700/50">
+                                        {log}
+                                    </span>
+                                </div>
+                                <Check size={12} className="text-emerald-500/30" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* GLOBAL SAVE ACTION (Fixed at bottom) */}
             {isEditing && (

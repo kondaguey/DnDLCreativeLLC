@@ -11,7 +11,7 @@ import {
   Search,
   ChevronDown,
 } from "lucide-react";
-import { addGlobalTag } from "../actions";
+import { addGlobalTag } from "../../actions";
 
 interface TagManagerProps {
   selectedTags: string[];
@@ -170,13 +170,12 @@ export default function TagManager({
             e.stopPropagation();
             isOpen ? setIsOpen(false) : openDropdown();
           }}
-          className={`flex items-center justify-center w-6 h-6 rounded-md border transition-all shadow-inner ${
-            disabled
+          className={`flex items-center justify-center w-6 h-6 rounded-md border transition-all shadow-inner ${disabled
               ? "opacity-50 cursor-not-allowed bg-white/5 border-white/10 text-slate-500"
               : isOpen
                 ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
                 : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10"
-          }`}
+            }`}
           disabled={disabled}
           title="Add Tag"
         >
@@ -204,28 +203,27 @@ export default function TagManager({
               style={
                 isMobile
                   ? {
-                      position: "fixed",
-                      bottom: "0",
-                      left: "0",
-                      right: "0",
-                      top: "auto",
-                      width: "100%",
-                      maxHeight: "80vh",
-                      borderRadius: "24px 24px 0 0",
-                      transform: "none",
-                    }
+                    position: "fixed",
+                    bottom: "0",
+                    left: "0",
+                    right: "0",
+                    top: "auto",
+                    width: "100%",
+                    maxHeight: "80vh",
+                    borderRadius: "24px 24px 0 0",
+                    transform: "none",
+                  }
                   : {
-                      position: "fixed",
-                      top: `${dropdownCoords.top}px`,
-                      left: `${dropdownCoords.left}px`,
-                      width: `${dropdownCoords.width}px`,
-                    }
+                    position: "fixed",
+                    top: `${dropdownCoords.top}px`,
+                    left: `${dropdownCoords.left}px`,
+                    width: `${dropdownCoords.width}px`,
+                  }
               }
-              className={`flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 shadow-2xl z-[99999] p-2 animate-in duration-200 ${
-                isMobile
+              className={`flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 shadow-2xl z-[99999] p-2 animate-in duration-200 ${isMobile
                   ? "slide-in-from-bottom-10 fade-in"
                   : "rounded-2xl zoom-in-95 fade-in"
-              }`}
+                }`}
               onClick={(e) => e.stopPropagation()}
             >
               {isMobile && (
@@ -267,11 +265,10 @@ export default function TagManager({
                         e.stopPropagation();
                         toggleTag(tag);
                       }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${
-                        isSelected
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${isSelected
                           ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
                           : "hover:bg-white/5 text-slate-300 hover:text-white"
-                      }`}
+                        }`}
                     >
                       {tag} {isSelected && <Check size={14} />}
                     </button>

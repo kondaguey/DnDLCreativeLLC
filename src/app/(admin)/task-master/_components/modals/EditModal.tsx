@@ -19,8 +19,8 @@ import {
   ExternalLink,
   Edit3,
 } from "lucide-react";
-import { TaskItem, ViewType } from "./types";
-import { EditableFields } from "./NotificationUI";
+import { TaskItem, ViewType } from "../utils/types";
+import { EditableFields } from "../core/NotificationUI";
 
 interface EditModalProps {
   isOpen: boolean;
@@ -347,11 +347,10 @@ export default function EditModal({
                   ? "// Paste code here..."
                   : "Add your thoughts, details, notes..."
               }
-              className={`w-full min-h-[300px] bg-black/40 border border-white/5 rounded-2xl p-6 focus:outline-none focus:border-purple-500/50 transition-all resize-y ${
-                isCodex
+              className={`w-full min-h-[300px] bg-black/40 border border-white/5 rounded-2xl p-6 focus:outline-none focus:border-purple-500/50 transition-all resize-y ${isCodex
                   ? "font-mono text-sm text-emerald-400"
                   : "text-base leading-relaxed text-slate-200"
-              }`}
+                }`}
             />
           </div>
         </div>

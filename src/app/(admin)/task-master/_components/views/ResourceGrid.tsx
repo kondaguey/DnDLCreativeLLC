@@ -13,7 +13,7 @@ import {
   rectSortingStrategy,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { SortableItem, DragHandle } from "./SortableItem";
+import { SortableItem, DragHandle } from "../widgets/SortableItem";
 import {
   Share2,
   Trash2,
@@ -42,11 +42,16 @@ import {
   List,
   StretchVertical,
   LayoutGrid,
+  Plus,
+  Send,
+  AlignLeft,
+  Loader2,
 } from "lucide-react";
 
-import { TaskItem, ViewType, SortOption } from "./types";
-import TagManager from "./TagManager";
-import CalendarModal from "./CalendarModal";
+import { TaskItem, ViewType, SortOption } from "../utils/types";
+import TagManager from "../navigation/TagManager";
+import { parseSafeDate } from "../utils/dateUtils";
+import CalendarModal from "../modals/CalendarModal";
 
 interface ResourceGridProps {
   items: TaskItem[];
@@ -57,6 +62,8 @@ interface ResourceGridProps {
   searchQuery?: string;
   activePeriod?: string;
   onUpdateTitle: (id: string, title: string) => void;
+  onAdd: (title: string, link: string, notes: string) => void;
+  isAdding?: boolean;
   onUpdateContent: (id: string, content: string) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
   onUpdateDate?: (id: string, date: string) => void;
@@ -69,7 +76,7 @@ interface ResourceGridProps {
 }
 
 const getEffectiveDate = (item: TaskItem): Date => {
-  return item.due_date ? new Date(item.due_date) : new Date(item.created_at);
+  return item.due_date ? parseSafeDate(item.due_date) : parseSafeDate(item.created_at);
 };
 
 export default function ResourceGrid({
@@ -90,7 +97,12 @@ export default function ResourceGrid({
   onReorder,
   onManualMove,
   onEdit,
+  onAdd,
+  isAdding = false,
 }: ResourceGridProps) {
+  const [newTitle, setNewTitle] = useState("");
+  const [newLink, setNewLink] = useState("");
+  const [newNotes, setNewNotes] = useState("");
 
   const [viewMode, setViewMode] = useState<"list" | "grid" | "compact">("grid");
 
@@ -191,6 +203,65 @@ export default function ResourceGrid({
       </div>
 
       <div className="pb-24 md:pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* QUICK ADD CARD */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!newTitle.trim() && !newLink.trim()) return;
+            onAdd(newTitle, newLink, newNotes);
+            setNewTitle("");
+            setNewLink("");
+            setNewNotes("");
+          }}
+          className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl mb-8 group transition-all focus-within:border-cyan-500/30 max-w-4xl mx-auto"
+        >
+          <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+            <div className="bg-cyan-500/10 p-1.5 rounded-lg border border-cyan-500/20">
+              <LinkIcon size={14} className="text-cyan-500" />
+            </div>
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="New Resource Title..."
+              className="bg-transparent w-full text-sm font-black text-white placeholder:text-slate-600 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2 border border-white/5">
+            <ExternalLink size={14} className="text-slate-500" />
+            <input
+              type="text"
+              value={newLink}
+              onChange={(e) => setNewLink(e.target.value)}
+              placeholder="https://..."
+              className="bg-transparent w-full text-xs text-cyan-400 font-mono focus:outline-none placeholder:text-slate-800"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
+              <AlignLeft size={12} /> Notes / Description
+            </span>
+            <textarea
+              value={newNotes}
+              onChange={(e) => setNewNotes(e.target.value)}
+              placeholder="What is this resource for?"
+              className="w-full bg-black/20 rounded-xl p-3 text-xs text-slate-300 focus:outline-none resize-none h-16 border border-white/5 focus:border-white/10 placeholder:text-slate-700"
+            />
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              disabled={isAdding || (!newTitle.trim() && !newLink.trim())}
+              className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest grow md:grow-0 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-cyan-500/20"
+            >
+              {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Add Resource"}
+              {!isAdding && <Send size={12} />}
+            </button>
+          </div>
+        </form>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -368,8 +439,8 @@ function ResourceCard({
     : "hover:border-purple-500/30";
 
   const effectiveDate = item.due_date
-    ? new Date(item.due_date)
-    : new Date(item.created_at);
+    ? parseSafeDate(item.due_date)
+    : parseSafeDate(item.created_at);
   const displayDate = effectiveDate.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",

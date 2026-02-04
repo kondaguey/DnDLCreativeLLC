@@ -11,8 +11,8 @@ import {
     ChevronRight,
     CheckCircle2
 } from "lucide-react";
-import { TaskItem, RecurrenceType } from "./types";
-import { getTodayString, calculateStats } from "./dateUtils";
+import { TaskItem, RecurrenceType } from "../utils/types";
+import { getTodayString, calculateStats } from "../utils/dateUtils";
 import { createClient } from "@/lib/supabase/client";
 import RecurrenceChart from "./RecurrenceChart";
 

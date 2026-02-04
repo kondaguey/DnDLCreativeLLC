@@ -14,11 +14,15 @@ import {
   ExternalLink,
   Link as LinkIcon,
   Edit2,
+  Plus,
+  Send,
+  Loader2,
+  MessageSquare,
 } from "lucide-react";
 
-import { TaskItem, SortOption } from "./types";
-import TagManager from "./TagManager";
-import { formatDate } from "./dateUtils";
+import { TaskItem, SortOption } from "../utils/types";
+import TagManager from "../navigation/TagManager";
+import { formatDate } from "../utils/dateUtils";
 
 import {
   DndContext,
@@ -31,7 +35,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { SortableItem, DragHandle } from "./SortableItem";
+import { SortableItem, DragHandle } from "../widgets/SortableItem";
 import { GripVertical } from "lucide-react";
 
 interface LevelUpViewProps {
@@ -46,6 +50,8 @@ interface LevelUpViewProps {
   onReorder: (draggedId: string, targetId: string) => void;
   onManualMove?: (id: string, direction: "up" | "down") => void;
   onEdit?: (item: TaskItem) => void;
+  onAdd: (title: string, totalHours: number, link: string) => void;
+  isAdding?: boolean;
 }
 
 export default function LevelUpView({
@@ -60,7 +66,12 @@ export default function LevelUpView({
   onReorder,
   onManualMove,
   onEdit,
+  onAdd,
+  isAdding = false,
 }: LevelUpViewProps) {
+  const [newTitle, setNewTitle] = useState("");
+  const [newHours, setNewHours] = useState(0);
+  const [newLink, setNewLink] = useState("");
   // --- MATH ENGINE ---
   const globalTotalHours = items.reduce(
     (acc, item) => acc + (item.metadata?.total_hours || 0),
@@ -115,6 +126,69 @@ export default function LevelUpView({
 
   return (
     <div className="relative space-y-0 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto w-full">
+      {/* QUICK ADD CARD */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!newTitle.trim()) return;
+          onAdd(newTitle, newHours, newLink);
+          setNewTitle("");
+          setNewHours(0);
+          setNewLink("");
+        }}
+        className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl mb-12 group transition-all focus-within:border-emerald-500/30"
+      >
+        <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+          <div className="bg-emerald-500/10 p-1.5 rounded-lg border border-emerald-500/20">
+            <GraduationCap size={14} className="text-emerald-500" fill="currentColor" />
+          </div>
+          <input
+            type="text"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="New Course or Skill Path title..."
+            className="bg-transparent w-full text-sm font-black text-white placeholder:text-slate-600 focus:outline-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
+              <Clock size={12} /> Total Hours Estimated
+            </span>
+            <input
+              type="number"
+              value={newHours}
+              onChange={(e) => setNewHours(Number(e.target.value))}
+              placeholder="20"
+              className="w-full bg-black/20 rounded-xl p-3 text-sm text-white font-bold focus:outline-none border border-white/5 focus:border-white/10 placeholder:text-slate-800"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
+              <LinkIcon size={12} /> Course URL
+            </span>
+            <input
+              type="text"
+              value={newLink}
+              onChange={(e) => setNewLink(e.target.value)}
+              placeholder="https://..."
+              className="w-full bg-black/20 rounded-xl p-3 text-sm text-blue-400 focus:outline-none border border-white/5 focus:border-white/10 placeholder:text-slate-800"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-1">
+          <button
+            type="submit"
+            disabled={isAdding || !newTitle.trim()}
+            className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest grow md:grow-0 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-500/20"
+          >
+            {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Initiate Path"}
+            {!isAdding && <Send size={12} />}
+          </button>
+        </div>
+      </form>
       {/* --- OVERALL PROGRESS BAR --- */}
       <div className="mb-10 bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 md:p-6 rounded-3xl relative overflow-hidden group shadow-2xl w-full">
         <div className="flex flex-wrap justify-between items-end mb-4 md:mb-3 relative z-10 gap-3">

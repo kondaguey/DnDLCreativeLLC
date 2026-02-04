@@ -12,15 +12,19 @@ import {
     Repeat,
     Calendar,
     Flag,
-    Flame
+    Flame,
+    List as ListIcon,
+    FileText,
+    ClipboardList,
+    Star
 } from "lucide-react";
-import CountdownTimer from "../CountdownTimer";
-import { DragHandle } from "../SortableItem";
-import TagManager from "../TagManager";
+import CountdownTimer from "../widgets/CountdownTimer";
+import { DragHandle } from "../widgets/SortableItem";
+import TagManager from "../navigation/TagManager";
 import { DateControl, PrioritySwitcher, ActionButton } from "./shared";
 import TaskDetails from "./TaskDetails";
-import RecurringTasks from "../RecurringTasks";
-import { getTodayString, isTaskOverdue } from "../dateUtils";
+import RecurringTasks from "../widgets/RecurringTasks";
+import { getTodayString, isTaskOverdue, formatDate } from "../utils/dateUtils";
 import RecurringBadge from "./RecurringBadge";
 
 export default function GridCard({
@@ -32,13 +36,15 @@ export default function GridCard({
     const [expanded, setExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
+    const [isJustCompleted, setIsJustCompleted] = useState(false); // NEW
     const priority = item.metadata?.priority || "normal";
 
     const completedDates = (item.metadata?.completed_dates as string[]) || [];
-    const todayStr = getTodayString(); // FIX: Consistent Local Date
-    const isDoneToday = completedDates.includes(todayStr);
+    const todayStr = getTodayString();
+    const isDoneToday = completedDates.some(d => d.startsWith(todayStr));
 
-    const isCompleted = item.status === "completed" || isDoneToday;
+    const isRecurring = item.recurrence && item.recurrence !== "one_off";
+    const isCompleted = item.status === "completed" || (isRecurring ? isJustCompleted : isDoneToday);
 
     // ... (Container styles existing logic)
 
@@ -82,12 +88,16 @@ export default function GridCard({
             )}
 
             {/* HEADER SECTION */}
-            <div className={`flex flex-col gap-4 w-full relative z-10 ${viewMode === "list" && !expanded ? "md:w-1/3 md:border-r md:border-white/5 md:pr-8" : ""}`}>
+            <div className={`flex flex-col gap-4 w-full relative z-10 ${viewMode === "list" && !expanded ? "md:w-2/5 md:border-r md:border-white/5 md:pr-8" : ""}`}>
                 <div className="flex items-start gap-4">
                     {/* CHECKBOX */}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
+                            if (isRecurring && !isDoneToday) {
+                                setIsJustCompleted(true);
+                                setTimeout(() => setIsJustCompleted(false), 3000);
+                            }
                             props.onToggleStatus(item.id, item.status);
                         }}
                         className={`mt-1 shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isCompleted
@@ -131,16 +141,22 @@ export default function GridCard({
                                 className={`font-black text-lg md:text-xl leading-snug tracking-tight ${isCompleted ? "line-through text-slate-500" : "text-slate-100"}`}
                             >
                                 {item.title}
-                                {item.recurrence && item.recurrence !== 'one_off' && props.onOpenStats && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            props.onOpenStats?.();
-                                        }}
-                                        className="ml-2 text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full hover:bg-slate-700 hover:text-white transition-colors border border-white/5 uppercase tracking-wide font-bold"
-                                    >
-                                        Stats
-                                    </button>
+                                {item.metadata?.is_favorite && (
+                                    <Star size={14} className="inline-block ml-2 text-pink-500 fill-pink-500 mb-1" />
+                                )}
+                                {isRecurring && (
+                                    <div className="inline-flex gap-2 ml-2">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                props.onOpenStats?.();
+                                            }}
+                                            className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full hover:bg-slate-700 hover:text-white transition-colors border border-white/5 uppercase tracking-wide font-black flex items-center gap-1.5 shadow-sm"
+                                        >
+                                            <ListIcon size={10} />
+                                            Log: {completedDates.length}
+                                        </button>
+                                    </div>
                                 )}
                             </h3>
                         )}
@@ -159,7 +175,7 @@ export default function GridCard({
                 </div>
 
                 {/* VISUAL DATE & PRIORITY ROW (Replaces Status Bar) */}
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <div className="flex flex-wrap items-center gap-2">
                     {isEditing ? (
                         <DateControl
                             dueDate={item.due_date}
@@ -170,7 +186,7 @@ export default function GridCard({
                     ) : (item.due_date && (
                         <span className={`text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border ${priority === 'critical' ? 'text-rose-400 border-rose-500/20 bg-rose-500/10' : 'text-slate-400 border-white/5 bg-white/5'}`}>
                             <Calendar size={12} />
-                            {new Date(item.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            {formatDate(item.due_date)}
                         </span>
                     ))}
                     {isEditing ? (
@@ -189,6 +205,21 @@ export default function GridCard({
                     {item.metadata?.streak > 0 && (
                         <span className="text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border border-orange-500/20 bg-orange-500/10 text-orange-400 uppercase tracking-wider">
                             <Flame size={12} className="fill-orange-500" /> {item.metadata.streak}
+                        </span>
+                    )}
+
+                    {item.subtasks?.length > 0 && (
+                        <span className="text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/5 bg-white/5 text-slate-400">
+                            <ClipboardList size={12} className="text-slate-500" />
+                            <span className="font-black text-slate-300">
+                                {item.subtasks.filter((s: any) => s.status === "completed").length}/{item.subtasks.length}
+                            </span>
+                        </span>
+                    )}
+
+                    {item.content && (
+                        <span className="text-[10px] font-mono flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/5 bg-white/5 text-slate-400" title="Has Notes">
+                            <FileText size={12} className="text-slate-500" />
                         </span>
                     )}
 

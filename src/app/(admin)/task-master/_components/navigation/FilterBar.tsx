@@ -10,7 +10,7 @@ import {
   Search,
   CalendarDays,
 } from "lucide-react";
-import { SortOption } from "./types";
+import { SortOption } from "../utils/types";
 
 interface FilterBarProps {
   currentSort: SortOption;
@@ -156,11 +156,10 @@ export default function FilterBar({
                   onSortChange(opt.value);
                   setOpenDropdown(null);
                 }}
-                className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${
-                  currentSort === opt.value
+                className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${currentSort === opt.value
                     ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
-                }`}
+                  }`}
               >
                 {opt.label}
                 {currentSort === opt.value && <Check size={12} />}
@@ -204,11 +203,10 @@ export default function FilterBar({
                     onPeriodChange("all");
                     setOpenDropdown(null);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors mb-1 ${
-                    activePeriod === "all"
+                  className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors mb-1 ${activePeriod === "all"
                       ? "bg-cyan-500 text-black"
                       : "text-slate-300 hover:bg-white/10 hover:text-white"
-                  }`}
+                    }`}
                 >
                   All Time
                   {activePeriod === "all" && <Check size={12} />}
@@ -221,11 +219,10 @@ export default function FilterBar({
                       onPeriodChange(period);
                       setOpenDropdown(null);
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${
-                      activePeriod === period
+                    className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${activePeriod === period
                         ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
                         : "text-slate-300 hover:bg-white/10 hover:text-white"
-                    }`}
+                      }`}
                   >
                     {formatPeriod(period)}
                     {activePeriod === period && <Check size={12} />}
@@ -263,9 +260,8 @@ export default function FilterBar({
             </div>
             <ChevronDown
               size={12}
-              className={`shrink-0 transition-transform duration-200 ${
-                openDropdown === "tags" ? "rotate-180" : ""
-              }`}
+              className={`shrink-0 transition-transform duration-200 ${openDropdown === "tags" ? "rotate-180" : ""
+                }`}
             />
           </button>
 
@@ -295,11 +291,10 @@ export default function FilterBar({
                     <button
                       key={tag}
                       onClick={() => onToggleTagFilter(tag)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${
-                        isActive
+                      className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${isActive
                           ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
                           : "text-slate-300 hover:bg-white/10 hover:text-white"
-                      }`}
+                        }`}
                     >
                       {tag}
                       {isActive && <Check size={12} />}

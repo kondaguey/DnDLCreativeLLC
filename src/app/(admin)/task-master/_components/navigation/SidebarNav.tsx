@@ -9,20 +9,21 @@ import {
   GraduationCap,
   Bug,
   Lightbulb,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import styles from "../task-master.module.css";
-import { ViewType } from "./types";
+import styles from "../../task-master.module.css";
+import { ViewType } from "../utils/types";
 
 interface SidebarNavProps {
   activeView: ViewType;
   onChange: (view: ViewType) => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export default function SidebarNav({ activeView, onChange }: SidebarNavProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
+export default function SidebarNav({ activeView, onChange, isCollapsed, onToggleCollapse }: SidebarNavProps) {
   const navItems = [
     {
       id: "idea_board",
@@ -60,13 +61,19 @@ export default function SidebarNav({ activeView, onChange }: SidebarNavProps) {
       sub: "Vault & Bookmarks",
       icon: <Share2 size={20} />,
     },
+    {
+      id: "ai_prompt",
+      label: "Prompt Lab",
+      sub: "AI Instructions",
+      icon: <Sparkles size={20} />,
+    },
   ];
 
   return (
     <>
       {/* --- DESKTOP/IPAD LANDSCAPE SIDEBAR --- */}
       <aside
-        className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : styles.expanded} hidden lg:flex flex-col`}
+        className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : styles.expanded} hidden lg:flex flex-col h-full`}
       >
         <div
           className={`mb-8 px-2 flex items-center ${isCollapsed ? "justify-center" : "justify-between"}`}
@@ -81,7 +88,7 @@ export default function SidebarNav({ activeView, onChange }: SidebarNavProps) {
           )}
 
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={onToggleCollapse}
             className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all active:scale-95"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
@@ -108,21 +115,21 @@ export default function SidebarNav({ activeView, onChange }: SidebarNavProps) {
 
       {/* --- IPAD PORTRAIT & MOBILE HORIZONTAL SCROLLER --- */}
       {/* iOS optimized touch scrolling (Webkit overflow scrolling handled by no-scrollbar + snap) */}
-      <div className="lg:hidden w-full overflow-x-auto pb-4 md:pb-6 mb-6 flex gap-3 md:gap-5 no-scrollbar snap-x snap-mandatory mask-linear-fade items-stretch px-1">
+      <div className="md:hidden w-full overflow-x-auto pb-4 md:pb-6 mb-6 flex gap-3 md:gap-5 no-scrollbar snap-x snap-mandatory mask-linear-fade items-stretch px-1">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onChange(item.id as ViewType)}
             /* iPad scaling: Wider min-width, larger padding (md:p-5), and rounded-3xl for that iOS feel */
             className={`snap-center shrink-0 min-w-[140px] md:min-w-[180px] max-w-[200px] h-full flex flex-col p-4 md:p-5 rounded-3xl md:rounded-[32px] border text-left transition-all shadow-lg active:scale-95 ${activeView === item.id
-                ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
-                : "bg-slate-900/60 backdrop-blur-md border-white/5 hover:bg-white/5"
+              ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
+              : "bg-slate-900/60 backdrop-blur-md border-white/5 hover:bg-white/5"
               }`}
           >
             <div
               className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl w-fit ${activeView === item.id
-                  ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]"
-                  : "bg-white/5 text-slate-400"
+                ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]"
+                : "bg-white/5 text-slate-400"
                 } transition-all`}
             >
               {item.icon}
@@ -152,8 +159,8 @@ function NavButton({ active, isCollapsed, onClick, icon, label, sub }: any) {
       onClick={onClick}
       title={isCollapsed ? `${label} - ${sub}` : undefined}
       className={`group w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${active
-          ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
-          : "bg-transparent border-transparent hover:bg-white/5 hover:border-white/10"
+        ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
+        : "bg-transparent border-transparent hover:bg-white/5 hover:border-white/10"
         } ${isCollapsed ? "justify-center" : "justify-start"}`}
     >
       <div

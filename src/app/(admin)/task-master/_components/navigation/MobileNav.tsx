@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, X, Lightbulb, CheckSquare, Bug, GraduationCap, Code2, Share2, ChevronRight } from "lucide-react";
-import { ViewType } from "./types";
+import { Menu, X, Lightbulb, CheckSquare, Bug, GraduationCap, Code2, Share2, ChevronRight, Sparkles } from "lucide-react";
+import { ViewType } from "../utils/types";
 
 interface MobileNavProps {
     activeView: ViewType;
@@ -48,6 +48,12 @@ export default function MobileNav({ activeView, onChange }: MobileNavProps) {
             label: "Signal Archive",
             sub: "Vault & Bookmarks",
             icon: <Share2 size={24} />,
+        },
+        {
+            id: "ai_prompt",
+            label: "Prompt Lab",
+            sub: "AI Instructions",
+            icon: <Sparkles size={24} />,
         },
     ];
 
@@ -97,14 +103,14 @@ export default function MobileNav({ activeView, onChange }: MobileNavProps) {
                                     key={item.id}
                                     onClick={() => handleSelect(item.id)}
                                     className={`group w-full flex items-center gap-4 p-4 rounded-2xl border transition-all active:scale-95 text-left ${activeView === item.id
-                                            ? "bg-purple-900/40 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]"
-                                            : "bg-white/5 border-transparent hover:bg-white/10 hover:border-white/5"
+                                        ? "bg-purple-900/40 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]"
+                                        : "bg-white/5 border-transparent hover:bg-white/10 hover:border-white/5"
                                         }`}
                                 >
                                     <div
                                         className={`p-3 rounded-xl shrink-0 transition-all ${activeView === item.id
-                                                ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]"
-                                                : "bg-black/40 text-slate-500 group-hover:text-slate-300"
+                                            ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                                            : "bg-black/40 text-slate-500 group-hover:text-slate-300"
                                             }`}
                                     >
                                         {item.icon}

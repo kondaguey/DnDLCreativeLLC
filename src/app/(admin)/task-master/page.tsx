@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./task-master.module.css";
-import TaskMasterShell from "./_components/TaskMasterShell";
+import TaskMasterShell from "./_components/core/TaskMasterShell";
 
 export default async function TaskMasterPage() {
   // --- THE FIX: ADD 'AWAIT' HERE ---

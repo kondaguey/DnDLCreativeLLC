@@ -31,6 +31,9 @@ import {
   List,
   StretchVertical,
   LayoutGrid,
+  Star,
+  Loader2,
+  Send,
 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -46,10 +49,10 @@ import {
   verticalListSortingStrategy,
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
-import { SortableItem, DragHandle } from "./SortableItem";
+import { SortableItem, DragHandle } from "../widgets/SortableItem";
 
-import { TaskItem, SortOption } from "./types";
-import TagManager from "./TagManager";
+import { TaskItem, SortOption } from "../utils/types";
+import TagManager from "../navigation/TagManager";
 
 interface LedgerViewProps {
   items: TaskItem[];
@@ -85,6 +88,8 @@ interface LedgerViewProps {
     title: string,
   ) => void;
   onBulkDelete?: (ids: string[]) => void;
+  onAdd: (title: string, content: string, priority: string) => void;
+  isAdding?: boolean;
 }
 
 const PRIORITY_WEIGHT: Record<string, number> = {
@@ -110,6 +115,8 @@ export default function LedgerView({
   onReorder,
   onManualMove,
   onEdit,
+  onAdd,
+  isAdding = false,
   onAddSubtask,
   onToggleSubtask,
   onDeleteSubtask,
@@ -124,6 +131,10 @@ export default function LedgerView({
   const [selectedCompleted, setSelectedCompleted] = useState<Set<string>>(
     new Set(),
   );
+
+  const [newTitle, setNewTitle] = useState("");
+  const [newContent, setNewContent] = useState("");
+  const [newPriority, setNewPriority] = useState("normal");
 
   const processedItems = items
     .filter((item) => {
@@ -234,7 +245,73 @@ export default function LedgerView({
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-32 w-full">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-32 w-full max-w-5xl mx-auto">
+      {/* QUICK ADD CARD */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!newTitle.trim()) return;
+          onAdd(newTitle, newContent, newPriority);
+          setNewTitle("");
+          setNewContent("");
+          setNewPriority("normal");
+        }}
+        className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl mb-8 group transition-all focus-within:border-slate-400/30"
+      >
+        <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+          <div className="bg-slate-500/10 p-1.5 rounded-lg border border-slate-500/20">
+            <CheckCircle2 size={14} className="text-slate-400" fill="currentColor" />
+          </div>
+          <input
+            type="text"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Manual Log Entry (e.g., Completed Client Report)..."
+            className="bg-transparent w-full text-sm font-black text-white placeholder:text-slate-600 focus:outline-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="md:col-span-3">
+            <textarea
+              value={newContent}
+              onChange={(e) => setNewContent(e.target.value)}
+              placeholder="Log details or execution notes..."
+              className="w-full bg-black/20 rounded-xl p-3 text-xs text-slate-300 focus:outline-none resize-none h-20 border border-white/5 focus:border-white/10 placeholder:text-slate-700"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
+              <AlertTriangle size={12} /> Priority
+            </span>
+            <div className="grid grid-cols-2 gap-1.5">
+              {["low", "normal", "high", "critical"].map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setNewPriority(p)}
+                  className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${newPriority === p
+                    ? "bg-slate-100 text-slate-900 border-white"
+                    : "bg-white/5 text-slate-500 border-white/5 hover:text-white"}`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-1">
+          <button
+            type="submit"
+            disabled={isAdding || !newTitle.trim()}
+            className="bg-slate-100 hover:bg-white disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest grow md:grow-0 transition-all flex items-center justify-center gap-2 shadow-lg"
+          >
+            {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Record Log"}
+            {!isAdding && <Send size={12} />}
+          </button>
+        </div>
+      </form>
       {/* CUSTOM LEDGER CONTROL DECK */}
       <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-4 md:p-5 mb-8 shadow-2xl space-y-4">
         {/* TOP ROW: Priority Filters + Desktop View Toggle */}
@@ -249,15 +326,14 @@ export default function LedgerView({
                 <button
                   key={prio}
                   onClick={() => setFilterPriority(prio)}
-                  className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-inner ${
-                    filterPriority === prio
-                      ? prio === "critical"
-                        ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
-                        : prio === "high"
-                          ? "bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]"
-                          : "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                      : "bg-black/40 text-slate-400 border border-white/5 hover:text-white"
-                  }`}
+                  className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-inner ${filterPriority === prio
+                    ? prio === "critical"
+                      ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                      : prio === "high"
+                        ? "bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]"
+                        : "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                    : "bg-black/40 text-slate-400 border border-white/5 hover:text-white"
+                    }`}
                 >
                   {prio}
                 </button>
@@ -311,11 +387,10 @@ export default function LedgerView({
             <button
               key={type}
               onClick={() => setFilterType(type)}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${
-                filterType === type
-                  ? "bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-lg"
-                  : "bg-transparent text-slate-500 border-transparent hover:bg-white/5 hover:text-slate-300"
-              }`}
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${filterType === type
+                ? "bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-lg"
+                : "bg-transparent text-slate-500 border-transparent hover:bg-white/5 hover:text-slate-300"
+                }`}
             >
               {type === "performance" ? "Perf" : type}
             </button>
@@ -464,11 +539,10 @@ export default function LedgerView({
                     >
                       <button
                         onClick={() => toggleSelection(item.id)}
-                        className={`mt-6 shrink-0 w-5 h-5 rounded border transition-all flex items-center justify-center ${
-                          selectedCompleted.has(item.id)
-                            ? "bg-purple-500 border-purple-500 text-white"
-                            : "border-white/10 text-transparent hover:border-white/30"
-                        }`}
+                        className={`mt-6 shrink-0 w-5 h-5 rounded border transition-all flex items-center justify-center ${selectedCompleted.has(item.id)
+                          ? "bg-purple-500 border-purple-500 text-white"
+                          : "border-white/10 text-transparent hover:border-white/30"
+                          }`}
                       >
                         <Check size={12} />
                       </button>
@@ -668,11 +742,24 @@ function TicketCard({
           >
             {title}
           </span>
+          {item.metadata?.is_favorite && (
+            <Star size={10} className="text-amber-400 fill-amber-400 shrink-0" />
+          )}
           <div
             className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${typeConfig.bg} ${typeConfig.color} ${typeConfig.border}`}
           >
             <Icon size={8} /> {typeConfig.label}
           </div>
+          <div className="hidden lg:flex flex-1 truncate text-[11px] text-slate-500 italic opacity-60 px-4">
+            {item.content || "..."}
+          </div>
+          {item.tags?.length > 0 && (
+            <div className="hidden xl:flex items-center gap-1 shrink-0">
+              {item.tags.slice(0, 1).map((t: string) => (
+                <span key={t} className="text-[8px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-white/5 font-bold uppercase">{t}</span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {totalSub > 0 && (
@@ -858,13 +945,12 @@ function TicketCard({
                 value={priority}
                 onChange={(e) => handleMetaChange("priority", e.target.value)}
                 className={`appearance-none bg-black/40 text-[9px] font-bold uppercase tracking-wide border border-white/10 rounded px-1.5 py-0.5 focus:outline-none focus:border-purple-500 hover:bg-white/5 transition-colors cursor-pointer text-center flex-1 md:flex-initial
-                    ${
-                      priority === "critical"
-                        ? "text-rose-400"
-                        : priority === "high"
-                          ? "text-orange-400"
-                          : "text-slate-400"
-                    }
+                    ${priority === "critical"
+                    ? "text-rose-400"
+                    : priority === "high"
+                      ? "text-orange-400"
+                      : "text-slate-400"
+                  }
                 `}
               >
                 <option value="low">Low</option>
@@ -880,11 +966,10 @@ function TicketCard({
                 e.stopPropagation();
                 setExpanded(!expanded);
               }}
-              className={`flex items-center gap-1 text-[9px] md:text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all w-full md:w-fit rounded-md select-none shrink-0 border border-transparent px-2 py-1 ${
-                expanded
-                  ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
-                  : "text-slate-500 hover:text-white bg-white/5"
-              }`}
+              className={`flex items-center gap-1 text-[9px] md:text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all w-full md:w-fit rounded-md select-none shrink-0 border border-transparent px-2 py-1 ${expanded
+                ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                : "text-slate-500 hover:text-white bg-white/5"
+                }`}
             >
               {expanded ? (
                 <ChevronDown size={12} />
@@ -945,11 +1030,10 @@ function TicketCard({
                       onToggleSubtask &&
                       onToggleSubtask(item.id, sub.id, sub.status)
                     }
-                    className={`w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center shrink-0 transition-all ${
-                      sub.status === "completed"
-                        ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                        : "border-slate-500 hover:border-indigo-400"
-                    }`}
+                    className={`w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center shrink-0 transition-all ${sub.status === "completed"
+                      ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                      : "border-slate-500 hover:border-indigo-400"
+                      }`}
                   >
                     {sub.status === "completed" && (
                       <Check size={10} className="text-white font-black" />
@@ -973,19 +1057,17 @@ function TicketCard({
                         e.stopPropagation();
                       }}
                       onPointerDown={(e) => e.stopPropagation()}
-                      className={`flex-1 bg-transparent text-sm border-b border-transparent focus:border-purple-500/50 focus:outline-none transition-all ${
-                        sub.status === "completed"
-                          ? "line-through text-slate-600"
-                          : "text-slate-200 font-medium"
-                      }`}
+                      className={`flex-1 bg-transparent text-sm border-b border-transparent focus:border-purple-500/50 focus:outline-none transition-all ${sub.status === "completed"
+                        ? "line-through text-slate-600"
+                        : "text-slate-200 font-medium"
+                        }`}
                     />
                   ) : (
                     <span
-                      className={`text-sm break-words leading-relaxed pt-0.5 transition-all ${
-                        sub.status === "completed"
-                          ? "line-through text-slate-600"
-                          : "text-slate-200 font-medium"
-                      }`}
+                      className={`text-sm break-words leading-relaxed pt-0.5 transition-all ${sub.status === "completed"
+                        ? "line-through text-slate-600"
+                        : "text-slate-200 font-medium"
+                        }`}
                     >
                       {sub.title}
                     </span>

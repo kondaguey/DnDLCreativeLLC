@@ -11,21 +11,24 @@ import {
   FileText,
   Link as LinkIcon,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
-import styles from "../task-master.module.css";
-import { TaskItem, ViewType, RecurrenceType, SortOption } from "./types";
+import styles from "../../task-master.module.css";
+import { TaskItem, ViewType, RecurrenceType, SortOption } from "../utils/types";
 
 // UI Components
-import SidebarNav from "./SidebarNav";
-import TechCodex from "./TechCodex";
-import TaskView from "./TaskView";
-import ResourceGrid from "./ResourceGrid";
-import LevelUpView from "./LevelUpView";
-import LedgerView from "./LedgerView";
-import IdeaBoard from "./IdeaBoard";
-import FilterBar from "./FilterBar";
-import TagManager from "./TagManager";
-import MobileNav from "./MobileNav";
+import SidebarNav from "../navigation/SidebarNav";
+import TechCodex from "../views/TechCodex";
+import TaskView from "../views/TaskView";
+import ResourceGrid from "../views/ResourceGrid";
+import LevelUpView from "../views/LevelUpView";
+import LedgerView from "../views/LedgerView";
+import IdeaBoard from "../views/IdeaBoard";
+import PromptLibrary from "../views/PromptLibrary";
+import FilterBar from "../navigation/FilterBar";
+import { getTodayString } from "../utils/dateUtils";
+import TagManager from "../navigation/TagManager";
+import MobileNav from "../navigation/MobileNav";
 
 import {
   Toast,
@@ -33,11 +36,11 @@ import {
   EditableFields,
   PromoteModal,
 } from "./NotificationUI";
-import ConfirmModal from "./ConfirmModal";
-import ConfirmationModal from "./ConfirmationModal"; // NEW Custom Modal
-import EditModal from "./EditModal";
-import RecurringModal from "./RecurringModal";
-import IdeaDetailModal from "./IdeaDetailModal";
+import ConfirmModal from "../modals/ConfirmModal";
+import ConfirmationModal from "../modals/ConfirmationModal"; // NEW Custom Modal
+import EditModal from "../modals/EditModal";
+import RecurringModal from "../modals/RecurringModal";
+import IdeaDetailModal from "../modals/IdeaDetailModal";
 
 interface ShellProps {
   initialItems: TaskItem[];
@@ -60,10 +63,6 @@ export default function TaskMasterShell({
   useEffect(() => {
     setAllSystemTags(initialTags);
   }, [initialTags]);
-
-  useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
 
   const [activeView, setActiveView] = useState<ViewType>("idea_board");
   const [activeRecurrence, setActiveRecurrence] =
@@ -102,6 +101,8 @@ export default function TaskMasterShell({
   const activeRecurringItem =
     items.find((i) => i.id === recurringItemId) || null;
 
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   const showToast = (type: "success" | "error", message: string) => {
     setToast({ id: Date.now().toString(), type, message });
     setTimeout(() => setToast(null), 4000);
@@ -119,9 +120,9 @@ export default function TaskMasterShell({
     if (activeView === "level_up") return;
     setIsAdding(true);
 
-    const typeToAdd =
+    const typeToAdd: any =
       activeView === "idea_board"
-        ? "idea"
+        ? "idea_board"
         : activeView === "resource"
           ? "resource"
           : activeView === "social_bookmark"
@@ -135,11 +136,14 @@ export default function TaskMasterShell({
     const maxPos =
       items.length > 0 ? Math.max(...items.map((i) => i.position || 0)) : 0;
 
+    const today = getTodayString();
+
     let payload: any = {
       type: typeToAdd,
       status: "active",
       user_id: userId,
       position: maxPos + 1024,
+      due_date: today,
     };
 
     if (activeView === "code_snippet") {
@@ -178,47 +182,69 @@ export default function TaskMasterShell({
       };
     }
 
-    const { data } = await supabase
-      .from("task_master_items")
-      .insert([payload])
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("task_master_items")
+        .insert([payload])
+        .select()
+        .single();
 
-    if (data) {
-      setItems([...items, { ...data, subtasks: [] }]);
-      setNewItemInput("");
-      setNewCodexTitle("");
-      setNewCodexNotes("");
-      setNewCodexCode("");
-      setNewResourceTitle("");
-      setNewResourceLink("");
-      setNewResourceNotes("");
-      showToast(
-        "success",
-        activeView === "resource" ? "Resource added." : "Added.",
-      );
+      if (error) throw error;
+
+      if (data) {
+        setItems((prev) => [...prev, { ...data, subtasks: [] }]);
+        setNewItemInput("");
+        setNewCodexTitle("");
+        setNewCodexNotes("");
+        setNewCodexCode("");
+        setNewResourceTitle("");
+        setNewResourceLink("");
+        setNewResourceNotes("");
+        showToast(
+          "success",
+          activeView === "resource" ? "Resource added." : "Added.",
+        );
+      }
+    } catch (err) {
+      console.error("Add failed:", err);
+      showToast("error", "Failed to add.");
+    } finally {
+      setIsAdding(false);
     }
-    setIsAdding(false);
   };
 
   const handleAddQuickNote = async (title: string, content: string) => {
-    const { data } = await supabase
-      .from("task_master_items")
-      .insert([
-        {
-          type: "idea_board",
-          title,
-          content,
-          status: "active",
-          user_id: userId,
-          metadata: { stage: "spark", is_favorite: false },
-        },
-      ])
-      .select()
-      .single();
-    if (data) {
-      setItems([data, ...items]);
-      showToast("success", "Spark captured.");
+    setIsAdding(true);
+    try {
+      const today = getTodayString();
+
+      const { data, error } = await supabase
+        .from("task_master_items")
+        .insert([
+          {
+            type: "idea_board",
+            title,
+            content,
+            status: "active",
+            user_id: userId,
+            metadata: { stage: "spark", is_favorite: false },
+            due_date: today,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setItems((prev) => [data, ...prev]);
+        showToast("success", "Spark captured.");
+      }
+    } catch (err) {
+      console.error("Quick note failed:", err);
+      showToast("error", "Failed to capture spark.");
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -228,8 +254,21 @@ export default function TaskMasterShell({
     newTitle: string,
     newRecurrence: string,
   ) => {
-    setItems(items.filter((i) => i.id !== id));
+    const updatedItems = items.map((i) =>
+      i.id === id
+        ? {
+          ...i,
+          type: "task" as const,
+          status: "active" as const,
+          recurrence: newRecurrence as RecurrenceType,
+          title: newTitle,
+          metadata: {},
+        }
+        : i,
+    );
+    setItems(updatedItems);
     setPromoteCandidate(null);
+
     await supabase
       .from("task_master_items")
       .update({
@@ -309,9 +348,10 @@ export default function TaskMasterShell({
       item.recurrence !== "one_off" &&
       currentStatus === "active"
     ) {
-      const { getTodayString, calcNextDueDate, calculateStats } = await import("./dateUtils");
+      const { getTodayString, calcNextDueDate, calculateStats } = await import("../utils/dateUtils");
 
       const todayVal = getTodayString();
+      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const currentLog = (item.metadata?.completed_dates as string[]) || [];
 
       // UNCHECK LOGIC
@@ -321,10 +361,12 @@ export default function TaskMasterShell({
       }
 
       // CHECK LOGIC
-      const newLog = [...currentLog, todayVal];
+      // Log with time for better history
+      const logEntry = `${todayVal} @ ${nowTime}`;
+      const newLog = [...currentLog, logEntry];
       const nextDate = calcNextDueDate(item.due_date || null, item.recurrence);
 
-      const stats = calculateStats(newLog, item.created_at, item.recurrence);
+      const stats = calculateStats(currentLog.map(d => d.split(" @ ")[0]), item.created_at, item.recurrence);
 
       const newMeta = {
         ...item.metadata,
@@ -343,7 +385,7 @@ export default function TaskMasterShell({
         .update({ due_date: nextDate, metadata: newMeta })
         .eq("id", id);
 
-      showToast("success", `Nice! Next due: ${nextDate}`);
+      showToast("success", `Nice! Logged. Next: ${nextDate}`);
       return;
     }
 
@@ -371,7 +413,7 @@ export default function TaskMasterShell({
   };
 
   const handleUpdate = async (id: string, field: string, value: any) => {
-    setItems(items.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
     await supabase
       .from("task_master_items")
       .update({ [field]: value })
@@ -395,6 +437,144 @@ export default function TaskMasterShell({
       .from("task_master_items")
       .update({ metadata: updatedMetadata })
       .eq("id", id);
+  };
+
+  const handleAddCodex = async (title: string, content: string, notes: string) => {
+    setIsAdding(true);
+    try {
+      const { data, error } = await supabase
+        .from("task_master_items")
+        .insert([{
+          type: "code_snippet",
+          title,
+          content,
+          metadata: { notes },
+          status: "active",
+          user_id: userId
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) {
+        setItems(prev => [...prev, data]);
+        showToast("success", "Snippet added.");
+      }
+    } catch (err) {
+      showToast("error", "Failed to add.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleAddResource = async (title: string, link: string, notes: string) => {
+    setIsAdding(true);
+    try {
+      const { data, error } = await supabase
+        .from("task_master_items")
+        .insert([{
+          type: "resource",
+          title,
+          content: link,
+          metadata: { notes },
+          status: "active",
+          user_id: userId
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) {
+        setItems(prev => [...prev, data]);
+        showToast("success", "Resource added.");
+      }
+    } catch (err) {
+      showToast("error", "Failed to add.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleAddLog = async (title: string, content: string, priority: string) => {
+    setIsAdding(true);
+    try {
+      const { data, error } = await supabase
+        .from("task_master_items")
+        .insert([{
+          type: "task",
+          title,
+          content,
+          status: "completed",
+          metadata: { priority },
+          user_id: userId
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) {
+        setItems(prev => [...prev, data]);
+        showToast("success", "Logged.");
+      }
+    } catch (err) {
+      showToast("error", "Failed to log.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleAddLevelUp = async (title: string, totalHours: number, link: string) => {
+    setIsAdding(true);
+    try {
+      const { data, error } = await supabase
+        .from("task_master_items")
+        .insert([{
+          type: "level_up",
+          title,
+          status: "active",
+          metadata: {
+            total_hours: totalHours,
+            hours_completed: 0,
+            course_link: link
+          },
+          user_id: userId
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) {
+        setItems(prev => [...prev, data]);
+        showToast("success", "Path initiated.");
+      }
+    } catch (err) {
+      showToast("error", "Failed to initiate.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleAddPrompt = async (title: string, systemContext: string, prompt: string) => {
+    setIsAdding(true);
+    try {
+      const { data, error } = await supabase
+        .from("task_master_items")
+        .insert([{
+          type: "ai_prompt",
+          title,
+          content: prompt,
+          status: "active",
+          metadata: { system_context: systemContext },
+          user_id: userId
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) {
+        setItems(prev => [...prev, data]);
+        showToast("success", "Prompt stored.");
+      }
+    } catch (err) {
+      showToast("error", "Failed to store prompt.");
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const handleCodexUpdate = async (
@@ -641,8 +821,13 @@ export default function TaskMasterShell({
       <div
         className={`flex flex-col md:flex-row h-screen min-h-0 bg-[#020617] text-slate-200 overflow-hidden ${styles.taskMasterContainer}`}
       >
-        <div className="hidden md:block w-20 xl:w-64 shrink-0 border-r border-white/5 bg-[#020617]/50 backdrop-blur-xl z-20">
-          <SidebarNav activeView={activeView} onChange={handleSwitchView} />
+        <div className={`hidden md:block shrink-0 border-r border-white/5 bg-[#020617]/50 backdrop-blur-xl z-20 transition-all duration-300 ${sidebarCollapsed ? "w-20" : "w-64"}`}>
+          <SidebarNav
+            activeView={activeView}
+            onChange={handleSwitchView}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
         </div>
 
         <main className="flex-1 flex flex-col min-h-0 min-w-0 relative z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/50 via-[#020617] to-[#020617]">
@@ -655,16 +840,17 @@ export default function TaskMasterShell({
             </div>
 
             <div className="relative z-10 max-w-7xl mx-auto w-full">
-              <header className="flex flex-col gap-6 md:gap-8 mb-8 md:mb-12">
+              <header className="flex flex-col gap-4 md:gap-8 mb-6 md:mb-12">
                 <div className="flex flex-col gap-2 items-center md:items-start text-center md:text-left px-2">
                   <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-white drop-shadow-2xl flex items-center justify-center md:justify-start gap-3">
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 pb-4 px-4 inline-block">
                       {activeView === "task" && "Task Master"}
                       {activeView === "code_snippet" && "Tech Codex"}
                       {activeView === "resource" && "Resource Grid"}
                       {activeView === "level_up" && "Level Up"}
                       {activeView === "ledger" && "Ledger"}
                       {activeView === "idea_board" && "Idea Board"}
+                      {activeView === "ai_prompt" && "Prompt Lab"}
                     </span>
                   </h1>
                   <p className="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-500">
@@ -674,135 +860,10 @@ export default function TaskMasterShell({
                     {activeView === "level_up" && "Skill Tree"}
                     {activeView === "ledger" && "History Log"}
                     {activeView === "idea_board" && "Spark Incubator"}
+                    {activeView === "ai_prompt" && "Instruction Vault"}
                   </p>
                 </div>
 
-                {(activeView === "task" ||
-                  activeView === "code_snippet" ||
-                  activeView === "resource") && (
-                    <form
-                      onSubmit={handleAddItem}
-                      className={`relative group bg-[#0A0F1E] border border-white/10 rounded-2xl p-2 flex flex-col md:flex-row gap-2 transition-all shadow-xl hover:shadow-2xl hover:border-white/20 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-[#020617] z-30 mx-1 ${activeView === "code_snippet"
-                        ? "focus-within:ring-emerald-500/50"
-                        : "focus-within:ring-purple-500/50"
-                        }`}
-                    >
-                      {activeView === "code_snippet" ? (
-                        <div className="flex flex-col gap-2 w-full p-2">
-                          <div className="flex gap-2 border-b border-white/5 pb-2">
-                            <Code
-                              className="text-emerald-500 shrink-0 mt-1"
-                              size={18}
-                            />
-                            <input
-                              type="text"
-                              value={newCodexTitle}
-                              onChange={(e) => setNewCodexTitle(e.target.value)}
-                              placeholder="Snippet Title..."
-                              className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
-                            />
-                          </div>
-                          <div className="flex gap-2 items-start">
-                            <AlignLeft
-                              className="text-slate-600 shrink-0 mt-1"
-                              size={18}
-                            />
-                            <textarea
-                              value={newCodexNotes}
-                              onChange={(e) => setNewCodexNotes(e.target.value)}
-                              placeholder="Description / Context..."
-                              className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-10 placeholder:text-slate-700"
-                            />
-                          </div>
-                          <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5 font-mono">
-                            <FileText
-                              className="text-slate-600 shrink-0 mt-1"
-                              size={18}
-                            />
-                            <textarea
-                              value={newCodexCode}
-                              onChange={(e) => setNewCodexCode(e.target.value)}
-                              placeholder="// Paste code..."
-                              className="bg-transparent text-xs text-emerald-400 w-full focus:outline-none resize-none h-20 placeholder:text-slate-800"
-                            />
-                          </div>
-                        </div>
-                      ) : activeView === "resource" ? (
-                        <div className="flex flex-col gap-2 w-full p-2">
-                          <div className="flex gap-2 border-b border-white/5 pb-2">
-                            <LinkIcon
-                              className="text-cyan-500 shrink-0 mt-1"
-                              size={18}
-                            />
-                            <input
-                              type="text"
-                              value={newResourceTitle}
-                              onChange={(e) =>
-                                setNewResourceTitle(e.target.value)
-                              }
-                              placeholder="Resource Title..."
-                              className="bg-transparent text-sm font-bold text-white w-full focus:outline-none placeholder:text-slate-600"
-                            />
-                          </div>
-                          <div className="flex gap-2 items-center">
-                            <ExternalLink
-                              className="text-slate-600 shrink-0"
-                              size={16}
-                            />
-                            <input
-                              type="text"
-                              value={newResourceLink}
-                              onChange={(e) => setNewResourceLink(e.target.value)}
-                              placeholder="URL..."
-                              className="bg-transparent text-xs text-cyan-400 w-full focus:outline-none placeholder:text-slate-700 font-mono"
-                            />
-                          </div>
-                          <div className="flex gap-2 items-start bg-black/30 p-2 rounded-lg border border-white/5">
-                            <AlignLeft
-                              className="text-slate-600 shrink-0 mt-0.5"
-                              size={16}
-                            />
-                            <textarea
-                              value={newResourceNotes}
-                              onChange={(e) =>
-                                setNewResourceNotes(e.target.value)
-                              }
-                              placeholder="Context / Description..."
-                              className="bg-transparent text-xs text-slate-400 w-full focus:outline-none resize-none h-12 placeholder:text-slate-700"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <input
-                          type="text"
-                          value={newItemInput}
-                          onChange={(e) => setNewItemInput(e.target.value)}
-                          placeholder={`+ Add entry...`}
-                          className="bg-transparent px-3 py-3 text-sm text-white w-full focus:outline-none"
-                        />
-                      )}
-
-                      <button
-                        disabled={isAdding}
-                        className={`disabled:opacity-50 text-white p-3 md:p-4 rounded-xl transition-all shrink-0 flex items-center justify-center self-end md:self-auto aspect-square ${activeView === "code_snippet"
-                          ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20"
-                          : activeView === "resource"
-                            ? "bg-cyan-600 hover:bg-cyan-500 shadow-cyan-500/20"
-                            : "bg-purple-600 hover:bg-purple-500 shadow-purple-500/20"
-                          } shadow-lg`}
-                      >
-                        {isAdding ? (
-                          <Loader2 className="animate-spin" size={20} />
-                        ) : activeView === "code_snippet" ? (
-                          <Code size={20} />
-                        ) : activeView === "resource" ? (
-                          <Plus size={20} />
-                        ) : (
-                          <Plus size={20} />
-                        )}
-                      </button>
-                    </form>
-                  )}
               </header>
 
               <div className={styles.panel}>
@@ -825,11 +886,13 @@ export default function TaskMasterShell({
                         ? "Search ideas..."
                         : activeView === "code_snippet"
                           ? "Search codex..."
-                          : activeView === "resource"
-                            ? "Search resources..."
-                            : activeView === "ledger"
-                              ? "Search ledger..."
-                              : "Search..."
+                          : activeView === "ai_prompt"
+                            ? "Search prompts..."
+                            : activeView === "resource"
+                              ? "Search resources..."
+                              : activeView === "ledger"
+                                ? "Search ledger..."
+                                : "Search..."
                   }
                   activePeriod={globalActivePeriod}
                   onPeriodChange={setGlobalActivePeriod}
@@ -875,6 +938,51 @@ export default function TaskMasterShell({
                     onUpdateSubtaskTitle={handleUpdateSubtaskTitle}
                     onOpenRecurring={(item) => setRecurringItemId(item.id)}
                     onBulkDelete={requestBulkDelete}
+                    isAdding={isAdding}
+                    onQuickAdd={async (title, content) => {
+                      console.log("Inline Add Triggered:", { title, content, activeRecurrence });
+                      setIsAdding(true);
+                      try {
+                        const today = getTodayString();
+                        const maxPos =
+                          items.length > 0
+                            ? Math.max(...items.map((i) => i.position || 0))
+                            : 0;
+
+                        const { data, error } = await supabase
+                          .from("task_master_items")
+                          .insert([
+                            {
+                              type: "task",
+                              title,
+                              content,
+                              status: "active",
+                              user_id: userId,
+                              recurrence: activeRecurrence,
+                              due_date: today,
+                              position: maxPos + 1024,
+                              metadata: {},
+                            },
+                          ])
+                          .select()
+                          .single();
+
+                        if (error) throw error;
+
+                        if (data) {
+                          setItems((prev) => [
+                            ...prev,
+                            { ...data, subtasks: [] },
+                          ]);
+                          showToast("success", "Task added to queue.");
+                        }
+                      } catch (err) {
+                        console.error("Quick add failed:", err);
+                        showToast("error", "Failed to add task.");
+                      } finally {
+                        setIsAdding(false);
+                      }
+                    }}
                   />
                 )}
                 {activeView === "idea_board" && (
@@ -897,6 +1005,7 @@ export default function TaskMasterShell({
                     onReorder={handleReorder}
                     onManualMove={handleManualMove}
                     onEdit={requestEdit}
+                    isAdding={isAdding}
                   />
                 )}
                 {activeView === "code_snippet" && (
@@ -911,6 +1020,8 @@ export default function TaskMasterShell({
                     onDelete={requestDelete}
                     onReorder={handleReorder}
                     onManualMove={handleManualMove}
+                    onAdd={handleAddCodex}
+                    isAdding={isAdding}
                   />
                 )}
                 {activeView === "ledger" && (
@@ -943,6 +1054,8 @@ export default function TaskMasterShell({
                     onDeleteSubtask={handleDeleteSubtask}
                     onReorderSubtask={handleManualSubtaskMove}
                     onUpdateSubtaskTitle={handleUpdateSubtaskTitle}
+                    onAdd={handleAddLog}
+                    isAdding={isAdding}
                   />
                 )}
                 {activeView === "level_up" && (
@@ -966,13 +1079,30 @@ export default function TaskMasterShell({
                     }
                     onManualMove={handleManualMove}
                     onEdit={requestEdit}
+                    onAdd={handleAddLevelUp}
+                  />
+                )}
+                {activeView === "ai_prompt" && (
+                  <PromptLibrary
+                    items={currentViewItems}
+                    sortOption={sortOption}
+                    filterTags={filterTags}
+                    allSystemTags={allSystemTags}
+                    searchQuery={globalSearchQuery}
+                    onAdd={handleAddPrompt}
+                    onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
+                    onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                    onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
+                    onDelete={requestDelete}
+                    onEdit={requestEdit}
+                    isAdding={isAdding}
                   />
                 )}
                 {(activeView === "social_bookmark" ||
                   activeView === "resource") && (
                     <ResourceGrid
                       items={currentViewItems}
-                      type={activeView}
+                      type={activeView as "resource" | "social_bookmark"}
                       sortOption={sortOption}
                       filterTags={filterTags}
                       allSystemTags={allSystemTags}
@@ -982,13 +1112,14 @@ export default function TaskMasterShell({
                       onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
                       onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
                       onUpdateDate={(id, d) => handleUpdate(id, "due_date", d)}
-                      onUpdateMetadata={(id, m) =>
-                        handleUpdate(id, "metadata", m)
-                      }
+                      onUpdateMetadata={(id, m) => handleUpdate(id, "metadata", m)}
                       onDelete={requestDelete}
                       onArchive={(id) => handleUpdate(id, "status", "archived")}
                       onReorder={handleReorder}
                       onManualMove={handleManualMove}
+                      onEdit={(item) => { }}
+                      onAdd={handleAddResource}
+                      isAdding={isAdding}
                     />
                   )}
               </div>
@@ -1065,12 +1196,13 @@ export default function TaskMasterShell({
             const id = uncheckCandidate;
             const item = items.find(i => i.id === id);
             if (item) {
-              import("./dateUtils").then(({ getTodayString, calculateStats }) => {
+              import("../utils/dateUtils").then(({ getTodayString, calculateStats }) => {
                 const todayVal = getTodayString();
                 const currentLog = (item.metadata?.completed_dates as string[]) || [];
-                const newLog = currentLog.filter(d => d !== todayVal);
+                // Filter out any entry starting with today's date
+                const newLog = currentLog.filter(entry => !entry.startsWith(todayVal));
                 const nextDate = todayVal;
-                const stats = calculateStats(newLog, item.created_at, item.recurrence || "daily");
+                const stats = calculateStats(newLog.map(d => d.split(" @ ")[0]), item.created_at, item.recurrence || "daily");
                 const newMeta = { ...item.metadata, completed_dates: newLog, streak: stats.streak };
 
                 setItems(prev => prev.map(i => i.id === id ? { ...i, due_date: nextDate, metadata: newMeta } : i));

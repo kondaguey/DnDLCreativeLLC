@@ -5,7 +5,8 @@ export type ViewType =
   | "resource"
   | "level_up"
   | "ledger"
-  | "idea_board";
+  | "idea_board"
+  | "ai_prompt";
 
 export type RecurrenceType =
   | "daily"
@@ -83,9 +84,12 @@ export type TaskItem = {
     preferred_day_num?: number; // 1-31
     active_days?: string[]; // <--- THE FIX FOR VERCEL (e.g., ["Mon", "Tue"])
     streak?: number;
+    voided_gaps?: string[]; // Dates users specifically want to ignore from missed count
+    manual_missed?: string[]; // Dates users manually flag as missed
 
-    // Codex
+    // prompt
     notes?: string;
+    system_context?: string;
   };
   created_at: string;
   user_id: string;

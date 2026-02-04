@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, ChevronDown, GripVertical, Lock, Unlock, Repeat, Calendar, Flag } from "lucide-react";
-import { DragHandle } from "../SortableItem";
-import { formatDate, getTodayString, isTaskOverdue } from "../dateUtils";
+import { Check, ChevronDown, GripVertical, Lock, Unlock, Repeat, Calendar, Flag, FileText, ClipboardList, Star } from "lucide-react";
+import { DragHandle } from "../widgets/SortableItem";
+import { formatDate, getTodayString, isTaskOverdue } from "../utils/dateUtils";
 import TaskDetails from "./TaskDetails";
-import RecurringTasks from "../RecurringTasks";
-import CountdownTimer from "../CountdownTimer";
+import RecurringTasks from "../widgets/RecurringTasks";
+import CountdownTimer from "../widgets/CountdownTimer";
 
 export default function CompactRow({ item, isManualSort, ...props }: any) {
     const [expanded, setExpanded] = useState(false);
@@ -68,7 +68,7 @@ export default function CompactRow({ item, isManualSort, ...props }: any) {
                     )}
                 </button>
 
-                {/* 3. Title */}
+                {/* 3. Left Section: Title + Star + Indicators */}
                 <div className="flex-1 min-w-0 flex flex-col justify-center py-0.5">
                     <div className="flex items-center gap-3">
                         {isEditing ? (
@@ -96,20 +96,60 @@ export default function CompactRow({ item, isManualSort, ...props }: any) {
                             </span>
                         )}
 
-                        {/* Mobile-Friendly Indicators */}
+                        {item.metadata?.is_favorite && (
+                            <Star size={10} className="text-pink-500 fill-pink-500 shrink-0" />
+                        )}
+
+                        {/* Subtask Badge */}
                         {item.subtasks?.length > 0 && (
-                            <span className="text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-slate-500 shrink-0 font-mono">
-                                {
-                                    item.subtasks.filter((s: any) => s.status === "completed")
-                                        .length
-                                }
-                                /{item.subtasks.length}
-                            </span>
+                            <div className="flex items-center gap-1 bg-white/5 px-1.5 py-0.5 rounded shrink-0 border border-white/5">
+                                <ClipboardList size={10} className="text-slate-500" />
+                                <span className="text-[9px] text-slate-400 font-black">
+                                    {item.subtasks.filter((s: any) => s.status === "completed").length}/{item.subtasks.length}
+                                </span>
+                            </div>
+                        )}
+
+                        {item.content && (
+                            <FileText size={10} className="text-slate-600 shrink-0" />
                         )}
                     </div>
                 </div>
 
-                {/* 4. Right Side Meta */}
+                {/* 4. Middle Section: Tags & Content Preview (Max Out) */}
+                <div className="hidden lg:flex flex-1 items-center gap-4 min-w-0 px-4">
+                    {/* Tags (Mini) */}
+                    {item.tags?.length > 0 && (
+                        <div className="flex items-center gap-1 shrink-0">
+                            {item.tags.slice(0, 2).map((tag: string) => (
+                                <span
+                                    key={tag}
+                                    className="text-[8px] md:text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-white/5 uppercase tracking-wider font-bold"
+                                >
+                                    {tag}
+                                </span>
+                            ))}
+                            {item.tags.length > 2 && (
+                                <span className="text-[8px] text-slate-600 font-bold">
+                                    +{item.tags.length - 2}
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Content Preview */}
+                    <div className="flex-1 min-w-0 flex items-center gap-2 text-[10px] md:text-xs text-slate-400 font-medium">
+                        {item.content ? (
+                            <span className="truncate opacity-70 italic max-w-[400px]">
+                                "{item.content}"
+                            </span>
+                        ) : (
+                            <span className="text-slate-700 italic">...</span>
+                        )}
+                    </div>
+                </div>
+
+                {/* 5. Right Side Meta */}
                 <div className="flex items-center gap-3 shrink-0 self-center">
                     {/* Lock/Unlock */}
                     <button
@@ -127,20 +167,18 @@ export default function CompactRow({ item, isManualSort, ...props }: any) {
                         )}
                     </button>
 
-                    <span className="text-sm font-medium text-slate-200 truncate flex-1 flex items-center">
-                        {item.title}
-                        {item.recurrence && item.recurrence !== 'one_off' && props.onOpenStats && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    props.onOpenStats?.();
-                                }}
-                                className="ml-2 text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full hover:bg-slate-700 hover:text-white transition-colors border border-white/5 uppercase tracking-wide font-bold hidden sm:inline-block"
-                            >
-                                Stats
-                            </button>
-                        )}
-                    </span>
+                    {item.recurrence && item.recurrence !== 'one_off' && props.onOpenStats && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                props.onOpenStats?.();
+                            }}
+                            className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full hover:bg-slate-700 hover:text-white transition-colors border border-white/5 uppercase tracking-wide font-bold hidden md:inline-block"
+                        >
+                            Stats
+                        </button>
+                    )}
+
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
