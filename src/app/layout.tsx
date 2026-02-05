@@ -14,14 +14,14 @@ const nunito = Nunito_Sans({
 // 2. Update Metadata to your new Brand Identity
 export const metadata: Metadata = {
   title: {
-    template: "%s | DnDL Creative",
-    default: "Daniel (not Day) Lewis: Audiobook Actor",
+    template: "%s | DnDL Creative LLC",
+    default: "DnDL Creative LLC | Innovative Production & Creative Solutions",
   },
   description:
-    "The creative mainframe of Daniel Lewis: Audiobook Actor, Voiceover Artist, and Writer.",
+    "DnDL Creative LLC is a multi-disciplinary creative production house and parent company to Cinesonic, DineOut Digital, and the audiobook works of Daniel (not Day) Lewis.",
   openGraph: {
-    title: "Daniel (not Day) Lewis",
-    description: "Audiobook Actor & Creative",
+    title: "DnDL Creative LLC",
+    description: "Innovative Production & Creative Solutions",
     type: "website",
     locale: "en_US",
     url: "https://dndlcreative.com",
