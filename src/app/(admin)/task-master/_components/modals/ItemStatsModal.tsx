@@ -30,9 +30,16 @@ interface ItemStatsModalProps {
     onClose: () => void;
     item: TaskItem | null;
     onUpdateMetadata?: (id: string, metadata: any) => void;
+    onVoidRequest?: (id: string, dateEntry: string, onConfirm: () => void) => void;
 }
 
-export default function ItemStatsModal({ isOpen, onClose, item, onUpdateMetadata }: ItemStatsModalProps) {
+export default function ItemStatsModal({
+    isOpen,
+    onClose,
+    item,
+    onUpdateMetadata,
+    onVoidRequest
+}: ItemStatsModalProps) {
     const [activeTab, setActiveTab] = React.useState<"success" | "missed">("success");
     const completedDates = (item?.metadata?.completed_dates as string[]) || [];
 
@@ -66,10 +73,26 @@ export default function ItemStatsModal({ isOpen, onClose, item, onUpdateMetadata
 
     const handleVoidLog = (dateEntry: string) => {
         if (!item || !onUpdateMetadata) return;
-        onUpdateMetadata(item.id, {
-            ...item.metadata,
-            completed_dates: completedDates.filter(d => d !== dateEntry)
-        });
+
+        const executeVoid = () => {
+            const index = completedDates.indexOf(dateEntry);
+            if (index === -1) return;
+            const newLog = [...completedDates];
+            newLog.splice(index, 1);
+            onUpdateMetadata(item.id, {
+                ...item.metadata,
+                completed_dates: newLog
+            });
+        };
+
+        if (onVoidRequest) {
+            onVoidRequest(item.id, dateEntry, executeVoid);
+        } else {
+            // Fallback
+            if (window.confirm("Delete this event?")) {
+                executeVoid();
+            }
+        }
     };
 
     const handleResolveMissed = (dateStr: string) => {
@@ -109,11 +132,21 @@ export default function ItemStatsModal({ isOpen, onClose, item, onUpdateMetadata
     const isOnTrack = stats.missed === 0;
 
     const modalContent = (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300 p-2 sm:p-4">
-            <div className="w-full max-w-2xl bg-[#0a0f18] border border-white/10 rounded-[24px] sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col h-[95vh] sm:h-[90vh] relative ring-1 ring-white/10">
+        <div className="fixed inset-0 z-[20000] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+            {/* BACKDROP */}
+            <div
+                className="absolute inset-0 bg-slate-950/40 backdrop-blur-xl transition-all animate-in fade-in duration-500"
+                onClick={onClose}
+            />
+
+            <div className="relative w-full max-w-2xl bg-slate-900/60 backdrop-blur-3xl border border-white/10 rounded-[24px] sm:rounded-[40px] shadow-[0_0_100px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col h-[95vh] sm:h-[90vh] ring-1 ring-white/20 animate-in zoom-in-95 fade-in duration-500">
+                {/* DECORATIVE AMBIENT GLOW */}
+                <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
+                <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
 
                 {/* --- HEADER --- */}
-                <div className="flex items-center justify-between p-6 sm:p-8 border-b border-white/5 bg-slate-900/40 shrink-0">
+                <div className="flex items-center justify-between p-6 sm:p-8 border-b border-white/5 bg-white/5 shrink-0 relative">
+                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                     <div className="flex items-center gap-3 sm:gap-4">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.15)]">
                             <Target className="text-cyan-400" size={20} />
@@ -136,19 +169,19 @@ export default function ItemStatsModal({ isOpen, onClose, item, onUpdateMetadata
 
                     <button
                         onClick={onClose}
-                        className="p-2 sm:p-3 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all active:scale-95 border border-white/5"
+                        className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all active:scale-95 border border-white/5"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
                 {/* --- MAIN SCROLLABLE BODY --- */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#0a0f18] scrollbar-thin scrollbar-thumb-white/10">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-transparent scrollbar-thin scrollbar-thumb-white/10 relative">
 
                     {/* --- STATS GRID (Responsive Stacking) --- */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-12">
                         {/* Streak Card */}
-                        <div className="bg-[#0f172a] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[160px] relative group overflow-hidden">
+                        <div className="bg-slate-800/20 border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[160px] relative group overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-all">
                                 <Flame size={48} className="text-orange-500" />
                             </div>
@@ -160,7 +193,7 @@ export default function ItemStatsModal({ isOpen, onClose, item, onUpdateMetadata
                         </div>
 
                         {/* Missed Card - NO REDUNDANCY */}
-                        <div className="bg-[#0f172a] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[160px] relative group overflow-hidden">
+                        <div className="bg-slate-800/20 border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[160px] relative group overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-all">
                                 <Clock size={48} className="text-rose-500" />
                             </div>
@@ -171,7 +204,7 @@ export default function ItemStatsModal({ isOpen, onClose, item, onUpdateMetadata
                         </div>
 
                         {/* Activity Trend Card */}
-                        <div className="bg-[#0f172a] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[160px] relative group overflow-hidden">
+                        <div className="bg-slate-800/20 border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[160px] relative group overflow-hidden">
                             <div className="flex items-center gap-2 mb-4 self-start z-10">
                                 <TrendingUp size={14} className="text-emerald-400" />
                                 <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Trend</span>
@@ -254,7 +287,7 @@ export default function ItemStatsModal({ isOpen, onClose, item, onUpdateMetadata
                                                 className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 bg-white/[0.01] border border-white/5 rounded-xl sm:rounded-2xl transition-all hover:bg-white/[0.03] hover:border-white/10"
                                             >
                                                 <div className="flex items-center gap-4 sm:gap-6">
-                                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-950 border border-white/5 flex items-center justify-center text-[10px] sm:text-sm font-black text-slate-700 group-hover:text-emerald-500 transition-colors shrink-0">
+                                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-950/40 border border-white/5 flex items-center justify-center text-[10px] sm:text-sm font-black text-slate-700 group-hover:text-emerald-500 transition-colors shrink-0">
                                                         {(completedDates.length - index).toString().padStart(2, '0')}
                                                     </div>
                                                     <div className="flex flex-col min-w-0">
@@ -300,7 +333,7 @@ export default function ItemStatsModal({ isOpen, onClose, item, onUpdateMetadata
                                             className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 bg-rose-500/[0.02] border border-rose-500/10 rounded-xl sm:rounded-2xl transition-all hover:bg-rose-500/[0.04] hover:border-rose-500/20"
                                         >
                                             <div className="flex items-center gap-4 sm:gap-6">
-                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-950 border border-rose-500/20 flex items-center justify-center text-[10px] sm:text-sm font-black text-rose-500/30 group-hover:text-rose-500 transition-colors shrink-0">
+                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-950/40 border border-rose-500/20 flex items-center justify-center text-[10px] sm:text-sm font-black text-rose-500/30 group-hover:text-rose-500 transition-colors shrink-0">
                                                     M
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
@@ -340,7 +373,8 @@ export default function ItemStatsModal({ isOpen, onClose, item, onUpdateMetadata
                 </div>
 
                 {/* --- STICKY FOOTER (Responsive) --- */}
-                <div className="p-6 sm:p-8 border-t border-white/5 bg-[#0a0f18]/90 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
+                <div className="p-6 sm:p-8 border-t border-white/5 bg-white/5 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0 relative">
+                    <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                     <div className="flex items-center gap-4 sm:gap-5 self-start">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 flex items-center justify-center text-slate-400 border border-white/5">
                             <Calendar size={20} />

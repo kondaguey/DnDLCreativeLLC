@@ -30,6 +30,7 @@ export type SubtaskItem = {
   id: string;
   title: string;
   status: "active" | "completed";
+  priority?: "low" | "normal" | "high" | "critical";
 };
 
 export type TaskItem = {
@@ -46,6 +47,7 @@ export type TaskItem = {
   metadata?: {
     // Global Features
     is_favorite?: boolean;
+    is_no_rush?: boolean;
     url?: string; // <--- ADDED: Crucial for Resource Grid & Codex
 
     // Incubator
@@ -75,7 +77,7 @@ export type TaskItem = {
     | "performance"
     | "design"
     | "devops";
-    priority?: "critical" | "high" | "normal" | "low";
+    priority?: "critical" | "high" | "normal" | "low" | "no_rush";
 
     // --- RECURRENCE TRACKING ---
     completed_dates?: string[]; // Date Strings YYYY-MM-DD

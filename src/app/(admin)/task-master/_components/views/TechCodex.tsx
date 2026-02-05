@@ -21,6 +21,7 @@ import {
   Search,
   X,
   Code,
+  Plus,
 } from "lucide-react";
 import {
   DndContext,
@@ -54,6 +55,7 @@ interface TechCodexProps {
   onReorder: (draggedId: string, targetId: string) => void;
   onManualMove?: (id: string, direction: "up" | "down") => void;
   onAdd: (title: string, content: string, notes: string) => void;
+  onDeleteTag?: (tag: string) => void;
   isAdding?: boolean;
 }
 
@@ -69,11 +71,14 @@ export default function TechCodex({
   onReorder,
   onManualMove,
   onAdd,
+  onDeleteTag,
   isAdding = false,
 }: TechCodexProps) {
   const [newTitle, setNewTitle] = useState("");
   const [newCode, setNewCode] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(true);
+
   // LOCAL SEARCH STATE REMOVED
 
   const filteredItems = items
@@ -163,67 +168,83 @@ export default function TechCodex({
         strategy={verticalListSortingStrategy}
       >
         <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-20 max-w-4xl mx-auto w-full">
+          {/* TOGGLE & TITLE AREA */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-500/50 flex items-center gap-2">
+              <Terminal size={14} /> System Codex
+            </h2>
+            <button
+              onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-lg ${isQuickAddOpen ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30" : "bg-slate-800 text-slate-400 border-white/5 hover:text-white"}`}
+            >
+              {isQuickAddOpen ? <ChevronUp size={14} /> : <Plus size={14} />}
+              {isQuickAddOpen ? "Hide Form" : "Quick Add"}
+            </button>
+          </div>
+
           {/* QUICK ADD CARD */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!newTitle.trim() && !newCode.trim()) return;
-              onAdd(newTitle, newCode, newNotes);
-              setNewTitle("");
-              setNewCode("");
-              setNewNotes("");
-            }}
-            className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl mb-8 group transition-all focus-within:border-emerald-500/30"
-          >
-            <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-              <div className="bg-emerald-500/10 p-1.5 rounded-lg border border-emerald-500/20">
-                <FileCode size={14} className="text-emerald-500" fill="currentColor" />
-              </div>
-              <input
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="New Snippet Title..."
-                className="bg-transparent w-full text-sm font-black text-white placeholder:text-slate-600 focus:outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
-                  <MessageSquare size={12} /> Notes / Context
-                </span>
-                <textarea
-                  value={newNotes}
-                  onChange={(e) => setNewNotes(e.target.value)}
-                  placeholder="Why this snippet exists..."
-                  className="w-full bg-black/20 rounded-xl p-3 text-xs text-slate-300 focus:outline-none resize-none h-24 border border-white/5 focus:border-white/10 placeholder:text-slate-700"
+          {isQuickAddOpen && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newTitle.trim() && !newCode.trim()) return;
+                onAdd(newTitle, newCode, newNotes);
+                setNewTitle("");
+                setNewCode("");
+                setNewNotes("");
+              }}
+              className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl mb-8 group transition-all focus-within:border-emerald-500/30"
+            >
+              <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                <div className="bg-emerald-500/10 p-1.5 rounded-lg border border-emerald-500/20">
+                  <FileCode size={14} className="text-emerald-500" fill="currentColor" />
+                </div>
+                <input
+                  type="text"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="New Snippet Title..."
+                  className="bg-transparent w-full text-sm font-black text-white placeholder:text-slate-600 focus:outline-none"
                 />
               </div>
-              <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">
-                  <Code size={12} /> System Code
-                </span>
-                <textarea
-                  value={newCode}
-                  onChange={(e) => setNewCode(e.target.value)}
-                  placeholder="// Paste code here..."
-                  className="w-full bg-[#0c0c0c] rounded-xl p-3 text-xs text-emerald-400 font-mono focus:outline-none resize-none h-24 border border-white/5 focus:border-white/10 placeholder:text-slate-800"
-                />
-              </div>
-            </div>
 
-            <div className="flex justify-end pt-1">
-              <button
-                type="submit"
-                disabled={isAdding || (!newTitle.trim() && !newCode.trim())}
-                className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest grow md:grow-0 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-500/20"
-              >
-                {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Save to Codex"}
-                {!isAdding && <Save size={12} />}
-              </button>
-            </div>
-          </form>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                    <MessageSquare size={12} /> Notes / Context
+                  </span>
+                  <textarea
+                    value={newNotes}
+                    onChange={(e) => setNewNotes(e.target.value)}
+                    placeholder="Why this snippet exists..."
+                    className="w-full bg-black/20 rounded-xl p-3 text-xs text-slate-300 focus:outline-none resize-none h-24 border border-white/5 focus:border-white/10 placeholder:text-slate-700"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+                    <Code size={12} /> System Code
+                  </span>
+                  <textarea
+                    value={newCode}
+                    onChange={(e) => setNewCode(e.target.value)}
+                    placeholder="// Paste code here..."
+                    className="w-full bg-[#0c0c0c] rounded-xl p-3 text-xs text-emerald-400 font-mono focus:outline-none resize-none h-24 border border-white/5 focus:border-white/10 placeholder:text-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="submit"
+                  disabled={isAdding || (!newTitle.trim() && !newCode.trim())}
+                  className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest grow md:grow-0 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-500/20"
+                >
+                  {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Save to Codex"}
+                  {!isAdding && <Save size={12} />}
+                </button>
+              </div>
+            </form>
+          )}
 
           {filteredItems.map((item, index) => (
             <SortableItem
@@ -260,6 +281,7 @@ function CodexCard({
   onUpdateCodexData,
   onDelete,
   onManualMove,
+  onDeleteTag,
 }: any) {
   const [title, setTitle] = useState(item.title || "");
   const [code, setCode] = useState(item.content || "");
@@ -351,6 +373,7 @@ function CodexCard({
             selectedTags={item.tags || []}
             allSystemTags={allSystemTags}
             onUpdateTags={(tags) => onUpdateTags(item.id, tags)}
+            onDeleteTag={onDeleteTag}
           />
         </div>
 

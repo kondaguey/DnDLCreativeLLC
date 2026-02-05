@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, memo } from "react";
 import {
   Filter,
   SortAsc,
@@ -9,6 +9,7 @@ import {
   X,
   Search,
   CalendarDays,
+  Trash2,
 } from "lucide-react";
 import { SortOption } from "../utils/types";
 
@@ -25,6 +26,7 @@ interface FilterBarProps {
   onPeriodChange?: (period: string) => void;
   timeline?: string[];
   showDateFilter?: boolean;
+  onDeleteTag?: (tag: string) => void;
 }
 
 // Map for Sort Labels
@@ -39,7 +41,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "alpha_desc", label: "Z-A" },
 ];
 
-export default function FilterBar({
+function FilterBar({
   currentSort,
   onSortChange,
   availableTags,
@@ -52,6 +54,7 @@ export default function FilterBar({
   onPeriodChange,
   timeline = [],
   showDateFilter = false,
+  onDeleteTag,
 }: FilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<
     "sort" | "tags" | "date" | null
@@ -83,7 +86,7 @@ export default function FilterBar({
 
   const allTags = useMemo(() => {
     const unique = new Set([...(availableTags || [])]);
-    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+    return Array.from(unique).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
   }, [availableTags]);
 
   const currentSortLabel =
@@ -157,8 +160,8 @@ export default function FilterBar({
                   setOpenDropdown(null);
                 }}
                 className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${currentSort === opt.value
-                    ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
-                    : "text-slate-300 hover:bg-white/10 hover:text-white"
+                  ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
+                  : "text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
               >
                 {opt.label}
@@ -204,8 +207,8 @@ export default function FilterBar({
                     setOpenDropdown(null);
                   }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors mb-1 ${activePeriod === "all"
-                      ? "bg-cyan-500 text-black"
-                      : "text-slate-300 hover:bg-white/10 hover:text-white"
+                    ? "bg-cyan-500 text-black"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                     }`}
                 >
                   All Time
@@ -220,8 +223,8 @@ export default function FilterBar({
                       setOpenDropdown(null);
                     }}
                     className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${activePeriod === period
-                        ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
-                        : "text-slate-300 hover:bg-white/10 hover:text-white"
+                      ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
                       }`}
                   >
                     {formatPeriod(period)}
@@ -288,17 +291,34 @@ export default function FilterBar({
                 {allTags.map((tag) => {
                   const isActive = activeTags.includes(tag);
                   return (
-                    <button
+                    <div
                       key={tag}
-                      onClick={() => onToggleTagFilter(tag)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${isActive
+                      className="group/item relative flex items-center"
+                    >
+                      <button
+                        onClick={() => onToggleTagFilter(tag)}
+                        className={`flex-1 text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center justify-between transition-colors ${isActive
                           ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
                           : "text-slate-300 hover:bg-white/10 hover:text-white"
-                        }`}
-                    >
-                      {tag}
-                      {isActive && <Check size={12} />}
-                    </button>
+                          }`}
+                      >
+                        {tag}
+                        {isActive && <Check size={12} />}
+                      </button>
+
+                      {onDeleteTag && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteTag(tag);
+                          }}
+                          className="absolute right-1 opacity-0 group-hover/item:opacity-100 p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-all"
+                          title="Delete Tag Globally"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -309,3 +329,5 @@ export default function FilterBar({
     </div>
   );
 }
+
+export default memo(FilterBar);

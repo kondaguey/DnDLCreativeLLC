@@ -98,7 +98,7 @@ export default function IdeaDetailModal({
   const isArchived = status === "archived";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 md:p-4">
       <div
         className="absolute inset-0 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
         onClick={onClose}
@@ -208,8 +208,8 @@ export default function IdeaDetailModal({
                   }}
                   disabled={stage === "spark" && !isArchived}
                   className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${stage === "spark" && !isArchived
-                      ? "bg-amber-500 text-black border-amber-500 opacity-100 shadow-[0_0_15px_rgba(245,158,11,0.4)]"
-                      : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-amber-400"
+                    ? "bg-amber-500 text-black border-amber-500 opacity-100 shadow-[0_0_15px_rgba(245,158,11,0.4)]"
+                    : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-amber-400"
                     }`}
                 >
                   <Zap
@@ -233,8 +233,8 @@ export default function IdeaDetailModal({
                   }}
                   disabled={stage === "solidified" && !isArchived}
                   className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${stage === "solidified" && !isArchived
-                      ? "bg-violet-500 text-white border-violet-500 opacity-100 shadow-[0_0_15px_rgba(139,92,246,0.4)]"
-                      : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-violet-400"
+                    ? "bg-violet-500 text-white border-violet-500 opacity-100 shadow-[0_0_15px_rgba(139,92,246,0.4)]"
+                    : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-violet-400"
                     }`}
                 >
                   <FlaskConical size={20} />
@@ -251,8 +251,8 @@ export default function IdeaDetailModal({
                     setStatus(status === "archived" ? "active" : "archived")
                   }
                   className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${status === "archived"
-                      ? "bg-slate-200 text-black border-slate-200 shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                      : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-white"
+                    ? "bg-slate-200 text-black border-slate-200 shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                    : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-white"
                     }`}
                 >
                   <Archive size={20} />
@@ -265,8 +265,8 @@ export default function IdeaDetailModal({
                 <button
                   onClick={() => updateMeta("is_favorite", !isFav)}
                   className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${isFav
-                      ? "bg-pink-500 text-white border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.4)]"
-                      : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-pink-400"
+                    ? "bg-pink-500 text-white border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.4)]"
+                    : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10 hover:text-pink-400"
                     }`}
                 >
                   <Star size={20} fill={isFav ? "currentColor" : "none"} />
@@ -307,12 +307,12 @@ export default function IdeaDetailModal({
                       key={v}
                       onClick={() => updateIncubatorMeta("effort", v)}
                       className={`flex-1 py-1.5 rounded text-[10px] font-black uppercase transition-all ${effort === v
-                          ? v === "low"
-                            ? "bg-emerald-500 text-black"
-                            : v === "high"
-                              ? "bg-rose-500 text-white"
-                              : "bg-amber-500 text-black"
-                          : "text-slate-600 hover:text-white"
+                        ? v === "low"
+                          ? "bg-emerald-500 text-black"
+                          : v === "high"
+                            ? "bg-rose-500 text-white"
+                            : "bg-amber-500 text-black"
+                        : "text-slate-600 hover:text-white"
                         }`}
                     >
                       {v}
@@ -343,12 +343,12 @@ export default function IdeaDetailModal({
                       key={v}
                       onClick={() => updateIncubatorMeta("impact", v)}
                       className={`flex-1 py-1.5 rounded text-[10px] font-black uppercase transition-all ${impact === v
-                          ? v === "high"
-                            ? "bg-emerald-500 text-black"
-                            : v === "low"
-                              ? "bg-slate-700 text-white"
-                              : "bg-cyan-500 text-black"
-                          : "text-slate-600 hover:text-white"
+                        ? v === "high"
+                          ? "bg-emerald-500 text-black"
+                          : v === "low"
+                            ? "bg-slate-700 text-white"
+                            : "bg-cyan-500 text-black"
+                        : "text-slate-600 hover:text-white"
                         }`}
                     >
                       {v}

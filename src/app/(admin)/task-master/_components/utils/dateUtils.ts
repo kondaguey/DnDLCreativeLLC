@@ -64,10 +64,10 @@ export function getTodayString(): string {
 }
 
 export function calcNextDueDate(currentDate: string | null, interval: string): string {
-  // Always calculate relative to "today" for the next interval to ensure 
-  // that a completion logs the next literal occurrence.
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = getTodayString();
+  const baseStr = currentDate || today;
+  const baseDate = parseSafeDate(baseStr);
+  const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
 
   switch (interval) {
     case "daily": d.setDate(d.getDate() + 1); break;
@@ -75,10 +75,46 @@ export function calcNextDueDate(currentDate: string | null, interval: string): s
     case "monthly": d.setMonth(d.getMonth() + 1); break;
     case "quarterly": d.setMonth(d.getMonth() + 3); break;
     case "yearly": d.setFullYear(d.getFullYear() + 1); break;
-    default: return getTodayString();
+    default: return today;
   }
 
-  // Format back to YYYY-MM-DD using local time parts to avoid UTC shift
+  const yStr = d.getFullYear();
+  const mStr = String(d.getMonth() + 1).padStart(2, '0');
+  const dStr = String(d.getDate()).padStart(2, '0');
+  let result = `${yStr}-${mStr}-${dStr}`;
+
+  // If calculated date is in the past, jump to next occurrence
+  while (result < today) {
+    const rd = parseSafeDate(result);
+    switch (interval) {
+      case "daily": rd.setDate(rd.getDate() + 1); break;
+      case "weekly": rd.setDate(rd.getDate() + 7); break;
+      case "monthly": rd.setMonth(rd.getMonth() + 1); break;
+      case "quarterly": rd.setMonth(rd.getMonth() + 3); break;
+      case "yearly": rd.setFullYear(rd.getFullYear() + 1); break;
+    }
+    const ry = rd.getFullYear();
+    const rm = String(rd.getMonth() + 1).padStart(2, '0');
+    const rd_ = String(rd.getDate()).padStart(2, '0');
+    result = `${ry}-${rm}-${rd_}`;
+  }
+
+  return result;
+}
+
+export function getPrevCycleDeadline(nextDate: string | null, interval: string): string {
+  if (!nextDate) return getTodayString();
+  const baseDate = parseSafeDate(nextDate);
+  const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+
+  switch (interval) {
+    case "daily": d.setDate(d.getDate() - 1); break;
+    case "weekly": d.setDate(d.getDate() - 7); break;
+    case "monthly": d.setMonth(d.getMonth() - 1); break;
+    case "quarterly": d.setMonth(d.getMonth() - 3); break;
+    case "yearly": d.setFullYear(d.getFullYear() - 1); break;
+  }
+
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -146,7 +182,7 @@ export function calculateStats(
   interval: string,
   metadata?: any
 ): { streak: number; missed: number } {
-  const dates = (completedDates || []).sort();
+  const dates = [...(completedDates || [])].sort();
   const voidedGaps = (metadata?.voided_gaps as string[]) || [];
   const created = parseSafeDate(createdAt);
   const today = new Date();
@@ -274,4 +310,52 @@ export function generateTrendData(completedDates: string[]) {
   });
 
   return Object.entries(map).map(([name, value]) => ({ name, value }));
+}
+
+// Check if the current cycle (today, this week, etc.) is already satisfied
+export function isCycleSatisfied(completedDates: string[], interval: string): boolean {
+  if (!completedDates || completedDates.length === 0) return false;
+  const todayStr = getTodayString();
+  const sorted = [...completedDates].sort().reverse();
+  const lastEntry = sorted[0].split(" @ ")[0];
+
+  if (interval === "daily") {
+    return lastEntry === todayStr;
+  }
+
+  const lastDate = parseSafeDate(lastEntry);
+  const todayDate = parseSafeDate(todayStr);
+
+  if (interval === "weekly") {
+    return getStartOfWeek(lastDate).toISOString().split("T")[0] ===
+      getStartOfWeek(todayDate).toISOString().split("T")[0];
+  }
+
+  if (interval === "monthly") {
+    return lastDate.getMonth() === todayDate.getMonth() &&
+      lastDate.getFullYear() === todayDate.getFullYear();
+  }
+
+  if (interval === "quarterly") {
+    const lastQ = Math.floor(lastDate.getMonth() / 3);
+    const currentQ = Math.floor(todayDate.getMonth() / 3);
+    return lastQ === currentQ && lastDate.getFullYear() === todayDate.getFullYear();
+  }
+
+  return false;
+}
+
+// Determine the correct "Next Due Date" based on historical logs and current recurrence
+export function calculateStandardDueDate(completedDates: string[], recurrence: string): string {
+  const todayVal = getTodayString();
+  if (recurrence === "one_off") return todayVal;
+
+  if (isCycleSatisfied(completedDates, recurrence)) {
+    const sorted = [...completedDates].sort().reverse();
+    const lastEntryDate = sorted[0].split(" @ ")[0];
+    return calcNextDueDate(lastEntryDate, recurrence);
+  } else {
+    // If NOT satisfied, we default to today to show it as due now/soon
+    return todayVal;
+  }
 }

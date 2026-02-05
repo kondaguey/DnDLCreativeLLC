@@ -11,6 +11,7 @@ import {
   Repeat,
   ArrowRightCircle,
   Rocket,
+  Info,
 } from "lucide-react";
 
 // --- TYPES ---
@@ -29,11 +30,21 @@ export function Toast({
   onClose: () => void;
 }) {
   const isError = toast.type === "error";
+  const isInfo = toast.type === "info";
+
   const bgClass = isError
     ? "bg-rose-500/10 border-rose-500/50"
-    : "bg-emerald-500/10 border-emerald-500/50";
-  const textClass = isError ? "text-rose-400" : "text-emerald-400";
-  const Icon = isError ? XCircle : CheckCircle2;
+    : isInfo
+      ? "bg-blue-500/10 border-blue-500/30"
+      : "bg-emerald-500/10 border-emerald-500/50";
+
+  const textClass = isError
+    ? "text-rose-400"
+    : isInfo
+      ? "text-blue-400"
+      : "text-emerald-400";
+
+  const Icon = isError ? XCircle : isInfo ? Info : CheckCircle2;
 
   return (
     <div
@@ -277,8 +288,8 @@ export function PromoteModal({
                     key={freq}
                     onClick={() => setRecurrence(freq)}
                     className={`px-3 py-3 md:py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all flex items-center justify-center gap-2 ${recurrence === freq
-                        ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20"
-                        : "bg-black/40 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                      ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20"
+                      : "bg-black/40 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
                       }`}
                   >
                     {freq === "one_off" ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import { createPortal } from "react-dom";
 import {
     Calendar,
@@ -9,19 +9,23 @@ import {
     ArrowUp,
     ArrowDown,
     Check,
+    MinusCircle,
+    Info,
 } from "lucide-react";
 import { formatDate, getDaysUntil, toInputDate } from "../utils/dateUtils";
 
 // ==============================================================================
 // DATE CONTROL
 // ==============================================================================
-export function DateControl({
+function DateControlComponent({
     dueDate,
+    isNoRush = false,
     onChange,
     statusColor,
     disabled = false,
 }: {
     dueDate: string | null;
+    isNoRush?: boolean;
     onChange: (val: string | null) => void;
     statusColor: string;
     disabled?: boolean;
@@ -38,13 +42,12 @@ export function DateControl({
     }, []);
 
     const [viewDate, setViewDate] = useState(
-        dueDate ? new Date(dueDate) : new Date(),
+        dueDate && dueDate !== "no_rush" ? new Date(dueDate) : new Date(),
     );
 
     const daysUntil = getDaysUntil(dueDate);
     const humanTime = formatDate(dueDate);
-
-    let displayTime = humanTime || "TBA";
+    let displayTime = isNoRush ? "No Rush" : (humanTime || "TBD");
     let statusText = "text-slate-400";
     let statusBorder = "border-white/10";
     let statusBg = "bg-transparent";
@@ -73,28 +76,32 @@ export function DateControl({
         e.stopPropagation();
         if (disabled) return;
 
-        if (triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            const calendarWidth = 260;
-            const calendarHeight = 350;
+        const calendarWidth = 260;
+        const calendarHeight = 400; // Account for padding/extra buttons
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
 
-            const screenWidth = window.innerWidth;
-            const screenHeight = window.innerHeight;
+        // Start position: to the right of the click, centered vertically
+        let finalLeft = e.clientX + 15;
+        let finalTop = e.clientY - (calendarHeight / 3);
 
-            const finalLeft =
-                rect.left + calendarWidth > screenWidth
-                    ? rect.right - calendarWidth
-                    : rect.left;
-
-            const finalTop =
-                rect.bottom + calendarHeight > screenHeight
-                    ? rect.top - calendarHeight - 8
-                    : rect.bottom + 8;
-
-            setCoords({ top: finalTop, left: finalLeft });
+        // Horizontal Clamping (Pop sideways to left if no space on right)
+        if (finalLeft + calendarWidth > screenWidth - 10) {
+            finalLeft = e.clientX - calendarWidth - 15;
         }
+
+        // Vertical Clamping
+        if (finalTop + calendarHeight > screenHeight - 20) {
+            finalTop = screenHeight - calendarHeight - 20;
+        }
+        if (finalTop < 20) finalTop = 20;
+
+        // Final safety check for left edge
+        if (finalLeft < 10) finalLeft = 10;
+
+        setCoords({ top: finalTop, left: finalLeft });
         setIsOpen(!isOpen);
-        setViewDate(dueDate ? new Date(dueDate) : new Date());
+        setViewDate(dueDate && dueDate !== "no_rush" ? new Date(dueDate) : new Date());
     };
 
     useEffect(() => {
@@ -105,15 +112,11 @@ export function DateControl({
                 return;
             setIsOpen(false);
         };
-        const handleScroll = () => setIsOpen(false);
-
         if (isOpen) {
             document.addEventListener("mousedown", handleClickOutside);
-            window.addEventListener("scroll", handleScroll, true);
         }
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
-            window.removeEventListener("scroll", handleScroll, true);
         };
     }, [isOpen]);
 
@@ -132,8 +135,13 @@ export function DateControl({
         setIsOpen(false);
     };
 
-    const setTBA = () => {
+    const setTBD = () => {
         onChange(null);
+        setIsOpen(false);
+    };
+
+    const setNoRush = () => {
+        onChange("no_rush");
         setIsOpen(false);
     };
 
@@ -170,7 +178,7 @@ export function DateControl({
     };
 
     const isSelected = (day: number) => {
-        if (!dueDate) return false;
+        if (!dueDate || dueDate === "no_rush") return false;
         const selected = new Date(dueDate);
         return (
             day === selected.getUTCDate() &&
@@ -183,6 +191,7 @@ export function DateControl({
         <>
             <button
                 ref={triggerRef}
+                type="button"
                 onPointerDown={handleOpen}
                 disabled={disabled}
                 className={`flex items-center gap-1.5 text-xs md:text-[10px] uppercase font-black px-3 py-2 md:px-2 md:py-1 rounded-xl border transition-all whitespace-nowrap shadow-inner ${statusBg} ${statusBorder} ${statusText} ${isOpen
@@ -216,22 +225,32 @@ export function DateControl({
                     {/* Quick Actions */}
                     <div className="flex gap-2">
                         <button
+                            type="button"
                             onClick={setToday}
                             className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg py-1.5 text-xs font-bold uppercase"
                         >
                             Today
                         </button>
                         <button
+                            type="button"
                             onClick={setTomorrow}
                             className="flex-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg py-1.5 text-xs font-bold uppercase"
                         >
                             Tmrw
                         </button>
                         <button
-                            onClick={setTBA}
-                            className="flex-1 bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10 rounded-lg py-1.5 text-xs font-bold uppercase"
+                            type="button"
+                            onClick={setNoRush}
+                            className="flex-1 bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10 rounded-lg py-1.5 text-[10px] font-black uppercase"
                         >
-                            Clear
+                            No Rush
+                        </button>
+                        <button
+                            type="button"
+                            onClick={setTBD}
+                            className="flex-1 bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10 rounded-lg py-1.5 text-[10px] font-black uppercase"
+                        >
+                            TBD
                         </button>
                     </div>
 
@@ -240,6 +259,7 @@ export function DateControl({
                     {/* Calendar Header */}
                     <div className="flex items-center justify-between">
                         <button
+                            type="button"
                             onPointerDown={handlePrevMonth}
                             className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white"
                         >
@@ -252,6 +272,7 @@ export function DateControl({
                             })}
                         </span>
                         <button
+                            type="button"
                             onPointerDown={handleNextMonth}
                             className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white"
                         >
@@ -276,6 +297,7 @@ export function DateControl({
                             return (
                                 <button
                                     key={d}
+                                    type="button"
                                     onClick={() => selectDate(d)}
                                     className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${selected
                                         ? "bg-purple-500 text-white font-bold shadow-[0_0_10px_rgba(168,85,247,0.5)]"
@@ -293,6 +315,7 @@ export function DateControl({
                     <div className="h-px bg-white/10" />
 
                     <button
+                        type="button"
                         onClick={() => {
                             if (dateInputRef.current) dateInputRef.current.showPicker();
                         }}
@@ -307,10 +330,12 @@ export function DateControl({
     );
 }
 
+export const DateControl = memo(DateControlComponent);
+
 // ==============================================================================
 // PRIORITY SWITCHER
 // ==============================================================================
-export function PrioritySwitcher({
+function PrioritySwitcherComponent({
     current,
     onChange,
     disabled = false,
@@ -337,26 +362,33 @@ export function PrioritySwitcher({
             icon: AlertCircle,
         },
         { id: "high", label: "High", color: "text-orange-400", icon: ArrowUp },
-        { id: "normal", label: "Normal", color: "text-slate-300", icon: null },
-        { id: "low", label: "Low", color: "text-slate-500", icon: ArrowDown },
+        { id: "normal", label: "Normal", color: "text-slate-300", icon: Info },
+        { id: "low", label: "Low", color: "text-slate-400", icon: ArrowDown },
+        { id: "no_rush", label: "No Rush", color: "text-slate-600", icon: MinusCircle },
     ];
 
     const handleOpen = (e: React.PointerEvent) => {
         e.stopPropagation();
         if (disabled) return;
 
-        if (triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            const menuHeight = 200;
-            const screenHeight = window.innerHeight;
+        const menuWidth = 144; // w-36
+        const menuHeight = 220;
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
 
-            const finalTop =
-                rect.bottom + menuHeight > screenHeight
-                    ? rect.top - menuHeight - 8
-                    : rect.bottom + 8;
+        let finalLeft = e.clientX + 10;
+        let finalTop = e.clientY - (menuHeight / 2);
 
-            setCoords({ top: finalTop, left: rect.left });
+        if (finalLeft + menuWidth > screenWidth - 10) {
+            finalLeft = e.clientX - menuWidth - 10;
         }
+        if (finalTop + menuHeight > screenHeight - 20) {
+            finalTop = screenHeight - menuHeight - 20;
+        }
+        if (finalTop < 20) finalTop = 20;
+        if (finalLeft < 10) finalLeft = 10;
+
+        setCoords({ top: finalTop, left: finalLeft });
         setIsOpen(!isOpen);
     };
 
@@ -368,15 +400,11 @@ export function PrioritySwitcher({
                 return;
             setIsOpen(false);
         };
-        const handleScroll = () => setIsOpen(false);
-
         if (isOpen) {
             document.addEventListener("mousedown", handleClickOutside);
-            window.addEventListener("scroll", handleScroll, true);
         }
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
-            window.removeEventListener("scroll", handleScroll, true);
         };
     }, [isOpen]);
 
@@ -387,13 +415,16 @@ export function PrioritySwitcher({
         <>
             <button
                 ref={triggerRef}
+                type="button"
                 onPointerDown={handleOpen}
                 disabled={disabled}
                 className={`flex items-center gap-1.5 text-xs md:text-[10px] uppercase font-black px-3 py-2 md:px-2 md:py-1 rounded-xl border border-white/5 transition-all bg-black/20 ${current === "critical"
                     ? "text-rose-400 border-rose-500/20 bg-rose-500/5"
                     : current === "high"
                         ? "text-orange-400 border-orange-500/20 bg-orange-500/5"
-                        : "text-slate-400"
+                        : current === "no_rush"
+                            ? "text-slate-500 border-white/5 bg-white/5"
+                            : "text-slate-400"
                     } ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-white/5 hover:border-white/10"}`}
             >
                 {Icon && <Icon size={14} />}
@@ -414,6 +445,7 @@ export function PrioritySwitcher({
                     {options.map((opt) => (
                         <button
                             key={opt.id}
+                            type="button"
                             onPointerDown={(e) => {
                                 e.stopPropagation();
                                 onChange(opt.id);
@@ -435,7 +467,9 @@ export function PrioritySwitcher({
     );
 }
 
-export const ActionButton = ({
+export const PrioritySwitcher = memo(PrioritySwitcherComponent);
+
+function ActionButtonComponent({
     icon,
     onClick,
     color,
@@ -443,14 +477,19 @@ export const ActionButton = ({
     icon: React.ReactNode;
     onClick: () => void;
     color: string;
-}) => (
-    <button
-        onClick={(e) => {
-            e.stopPropagation();
-            onClick();
-        }}
-        className={`p-2 rounded-lg transition-colors ${color}`}
-    >
-        {icon}
-    </button>
-);
+}) {
+    return (
+        <button
+            type="button"
+            onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+            }}
+            className={`p-2 rounded-lg transition-colors ${color}`}
+        >
+            {icon}
+        </button>
+    );
+}
+
+export const ActionButton = memo(ActionButtonComponent);

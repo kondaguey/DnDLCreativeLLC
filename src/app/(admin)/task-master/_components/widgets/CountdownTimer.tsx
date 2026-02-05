@@ -5,9 +5,11 @@ import { Clock } from "lucide-react";
 
 interface CountdownTimerProps {
     targetDate: string; // ISO String or YYYY-MM-DD
+    variant?: "gray" | "green";
+    label?: string;
 }
 
-export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
+export default function CountdownTimer({ targetDate, variant = "gray", label }: CountdownTimerProps) {
     const [timeLeft, setTimeLeft] = useState("");
 
     useEffect(() => {
@@ -17,9 +19,6 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
             const now = new Date();
             let target: Date;
 
-            // We want to target the END of the day for whatever date is provided
-            // This prevents the "00:00:00" issue when a task is created for "today"
-            // We split by T or space to handle ISO strings or full date strings safely 
             const datePart = targetDate.includes("T") ? targetDate.split("T")[0] : targetDate.split(" ")[0];
             const parts = datePart.split("-");
 
@@ -48,17 +47,19 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
         };
 
         setTimeLeft(calculateTimeLeft());
-
-        const timer = setInterval(() => {
-            setTimeLeft(calculateTimeLeft());
-        }, 1000);
-
+        const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
         return () => clearInterval(timer);
     }, [targetDate]);
 
+    const isGreen = variant === "green";
+    const colors = isGreen
+        ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+        : "text-slate-400 bg-slate-500/10 border-white/5";
+
     return (
-        <div className="flex items-center gap-1.5 text-xs font-mono text-purple-400 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20">
-            <Clock size={12} className="animate-pulse" />
+        <div className={`flex items-center gap-1.5 text-[10px] font-mono tabular-nums ${colors} px-2 py-1 rounded-lg border backdrop-blur-sm`}>
+            {label && <span className="opacity-50 uppercase tracking-tighter mr-1">{label}</span>}
+            <Clock size={10} className={`${(isGreen || label === "Upcoming") ? "animate-none" : "animate-pulse"}`} />
             <span>{timeLeft}</span>
         </div>
     );

@@ -249,4 +249,14 @@
     background: rgba(23, 23, 23, 0.6);
     @apply border-white/5;
   }
+
+  /* --- UTILS --- */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

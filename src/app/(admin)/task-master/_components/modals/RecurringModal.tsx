@@ -30,6 +30,7 @@ interface RecurringModalProps {
   onClose: () => void;
   item: TaskItem;
   onUpdateMetadata: (id: string, metadata: any) => void;
+  onVoidRequest?: (id: string, dateEntry: string, onConfirm: () => void) => void;
 }
 
 export default function RecurringModal({
@@ -37,6 +38,7 @@ export default function RecurringModal({
   onClose,
   item,
   onUpdateMetadata,
+  onVoidRequest
 }: RecurringModalProps) {
   const [activeTab, setActiveTab] = useState<"success" | "missed">("success");
   const completedDates = (item.metadata?.completed_dates as string[]) || [];
@@ -70,10 +72,25 @@ export default function RecurringModal({
   };
 
   const handleVoidLog = (dateEntry: string) => {
-    onUpdateMetadata(item.id, {
-      ...item.metadata,
-      completed_dates: completedDates.filter(d => d !== dateEntry)
-    });
+    const executeVoid = () => {
+      const index = completedDates.indexOf(dateEntry);
+      if (index === -1) return;
+      const newLog = [...completedDates];
+      newLog.splice(index, 1);
+      onUpdateMetadata(item.id, {
+        ...item.metadata,
+        completed_dates: newLog
+      });
+    };
+
+    if (onVoidRequest) {
+      onVoidRequest(item.id, dateEntry, executeVoid);
+    } else {
+      // Fallback if not provided, though we want custom modals everywhere
+      if (window.confirm("Delete this event?")) {
+        executeVoid();
+      }
+    }
   };
 
   const handleResolveMissed = (dateStr: string) => {

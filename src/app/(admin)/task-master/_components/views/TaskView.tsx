@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, memo } from "react";
 import { createPortal } from "react-dom";
 import {
   CheckSquare,
@@ -44,11 +44,13 @@ import {
   Type,
   Code,
   Loader2,
+  Star,
 } from "lucide-react";
 import { TaskItem, RecurrenceType, SortOption } from "../utils/types";
 import TagManager from "../navigation/TagManager";
 import CompactRow from "../task-cards/CompactRow";
 import GridCard from "../task-cards/GridCard";
+import { DateControl, PrioritySwitcher } from "../task-cards/shared";
 import StickyStats from "../widgets/StickyStats";
 import CountdownTimer from "../widgets/CountdownTimer";
 import {
@@ -66,6 +68,7 @@ const PRIORITY_VALUES: Record<string, number> = {
   high: 3,
   normal: 2,
   low: 1,
+  no_rush: 0,
 };
 
 import {
@@ -122,13 +125,16 @@ interface TaskViewProps {
     currentStatus: string,
   ) => void;
   onDeleteSubtask: (parentId: string, subtaskId: string) => void;
+  onUpdateSubtasks: (parentId: string, subtasks: any[]) => void;
   onOpenRecurring: (item: TaskItem) => void;
   onBulkDelete?: (ids: string[]) => void;
-  onQuickAdd?: (title: string, content: string) => void;
+  onQuickAdd?: (title: string, content: string, priority: string, dueDate: string | null, tags: string[], isFavorite: boolean) => void;
+  onDeleteTag?: (tag: string) => void;
+  onVoidRequest?: (id: string, dateEntry: string, onConfirm: () => void) => void;
   isAdding?: boolean;
 }
 
-export default function TaskView({
+function TaskView({
   items,
   activeRecurrence,
   sortOption,
@@ -156,9 +162,12 @@ export default function TaskView({
   onToggleSubtask,
   onDeleteSubtask,
   onUpdateSubtaskTitle,
+  onUpdateSubtasks,
   onOpenRecurring,
   onBulkDelete,
   onQuickAdd,
+  onDeleteTag,
+  onVoidRequest,
   isAdding,
 }: TaskViewProps) {
   const [showActive, setShowActive] = useState(true);
@@ -174,6 +183,11 @@ export default function TaskView({
   const [newItemTitle, setNewItemTitle] = useState("");
   const [quickNote, setQuickNote] = useState("");
   const [noteFormat, setNoteFormat] = useState<"text" | "code">("text");
+  const [newPriority, setNewPriority] = useState("normal");
+  const [newDueDate, setNewDueDate] = useState<string | null>(getTodayString());
+  const [newTags, setNewTags] = useState<string[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(true);
 
   const [completedSelection, setCompletedSelection] = useState<Set<string>>(
     new Set(),
@@ -293,11 +307,15 @@ export default function TaskView({
     }
 
     if (onQuickAdd) {
-      onQuickAdd(finalTitle, quickNote);
+      onQuickAdd(finalTitle, quickNote, newPriority, newDueDate, newTags, isFavorite);
     }
 
     setQuickNote("");
     setNewItemTitle("");
+    setNewPriority("normal");
+    setNewDueDate(getTodayString());
+    setNewTags([]);
+    setIsFavorite(false);
   };
 
   // STATS CALCULATION
@@ -336,6 +354,7 @@ export default function TaskView({
         item={activeStatsItem}
         onClose={() => setStatsItemId(null)}
         onUpdateMetadata={onUpdateMetadata}
+        onVoidRequest={onVoidRequest}
       />
       {/* 1. TIMEFRAME TABS */}
       {/* 1. TIMEFRAME TABS */}
@@ -359,13 +378,23 @@ export default function TaskView({
           onClick={() => onRecurrenceChange("archived")}
           icon={<Archive size={14} />}
         />
+
+        <div className="flex-1" />
+
+        <button
+          onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-lg ${isQuickAddOpen ? "bg-purple-600/20 text-purple-400 border-purple-500/30" : "bg-slate-800 text-slate-400 border-white/5 hover:text-white"}`}
+        >
+          {isQuickAddOpen ? <ChevronUp size={14} /> : <Plus size={14} />}
+          {isQuickAddOpen ? "Hide Form" : "Quick Add"}
+        </button>
       </div>
 
       {/* 2. QUICK ADD (New Location: Below tabs, above list) */}
-      {onQuickAdd && activeRecurrence !== "archived" && (
+      {onQuickAdd && activeRecurrence !== "archived" && isQuickAddOpen && (
         <form
           onSubmit={handleQuickAddSubmit}
-          className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl shadow-black/50 w-full mb-8 transition-all focus-within:border-purple-500/30 focus-within:shadow-purple-900/10"
+          className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl shadow-black/50 w-full mb-8 transition-all focus-within:border-purple-500/30 focus-within:shadow-purple-900/10 animate-in slide-in-from-top-4 duration-300"
         >
           <div className="flex items-center gap-2 border-b border-white/5 pb-2">
             <div className="bg-purple-500/10 p-1.5 rounded-lg border border-purple-500/20">
@@ -378,18 +407,51 @@ export default function TaskView({
               placeholder={`New ${activeRecurrence === "one_off" ? "Task" : activeRecurrence} title...`}
               className="bg-transparent w-full text-sm md:text-base font-black text-white placeholder:text-slate-600 focus:outline-none"
             />
+            <button
+              type="button"
+              onClick={() => setIsFavorite(!isFavorite)}
+              className={`p-2 rounded-lg transition-all ${isFavorite ? "text-pink-500 bg-pink-500/10 border border-pink-500/20" : "text-slate-600 border border-transparent hover:text-slate-100"}`}
+            >
+              <Star size={16} fill={isFavorite ? "currentColor" : "none"} />
+            </button>
           </div>
 
-          <textarea
-            value={quickNote}
-            onChange={(e) => setQuickNote(e.target.value)}
-            placeholder={
-              noteFormat === "code"
-                ? "// Paste code snippet..."
-                : "Add notes or details... (Expandable)"
-            }
-            className={`w-full bg-black/20 rounded-xl p-4 text-sm focus:outline-none resize-y min-h-[80px] placeholder:text-slate-600 border border-white/5 focus:border-white/10 ${noteFormat === "code" ? "font-mono text-emerald-300" : "text-slate-300"}`}
-          />
+          <div className="flex flex-col gap-4">
+            <textarea
+              value={quickNote}
+              onChange={(e) => setQuickNote(e.target.value)}
+              placeholder={
+                noteFormat === "code"
+                  ? "// Paste code snippet..."
+                  : "Add notes or details... (Expandable)"
+              }
+              className={`w-full bg-black/20 rounded-xl p-4 text-sm focus:outline-none resize-y min-h-[80px] placeholder:text-slate-600 border border-white/5 focus:border-white/10 ${noteFormat === "code" ? "font-mono text-emerald-300" : "text-slate-300"}`}
+            />
+
+            <div className="flex flex-wrap items-center gap-4 py-2 px-1">
+              <div className="flex flex-col gap-1.5 min-w-[120px]">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-1">Priority</label>
+                <PrioritySwitcher current={newPriority} onChange={setNewPriority} />
+              </div>
+
+              <div className="flex flex-col gap-1.5 min-w-[140px]">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-1">Due Date</label>
+                <DateControl dueDate={newDueDate} onChange={setNewDueDate} statusColor="purple" />
+              </div>
+
+              <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-1">Tags</label>
+                <div className="bg-black/20 rounded-xl p-2 border border-white/5">
+                  <TagManager
+                    selectedTags={newTags}
+                    allSystemTags={allSystemTags}
+                    onUpdateTags={setNewTags}
+                    onDeleteTag={onDeleteTag}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between pt-1">
             <button
@@ -427,6 +489,7 @@ export default function TaskView({
             {/* VIEW TOGGLE */}
             <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shrink-0">
               <button
+                type="button"
                 onClick={() => setViewMode("compact")}
                 className={`p-1.5 rounded-lg transition-all ${viewMode === "compact"
                   ? "bg-slate-700 text-white shadow-inner"
@@ -437,6 +500,7 @@ export default function TaskView({
                 <List size={16} />
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode("list")}
                 className={`p-1.5 rounded-lg transition-all ${viewMode === "list"
                   ? "bg-slate-700 text-white shadow-inner"
@@ -447,6 +511,7 @@ export default function TaskView({
                 <StretchVertical size={16} />
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode("grid")}
                 className={`p-1.5 rounded-lg transition-all ${viewMode === "grid"
                   ? "bg-slate-700 text-white shadow-inner"
@@ -465,6 +530,7 @@ export default function TaskView({
           <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-between gap-3 mb-4 border-b border-white/5 pb-3">
             <div className="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
               <button
+                type="button"
                 onClick={() => setShowActive(!showActive)}
                 className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-black uppercase tracking-widest text-xs rounded-lg transition-all border border-purple-500/20 w-fit"
               >
@@ -527,6 +593,7 @@ export default function TaskView({
                         onToggleSubtask={onToggleSubtask}
                         onDeleteSubtask={onDeleteSubtask}
                         onUpdateSubtaskTitle={onUpdateSubtaskTitle}
+                        onUpdateSubtasks={onUpdateSubtasks}
                         onOpenRecurring={onOpenRecurring}
                         onOpenStats={() => setStatsItemId(item.id)}
                       />
@@ -553,6 +620,7 @@ export default function TaskView({
                         onToggleSubtask={onToggleSubtask}
                         onDeleteSubtask={onDeleteSubtask}
                         onUpdateSubtaskTitle={onUpdateSubtaskTitle}
+                        onUpdateSubtasks={onUpdateSubtasks}
                         onOpenRecurring={onOpenRecurring}
                         onOpenStats={() => setStatsItemId(item.id)}
                       />
@@ -701,6 +769,8 @@ export default function TaskView({
     </div>
   );
 }
+
+export default memo(TaskView);
 
 function RecurringSummary({
   item,
@@ -864,6 +934,11 @@ function PriorityBadge({
       normal: {
         label: "NORMAL",
         color: "text-slate-300 border-white/10",
+        icon: null,
+      },
+      no_rush: {
+        label: "NO RUSH",
+        color: "text-slate-500 border-white/5 bg-white/5",
         icon: null,
       },
     }[priority] ||

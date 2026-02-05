@@ -20,6 +20,9 @@ import {
   Archive,
   Clock,
   FlaskConical,
+  Plus,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import {
   DndContext,
@@ -51,7 +54,7 @@ interface IdeaBoardProps {
   allSystemTags: string[];
   searchQuery?: string;
   activePeriod?: string;
-  onAdd: (title: string, content: string) => void;
+  onAdd: (title: string, content: string, tags: string[], isFavorite: boolean, stage: "spark" | "solidified") => void;
   onUpdateContent: (id: string, content: string) => void;
   onUpdateTitle: (id: string, title: string) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
@@ -62,6 +65,7 @@ interface IdeaBoardProps {
   onManualMove?: (id: string, direction: "up" | "down") => void;
   onEdit?: (item: TaskItem) => void;
   onArchive?: (id: string) => void;
+  onDeleteTag?: (tag: string) => void;
   isAdding?: boolean;
 }
 
@@ -98,6 +102,7 @@ export default function IdeaBoard({
   onManualMove,
   onEdit,
   onArchive,
+  onDeleteTag,
   isAdding,
 }: IdeaBoardProps) {
   const dndId = useId();
@@ -114,6 +119,10 @@ export default function IdeaBoard({
   const [newItemTitle, setNewItemTitle] = useState("");
   const [quickNote, setQuickNote] = useState("");
   const [noteFormat, setNoteFormat] = useState<"text" | "code">("text");
+  const [newTags, setNewTags] = useState<string[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [newStage, setNewStage] = useState<"spark" | "solidified">("spark");
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(true);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
@@ -213,14 +222,15 @@ export default function IdeaBoard({
     if (!quickNote.trim() && !newItemTitle.trim()) return;
 
     let finalTitle = newItemTitle.trim();
-    if (!finalTitle) {
-      finalTitle = noteFormat === "code" ? "[CODE] Snippet" : "Quick Note";
+    if (onAdd) {
+      onAdd(finalTitle, quickNote, newTags, isFavorite, newStage);
     }
-
-    onAdd(finalTitle, quickNote);
 
     setQuickNote("");
     setNewItemTitle("");
+    setNewTags([]);
+    setIsFavorite(false);
+    setNewStage("spark");
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -236,6 +246,7 @@ export default function IdeaBoard({
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-6 md:mb-8 w-full py-2 md:bg-[#020617]/50 md:backdrop-blur-md -mx-4 px-4 md:-mx-6 md:px-6 md:border-b border-white/5">
         <div className="flex items-center justify-between gap-2 bg-black/20 p-1 rounded-xl border border-white/5 overflow-x-auto no-scrollbar w-full md:flex-1 md:mr-4">
           <button
+            type="button"
             onClick={() => setActiveTab("sparks")}
             className={`flex-1 px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "sparks" ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "text-slate-500 hover:text-white"}`}
           >
@@ -246,6 +257,7 @@ export default function IdeaBoard({
             <span className="hidden sm:inline">Sparks</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("solidified")}
             className={`flex-1 px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "solidified" ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" : "text-slate-500 hover:text-white"}`}
           >
@@ -253,6 +265,7 @@ export default function IdeaBoard({
             <span className="hidden sm:inline">Incubator</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("favorites")}
             className={`flex-1 px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "favorites" ? "bg-pink-500 text-white shadow-lg shadow-pink-500/20" : "text-slate-500 hover:text-white"}`}
           >
@@ -263,6 +276,7 @@ export default function IdeaBoard({
             <span className="hidden sm:inline">Favorites</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("archived")}
             className={`flex-1 px-3 py-2 md:px-4 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 rounded-lg transition-all shrink-0 ${activeTab === "archived" ? "bg-slate-500 text-white shadow-lg shadow-slate-500/20" : "text-slate-500 hover:text-white"}`}
           >
@@ -273,6 +287,7 @@ export default function IdeaBoard({
 
         <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner shrink-0 self-center md:self-auto">
           <button
+            type="button"
             onClick={() => setViewMode("compact")}
             className={`p-2 rounded-lg transition-all ${viewMode === "compact" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
             title="Thin Line (Compact)"
@@ -280,6 +295,7 @@ export default function IdeaBoard({
             <List size={16} />
           </button>
           <button
+            type="button"
             onClick={() => setViewMode("list")}
             className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
             title="Expanded Line"
@@ -287,6 +303,7 @@ export default function IdeaBoard({
             <StretchVertical size={16} />
           </button>
           <button
+            type="button"
             onClick={() => setViewMode("grid")}
             className={`p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
             title="Grid View"
@@ -294,6 +311,14 @@ export default function IdeaBoard({
             <LayoutGrid size={16} />
           </button>
         </div>
+
+        <button
+          onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-lg shrink-0 ${isQuickAddOpen ? "bg-amber-600/20 text-amber-400 border-amber-500/30" : "bg-slate-800 text-slate-400 border-white/5 hover:text-white"}`}
+        >
+          {isQuickAddOpen ? <ChevronUp size={14} /> : <Plus size={14} />}
+          {isQuickAddOpen ? "Hide Form" : "Quick Add"}
+        </button>
       </div>
 
       {mounted && (
@@ -304,64 +329,109 @@ export default function IdeaBoard({
         >
           {activeTab === "sparks" && (
             <div className="space-y-6 md:space-y-8 w-full">
-              <form
-                onSubmit={handleQuickAdd}
-                className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl shadow-black/50 w-full max-w-4xl mx-auto transition-all focus-within:border-amber-500/30 focus-within:shadow-amber-900/10"
-              >
-                <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                  <div className="bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20">
-                    <Zap
-                      size={14}
-                      className="text-amber-500"
-                      fill="currentColor"
+              {isQuickAddOpen && (
+                <form
+                  onSubmit={handleQuickAdd}
+                  className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl shadow-black/50 w-full max-w-4xl mx-auto transition-all focus-within:border-amber-500/30 focus-within:shadow-amber-900/10 animate-in slide-in-from-top-4 duration-300"
+                >
+                  <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                    <div className="bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20">
+                      <Zap
+                        size={14}
+                        className="text-amber-500"
+                        fill="currentColor"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={newItemTitle}
+                      onChange={(e) => setNewItemTitle(e.target.value)}
+                      placeholder="New Idea Title..."
+                      className="bg-transparent w-full text-sm md:text-base font-black text-white placeholder:text-slate-600 focus:outline-none"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setIsFavorite(!isFavorite)}
+                      className={`p-2 rounded-lg transition-all ${isFavorite ? "text-amber-400 bg-amber-400/10 border border-amber-400/20" : "text-slate-600 border border-transparent hover:text-slate-100"}`}
+                    >
+                      <Star size={16} fill={isFavorite ? "currentColor" : "none"} />
+                    </button>
                   </div>
-                  <input
-                    type="text"
-                    value={newItemTitle}
-                    onChange={(e) => setNewItemTitle(e.target.value)}
-                    placeholder="New Idea Title..."
-                    className="bg-transparent w-full text-sm md:text-base font-black text-white placeholder:text-slate-600 focus:outline-none"
-                  />
-                </div>
 
-                <textarea
-                  value={quickNote}
-                  onChange={(e) => setQuickNote(e.target.value)}
-                  placeholder={
-                    noteFormat === "code"
-                      ? "// Paste code snippet..."
-                      : "Capture the details... (Expandable)"
-                  }
-                  className={`w-full bg-black/20 rounded-xl p-4 text-sm focus:outline-none resize-y min-h-[120px] placeholder:text-slate-600 border border-white/5 focus:border-white/10 ${noteFormat === "code" ? "font-mono text-emerald-300" : "text-slate-300"}`}
-                />
+                  <div className="flex flex-col gap-4">
+                    <textarea
+                      value={quickNote}
+                      onChange={(e) => setQuickNote(e.target.value)}
+                      placeholder={
+                        noteFormat === "code"
+                          ? "// Paste code snippet..."
+                          : "Capture the details... (Expandable)"
+                      }
+                      className={`w-full bg-black/20 rounded-xl p-4 text-sm focus:outline-none resize-y min-h-[120px] placeholder:text-slate-600 border border-white/5 focus:border-white/10 ${noteFormat === "code" ? "font-mono text-emerald-300" : "text-slate-300"}`}
+                    />
 
-                <div className="flex items-center justify-between pt-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setNoteFormat(noteFormat === "text" ? "code" : "text")
-                    }
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${noteFormat === "code" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-slate-400 border-white/5 hover:text-white"}`}
-                  >
-                    {noteFormat === "text" ? (
-                      <Type size={12} />
-                    ) : (
-                      <Code size={12} />
-                    )}
-                    {noteFormat === "text" ? "Text Mode" : "Code Mode"}
-                  </button>
+                    <div className="flex flex-wrap items-center gap-6 py-2 px-1">
+                      <div className="flex flex-col gap-1.5 min-w-[200px]">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-1">Pipeline Stage</label>
+                        <div className="flex p-0.5 bg-black/40 rounded-xl border border-white/5">
+                          <button
+                            type="button"
+                            onClick={() => setNewStage("spark")}
+                            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${newStage === "spark" ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20" : "text-slate-500 hover:text-white"}`}
+                          >
+                            <Zap size={12} fill={newStage === "spark" ? "currentColor" : "none"} /> Spark
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setNewStage("solidified")}
+                            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${newStage === "solidified" ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" : "text-slate-500 hover:text-white"}`}
+                          >
+                            <FlaskConical size={12} /> Incubator
+                          </button>
+                        </div>
+                      </div>
 
-                  <button
-                    type="submit"
-                    disabled={isAdding || (!quickNote.trim() && !newItemTitle.trim())}
-                    className="bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-600 text-black px-4 py-2 md:px-6 md:py-2 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:shadow-none hover:shadow-amber-500/20"
-                  >
-                    {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Save Spark"}
-                    {!isAdding && <Send size={12} />}
-                  </button>
-                </div>
-              </form>
+                      <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-1">Tags</label>
+                        <div className="bg-black/20 rounded-xl p-2 border border-white/5">
+                          <TagManager
+                            selectedTags={newTags}
+                            allSystemTags={allSystemTags}
+                            onUpdateTags={setNewTags}
+                            onDeleteTag={onDeleteTag}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNoteFormat(noteFormat === "text" ? "code" : "text")
+                      }
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${noteFormat === "code" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-slate-400 border-white/5 hover:text-white"}`}
+                    >
+                      {noteFormat === "text" ? (
+                        <Type size={12} />
+                      ) : (
+                        <Code size={12} />
+                      )}
+                      {noteFormat === "text" ? "Text Mode" : "Code Mode"}
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isAdding || (!quickNote.trim() && !newItemTitle.trim())}
+                      className="bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-600 text-black px-4 py-2 md:px-6 md:py-2 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:shadow-none hover:shadow-amber-500/20"
+                    >
+                      {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Save Spark"}
+                      {!isAdding && <Send size={12} />}
+                    </button>
+                  </div>
+                </form>
+              )}
 
               <SortableContext
                 items={filteredItems.map((i) => i.id)}
@@ -759,6 +829,7 @@ function IncubatorCard({
           </div>
           <div className="flex items-center gap-1.5 shrink-0 ml-auto mr-2">
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onPromote();
@@ -819,6 +890,7 @@ function IncubatorCard({
 
               <div className="flex gap-1 shrink-0">
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleFavorite();
@@ -828,6 +900,7 @@ function IncubatorCard({
                   <Star size={16} fill={isFav ? "currentColor" : "none"} />
                 </button>
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onEdit && onEdit(item);
@@ -837,6 +910,7 @@ function IncubatorCard({
                   <Edit2 size={16} />
                 </button>
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onArchive && onArchive(item.id);
@@ -846,6 +920,7 @@ function IncubatorCard({
                   <Archive size={16} />
                 </button>
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(item.id);
@@ -873,6 +948,7 @@ function IncubatorCard({
             </div>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onPromote();

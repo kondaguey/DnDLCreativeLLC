@@ -40,6 +40,7 @@ import ConfirmModal from "../modals/ConfirmModal";
 import ConfirmationModal from "../modals/ConfirmationModal"; // NEW Custom Modal
 import EditModal from "../modals/EditModal";
 import RecurringModal from "../modals/RecurringModal";
+import BonusModal from "../modals/BonusModal";
 import IdeaDetailModal from "../modals/IdeaDetailModal";
 
 interface ShellProps {
@@ -95,27 +96,54 @@ export default function TaskMasterShell({
     null,
   );
 
-  const [uncheckCandidate, setUncheckCandidate] = useState<string | null>(null); // NEW
+  const [uncheckCandidate, setUncheckCandidate] = useState<string | null>(null);
+  const [bonusCandidate, setBonusCandidate] = useState<{ id: string, periodText: string } | null>(null);
+  const [voidCandidate, setVoidCandidate] = useState<{ id: string, dateEntry: string, onConfirm: () => void } | null>(null);
 
   const [recurringItemId, setRecurringItemId] = useState<string | null>(null);
   const activeRecurringItem =
     items.find((i) => i.id === recurringItemId) || null;
 
+  const [tagToDelete, setTagToDelete] = useState<string | null>(null);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const showToast = (type: "success" | "error", message: string) => {
+  const showToast = useCallback((type: "success" | "error" | "info", message: string) => {
     setToast({ id: Date.now().toString(), type, message });
     setTimeout(() => setToast(null), 4000);
-  };
+  }, []);
 
-  const handleSwitchView = (view: ViewType) => {
+  const handleSwitchView = useCallback((view: ViewType) => {
     setActiveView(view);
     setFilterTags([]);
     setGlobalSearchQuery("");
     setGlobalActivePeriod("all");
-  };
+  }, []);
 
-  const handleAddItem = async (e: React.FormEvent) => {
+  const handleDeleteTag = useCallback(async (tag: string) => {
+    setTagToDelete(null);
+    try {
+      const { deleteGlobalTag } = await import("../../actions");
+      const res = await deleteGlobalTag(tag);
+      if (res.success) {
+        setAllSystemTags((prev) => prev.filter((t) => t !== tag));
+        setFilterTags((prev) => prev.filter((t) => t !== tag));
+        setItems((prev) =>
+          prev.map((item) => ({
+            ...item,
+            tags: (item.tags || []).filter((t) => t !== tag),
+          })),
+        );
+        showToast("success", `Tag #${tag} purged.`);
+      } else {
+        showToast("error", "Failed to delete tag.");
+      }
+    } catch (err) {
+      showToast("error", "Error deleting tag.");
+    }
+  }, [showToast]);
+
+  const handleAddItem = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (activeView === "level_up") return;
     setIsAdding(true);
@@ -211,9 +239,9 @@ export default function TaskMasterShell({
     } finally {
       setIsAdding(false);
     }
-  };
+  }, [activeView, items, userId, newCodexCode, newCodexTitle, newCodexNotes, newResourceTitle, newResourceLink, newResourceNotes, newItemInput, activeRecurrence, supabase, showToast]);
 
-  const handleAddQuickNote = async (title: string, content: string) => {
+  const handleAddQuickNote = useCallback(async (title: string, content: string, tags: string[], isFavorite: boolean, stage: "spark" | "solidified") => {
     setIsAdding(true);
     try {
       const today = getTodayString();
@@ -223,12 +251,13 @@ export default function TaskMasterShell({
         .insert([
           {
             type: "idea_board",
-            title,
+            title: title || (content ? (content.length > 30 ? content.slice(0, 30) + "..." : content) : "Quick Spark"),
             content,
             status: "active",
             user_id: userId,
-            metadata: { stage: "spark", is_favorite: false },
+            metadata: { stage: stage || "spark", is_favorite: isFavorite },
             due_date: today,
+            tags: tags || [],
           },
         ])
         .select()
@@ -246,7 +275,7 @@ export default function TaskMasterShell({
     } finally {
       setIsAdding(false);
     }
-  };
+  }, [userId, supabase, showToast]);
 
   const requestPromote = (item: TaskItem) => setPromoteCandidate(item);
   const handleConfirmPromote = async (
@@ -339,7 +368,7 @@ export default function TaskMasterShell({
       .eq("id", itemB.id);
   };
 
-  const handleSmartComplete = async (id: string, currentStatus: string) => {
+  const handleSmartComplete = useCallback(async (id: string, currentStatus: string) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
 
@@ -348,25 +377,36 @@ export default function TaskMasterShell({
       item.recurrence !== "one_off" &&
       currentStatus === "active"
     ) {
-      const { getTodayString, calcNextDueDate, calculateStats } = await import("../utils/dateUtils");
+      const { getTodayString, calcNextDueDate, calculateStats, isCycleSatisfied, calculateStandardDueDate } = await import("../utils/dateUtils");
 
       const todayVal = getTodayString();
       const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const currentLog = (item.metadata?.completed_dates as string[]) || [];
 
-      // UNCHECK LOGIC
-      if (currentLog.includes(todayVal)) {
-        setUncheckCandidate(id);
+      // OVERACHIEVER LOGIC
+      const isSatisfied = isCycleSatisfied(currentLog, item.recurrence || "daily");
+      if (isSatisfied) {
+        let periodText = "today";
+        if (item.recurrence === "weekly") periodText = "the week";
+        if (item.recurrence === "monthly") periodText = "this month";
+        if (item.recurrence === "quarterly") periodText = "this quarter";
+
+        setBonusCandidate({ id, periodText });
         return;
       }
 
       // CHECK LOGIC
-      // Log with time for better history
       const logEntry = `${todayVal} @ ${nowTime}`;
       const newLog = [...currentLog, logEntry];
-      const nextDate = calcNextDueDate(item.due_date || null, item.recurrence);
 
-      const stats = calculateStats(currentLog.map(d => d.split(" @ ")[0]), item.created_at, item.recurrence);
+      // Reset subtasks for the next occurrence
+      const resetSubtasks = (item.subtasks || []).map((s: any) => ({
+        ...s,
+        status: "active" as const
+      }));
+
+      const stats = calculateStats(newLog.map(d => d.split(" @ ")[0]), item.created_at || new Date().toISOString(), item.recurrence || "daily", item.metadata);
+      const nextDate = calculateStandardDueDate(newLog, item.recurrence || "daily");
 
       const newMeta = {
         ...item.metadata,
@@ -376,13 +416,17 @@ export default function TaskMasterShell({
 
       setItems((prev) =>
         prev.map((i) =>
-          i.id === id ? { ...i, due_date: nextDate, metadata: newMeta } : i,
+          i.id === id ? { ...i, due_date: nextDate, metadata: newMeta, subtasks: resetSubtasks } : i,
         ),
       );
 
       await supabase
         .from("task_master_items")
-        .update({ due_date: nextDate, metadata: newMeta })
+        .update({
+          due_date: nextDate,
+          metadata: newMeta,
+          subtasks: resetSubtasks
+        })
         .eq("id", id);
 
       showToast("success", `Nice! Logged. Next: ${nextDate}`);
@@ -392,51 +436,178 @@ export default function TaskMasterShell({
     const newStatus = currentStatus === "active" ? "completed" : "active";
     setItems((prevItems) =>
       prevItems.map((item) => {
-        if (item.id === id) return { ...item, status: newStatus as any };
-        if (item.subtasks && item.subtasks.length > 0) {
-          return {
-            ...item,
-            subtasks: item.subtasks.map((s) =>
-              s.id === id
-                ? { ...s, status: newStatus as "active" | "completed" }
-                : s,
-            ),
-          };
+        // If the toggled ID is the parent item itself
+        if (item.id === id) {
+          const updatedItem = { ...item, status: newStatus as any };
+          // For one-off tasks, sync all subtasks to the parent's new status
+          if (!item.recurrence || item.recurrence === "one_off") {
+            if (item.subtasks && item.subtasks.length > 0) {
+              updatedItem.subtasks = item.subtasks.map((s) => ({
+                ...s,
+                status: newStatus as "active" | "completed",
+              }));
+            }
+          }
+          return updatedItem;
         }
+
+        // Check if the toggled ID is a subtask within this item
+        const subIndex = item.subtasks?.findIndex((s) => s.id === id);
+        if (subIndex !== undefined && subIndex > -1) {
+          const updatedSubtasks = [...(item.subtasks || [])];
+          updatedSubtasks[subIndex] = {
+            ...updatedSubtasks[subIndex],
+            status: newStatus as "active" | "completed",
+          };
+          return { ...item, subtasks: updatedSubtasks };
+        }
+
         return item;
       }),
     );
-    await supabase
+
+    // Sync to DB (Parent status)
+    const { error: parentError } = await supabase
       .from("task_master_items")
       .update({ status: newStatus })
       .eq("id", id);
-  };
 
-  const handleUpdate = async (id: string, field: string, value: any) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
-    await supabase
+    // Also sync subtasks to DB if it was a parent toggle for a one-off
+    if (item.id === id && (!item.recurrence || item.recurrence === "one_off") && item.subtasks && item.subtasks.length > 0) {
+      const syncedSubtasks = item.subtasks.map(s => ({ ...s, status: newStatus as "active" | "completed" }));
+      await supabase
+        .from("task_master_items")
+        .update({ subtasks: syncedSubtasks })
+        .eq("id", id);
+    }
+
+    if (parentError) {
+      showToast("error", "Failed to update protocol status.");
+    }
+  }, [items, supabase, showToast]);
+
+  const handleLogBonus = useCallback(async (id: string) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+
+    const { getTodayString, calculateStandardDueDate } = await import("../utils/dateUtils");
+    const todayVal = getTodayString();
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const logEntry = `${todayVal} @ ${nowTime} (BONUS)`;
+    const newLog = [...((item.metadata?.completed_dates as string[]) || []), logEntry];
+    const nextDate = calculateStandardDueDate(newLog, item.recurrence || "daily");
+
+    const newMeta = {
+      ...item.metadata,
+      completed_dates: newLog
+    };
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === id ? { ...i, due_date: nextDate, metadata: newMeta } : i,
+      ),
+    );
+
+    const { error } = await supabase
       .from("task_master_items")
-      .update({ [field]: value })
+      .update({ due_date: nextDate, metadata: newMeta })
       .eq("id", id);
-  };
+
+    if (error) {
+      showToast("error", "Failed to log bonus event.");
+    } else {
+      showToast("success", "Bonus event logged! Look at you go!");
+    }
+  }, [items, supabase, showToast]);
+
+  const handleUpdate = useCallback(async (id: string, field: string, value: any) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+
+    if (JSON.stringify(item[field as keyof TaskItem]) === JSON.stringify(value)) {
+      showToast("info", "Changes already saved.");
+      return;
+    }
+
+    let updatePayload: any = { [field]: value };
+
+    // DETECT METADATA / LOG UPDATES FOR AUTO-SYNC
+    if (field === "metadata" && value.completed_dates && item.recurrence !== "one_off") {
+      const { calculateStandardDueDate, calculateStats, isCycleSatisfied } = await import("../utils/dateUtils");
+      const nextDate = calculateStandardDueDate(value.completed_dates, item.recurrence || "daily");
+      const stats = calculateStats(value.completed_dates, item.created_at || new Date().toISOString(), item.recurrence || "daily", value);
+
+      const syncedMeta = { ...value, streak: stats.streak };
+      updatePayload = {
+        metadata: syncedMeta,
+        due_date: nextDate
+      };
+
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === id ? { ...i, due_date: nextDate, metadata: syncedMeta } : i,
+        ),
+      );
+    } else if (field === "due_date") {
+      const isNoRush = value === "no_rush";
+      const dbDate = isNoRush ? null : value;
+      updatePayload = {
+        due_date: dbDate,
+        metadata: {
+          ...item.metadata,
+          is_no_rush: isNoRush,
+        },
+      };
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === id ? { ...i, due_date: dbDate, metadata: updatePayload.metadata } : i,
+        ),
+      );
+    } else {
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
+    }
+
+    const { error } = await supabase
+      .from("task_master_items")
+      .update(updatePayload)
+      .eq("id", id);
+
+    if (error) {
+      console.error("Update failed:", error);
+      showToast("error", "Failed to save changes.");
+    } else {
+      showToast("success", "Changes saved.");
+    }
+  }, [items, supabase, showToast]);
 
   const handleUpdatePriority = async (id: string, priority: string) => {
     const targetItem = items.find((i) => i.id === id);
     if (!targetItem) return;
 
+    if (targetItem.metadata?.priority === priority) {
+      showToast("info", "Priority already set.");
+      return;
+    }
+
     const updatedMetadata = {
       ...targetItem.metadata,
-      priority: priority as "critical" | "high" | "normal" | "low",
+      priority: priority as "critical" | "high" | "normal" | "low" | "no_rush",
     };
 
     setItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, metadata: updatedMetadata } : i)),
     );
 
-    await supabase
+    const { error } = await supabase
       .from("task_master_items")
       .update({ metadata: updatedMetadata })
       .eq("id", id);
+
+    if (error) {
+      showToast("error", "Failed to update priority.");
+    } else {
+      showToast("success", `Priority set to ${priority}.`);
+    }
   };
 
   const handleAddCodex = async (title: string, content: string, notes: string) => {
@@ -466,7 +637,7 @@ export default function TaskMasterShell({
     }
   };
 
-  const handleAddResource = async (title: string, link: string, notes: string) => {
+  const handleAddResource = async (title: string, link: string, notes: string, tags: string[], isFavorite: boolean) => {
     setIsAdding(true);
     try {
       const { data, error } = await supabase
@@ -474,10 +645,11 @@ export default function TaskMasterShell({
         .insert([{
           type: "resource",
           title,
-          content: link,
-          metadata: { notes },
+          content: notes,
           status: "active",
-          user_id: userId
+          metadata: { url: link, is_favorite: isFavorite },
+          user_id: userId,
+          tags: tags || [],
         }])
         .select()
         .single();
@@ -493,7 +665,7 @@ export default function TaskMasterShell({
     }
   };
 
-  const handleAddLog = async (title: string, content: string, priority: string) => {
+  const handleAddLog = async (title: string, content: string, priority: string, tags: string[], isFavorite: boolean) => {
     setIsAdding(true);
     try {
       const { data, error } = await supabase
@@ -503,8 +675,9 @@ export default function TaskMasterShell({
           title,
           content,
           status: "completed",
-          metadata: { priority },
-          user_id: userId
+          metadata: { priority, is_favorite: isFavorite },
+          user_id: userId,
+          tags: tags || []
         }])
         .select()
         .single();
@@ -550,7 +723,7 @@ export default function TaskMasterShell({
     }
   };
 
-  const handleAddPrompt = async (title: string, systemContext: string, prompt: string) => {
+  const handleAddPrompt = async (title: string, systemContext: string, prompt: string, tags: string[], isFavorite: boolean) => {
     setIsAdding(true);
     try {
       const { data, error } = await supabase
@@ -560,8 +733,9 @@ export default function TaskMasterShell({
           title,
           content: prompt,
           status: "active",
-          metadata: { system_context: systemContext },
-          user_id: userId
+          metadata: { system_context: systemContext, is_favorite: isFavorite },
+          user_id: userId,
+          tags: tags || [],
         }])
         .select()
         .single();
@@ -664,16 +838,48 @@ export default function TaskMasterShell({
   };
 
   const handleEditSave = async (id: string, fields: EditableFields) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+
     const updates: any = {};
-    if (fields.title !== undefined) updates.title = fields.title;
-    if (fields.content !== undefined) updates.content = fields.content;
-    if (fields.due_date !== undefined) updates.due_date = fields.due_date;
-    if (fields.tags !== undefined) updates.tags = fields.tags;
-    if (fields.metadata !== undefined) updates.metadata = fields.metadata;
+    let hasChanges = false;
+
+    if (fields.title !== undefined && fields.title !== item.title) {
+      updates.title = fields.title;
+      hasChanges = true;
+    }
+    if (fields.content !== undefined && fields.content !== item.content) {
+      updates.content = fields.content;
+      hasChanges = true;
+    }
+    if (fields.due_date !== undefined && fields.due_date !== item.due_date) {
+      updates.due_date = fields.due_date;
+      hasChanges = true;
+    }
+    if (fields.tags !== undefined && JSON.stringify(fields.tags) !== JSON.stringify(item.tags)) {
+      updates.tags = fields.tags;
+      hasChanges = true;
+    }
+    if (fields.metadata !== undefined && JSON.stringify(fields.metadata) !== JSON.stringify(item.metadata)) {
+      updates.metadata = fields.metadata;
+      hasChanges = true;
+    }
+
+    if (!hasChanges) {
+      showToast("info", "Changes already saved.");
+      setEditCandidate(null);
+      return;
+    }
 
     setItems(items.map((i) => (i.id === id ? { ...i, ...updates } : i)));
-    await supabase.from("task_master_items").update(updates).eq("id", id);
-    showToast("success", "Updated.");
+    const { error } = await supabase.from("task_master_items").update(updates).eq("id", id);
+
+    if (error) {
+      showToast("error", "Failed to update item.");
+    } else {
+      showToast("success", "Item updated.");
+      setEditCandidate(null);
+    }
   };
 
   const handleAddSubtask = async (parentId: string, title: string) => {
@@ -692,10 +898,16 @@ export default function TaskMasterShell({
         i.id === parentId ? { ...i, subtasks: updatedSubtasks } : i,
       ),
     );
-    await supabase
+    const { error } = await supabase
       .from("task_master_items")
       .update({ subtasks: updatedSubtasks })
       .eq("id", parentId);
+
+    if (error) {
+      showToast("error", "Failed to add subtask.");
+    } else {
+      showToast("success", "Subtask added.");
+    }
   };
 
   const handleToggleSubtask = async (
@@ -735,10 +947,16 @@ export default function TaskMasterShell({
         i.id === parentId ? { ...i, subtasks: updatedSubtasks } : i,
       ),
     );
-    await supabase
+    const { error } = await supabase
       .from("task_master_items")
       .update({ subtasks: updatedSubtasks })
       .eq("id", parentId);
+
+    if (error) {
+      showToast("error", "Failed to delete subtask.");
+    } else {
+      showToast("success", "Subtask removed.");
+    }
   };
 
   const handleManualSubtaskMove = async (
@@ -772,6 +990,28 @@ export default function TaskMasterShell({
       .eq("id", parentId);
   };
 
+  const handleUpdateSubtasks = async (
+    parentId: string,
+    updatedSubtasks: any[],
+  ) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === parentId ? { ...i, subtasks: updatedSubtasks } : i,
+      ),
+    );
+
+    const { error } = await supabase
+      .from("task_master_items")
+      .update({ subtasks: updatedSubtasks })
+      .eq("id", parentId);
+
+    if (error) {
+      showToast("error", "Failed to secure protocol updates.");
+    } else {
+      showToast("success", "Changes saved to the grid.");
+    }
+  };
+
   const handleUpdateSubtaskTitle = async (
     parentId: string,
     subtaskId: string,
@@ -779,6 +1019,11 @@ export default function TaskMasterShell({
   ) => {
     const parent = items.find((i) => i.id === parentId);
     if (!parent || !parent.subtasks) return;
+
+    const subtask = parent.subtasks.find((s: any) => s.id === subtaskId);
+    if (subtask && subtask.title === newTitle) {
+      return;
+    }
 
     const updatedSubtasks = parent.subtasks.map((sub: any) =>
       sub.id === subtaskId ? { ...sub, title: newTitle } : sub,
@@ -795,11 +1040,13 @@ export default function TaskMasterShell({
       .eq("id", parentId);
   };
 
-  const currentViewItems = items.filter((item) => {
-    if (activeView === "resource")
-      return item.type === "resource" || item.type === "social_bookmark";
-    return item.type === activeView;
-  });
+  const currentViewItems = useMemo(() => {
+    return items.filter((item) => {
+      if (activeView === "resource")
+        return item.type === "resource" || item.type === "social_bookmark";
+      return item.type === activeView;
+    });
+  }, [items, activeView]);
 
   const timeline = useMemo(() => {
     const periods = new Set<string>();
@@ -936,14 +1183,15 @@ export default function TaskMasterShell({
                     onDeleteSubtask={handleDeleteSubtask}
                     onReorderSubtask={handleManualSubtaskMove}
                     onUpdateSubtaskTitle={handleUpdateSubtaskTitle}
+                    onUpdateSubtasks={handleUpdateSubtasks}
                     onOpenRecurring={(item) => setRecurringItemId(item.id)}
                     onBulkDelete={requestBulkDelete}
+                    onVoidRequest={(id, dateEntry, onConfirm) => setVoidCandidate({ id, dateEntry, onConfirm })}
                     isAdding={isAdding}
-                    onQuickAdd={async (title, content) => {
-                      console.log("Inline Add Triggered:", { title, content, activeRecurrence });
+                    onQuickAdd={async (title, content, priority, dueDate, tags, isFavorite) => {
+                      console.log("Inline Add Triggered:", { title, content, activeRecurrence, priority, dueDate, tags, isFavorite });
                       setIsAdding(true);
                       try {
-                        const today = getTodayString();
                         const maxPos =
                           items.length > 0
                             ? Math.max(...items.map((i) => i.position || 0))
@@ -959,9 +1207,10 @@ export default function TaskMasterShell({
                               status: "active",
                               user_id: userId,
                               recurrence: activeRecurrence,
-                              due_date: today,
+                              due_date: dueDate,
                               position: maxPos + 1024,
-                              metadata: {},
+                              metadata: { priority, is_favorite: isFavorite },
+                              tags: tags || [],
                             },
                           ])
                           .select()
@@ -983,6 +1232,7 @@ export default function TaskMasterShell({
                         setIsAdding(false);
                       }
                     }}
+                    onDeleteTag={(tag) => setTagToDelete(tag)}
                   />
                 )}
                 {activeView === "idea_board" && (
@@ -1006,6 +1256,7 @@ export default function TaskMasterShell({
                     onManualMove={handleManualMove}
                     onEdit={requestEdit}
                     isAdding={isAdding}
+                    onDeleteTag={(tag) => setTagToDelete(tag)}
                   />
                 )}
                 {activeView === "code_snippet" && (
@@ -1022,6 +1273,7 @@ export default function TaskMasterShell({
                     onManualMove={handleManualMove}
                     onAdd={handleAddCodex}
                     isAdding={isAdding}
+                    onDeleteTag={(tag: string) => setTagToDelete(tag)}
                   />
                 )}
                 {activeView === "ledger" && (
@@ -1036,6 +1288,7 @@ export default function TaskMasterShell({
                       handleUpdate(id, "metadata", m)
                     }
                     onUpdateTitle={(id, t) => handleUpdate(id, "title", t)}
+                    onUpdateContent={(id, c) => handleUpdate(id, "content", c)}
                     onUpdateTags={(id, t) => handleUpdate(id, "tags", t)}
                     onDelete={requestDelete}
                     onToggleStatus={(id, s) =>
@@ -1050,6 +1303,7 @@ export default function TaskMasterShell({
                     onManualMove={handleManualMove}
                     onBulkDelete={requestBulkDelete}
                     onAddSubtask={handleAddSubtask}
+                    onUpdateSubtasks={handleUpdateSubtasks}
                     onToggleSubtask={handleToggleSubtask}
                     onDeleteSubtask={handleDeleteSubtask}
                     onReorderSubtask={handleManualSubtaskMove}
@@ -1185,8 +1439,38 @@ export default function TaskMasterShell({
           onClose={() => setRecurringItemId(null)}
           item={activeRecurringItem}
           onUpdateMetadata={(id, meta) => handleUpdate(id, "metadata", meta)}
+          onVoidRequest={(id, dateEntry, onConfirm) => setVoidCandidate({ id, dateEntry, onConfirm })}
         />
       )}
+
+      <BonusModal
+        isOpen={!!bonusCandidate}
+        onClose={() => setBonusCandidate(null)}
+        periodText={bonusCandidate?.periodText || ""}
+        onLogBonus={() => bonusCandidate && handleLogBonus(bonusCandidate.id)}
+        onUncheck={() => {
+          if (bonusCandidate) {
+            setUncheckCandidate(bonusCandidate.id);
+            setBonusCandidate(null);
+          }
+        }}
+      />
+
+      <ConfirmationModal
+        isOpen={!!voidCandidate}
+        onClose={() => setVoidCandidate(null)}
+        onConfirm={() => {
+          if (voidCandidate) {
+            voidCandidate.onConfirm();
+            setVoidCandidate(null);
+          }
+        }}
+        title="Delete this event?"
+        message={`Are you sure you want to remove the log entry for ${voidCandidate?.dateEntry}? This cannot be undone.`}
+        confirmLabel="Yes, Delete"
+        isDanger={true}
+      />
+
       <ConfirmationModal
         isOpen={!!uncheckCandidate}
         onClose={() => setUncheckCandidate(null)}
@@ -1196,13 +1480,13 @@ export default function TaskMasterShell({
             const id = uncheckCandidate;
             const item = items.find(i => i.id === id);
             if (item) {
-              import("../utils/dateUtils").then(({ getTodayString, calculateStats }) => {
+              import("../utils/dateUtils").then(({ getTodayString, calculateStats, calculateStandardDueDate }) => {
                 const todayVal = getTodayString();
                 const currentLog = (item.metadata?.completed_dates as string[]) || [];
                 // Filter out any entry starting with today's date
                 const newLog = currentLog.filter(entry => !entry.startsWith(todayVal));
-                const nextDate = todayVal;
-                const stats = calculateStats(newLog.map(d => d.split(" @ ")[0]), item.created_at, item.recurrence || "daily");
+                const nextDate = calculateStandardDueDate(newLog, item.recurrence || "daily");
+                const stats = calculateStats(newLog.map(d => d.split(" @ ")[0]), item.created_at || new Date().toISOString(), item.recurrence || "daily", item.metadata);
                 const newMeta = { ...item.metadata, completed_dates: newLog, streak: stats.streak };
 
                 setItems(prev => prev.map(i => i.id === id ? { ...i, due_date: nextDate, metadata: newMeta } : i));
@@ -1216,6 +1500,16 @@ export default function TaskMasterShell({
         message="This will remove today's completion and reset your streak calculation for today. Are you sure?"
         confirmLabel="Yes, Uncheck"
         isDanger={true}
+      />
+
+      <ConfirmModal
+        isOpen={!!tagToDelete}
+        onClose={() => setTagToDelete(null)}
+        onConfirm={() => tagToDelete && handleDeleteTag(tagToDelete)}
+        title="Delete Tag Globally?"
+        message={`This will permanently delete the tag #${tagToDelete} from the entire system. It will also be removed from all existing items. This cannot be undone.`}
+        confirmText="Confirm Purge"
+        isDestructive={true}
       />
     </>
   );

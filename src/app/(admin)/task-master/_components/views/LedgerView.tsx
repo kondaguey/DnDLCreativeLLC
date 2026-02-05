@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Bug,
   Lightbulb,
@@ -27,6 +27,7 @@ import {
   CornerDownRight,
   Check,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   List,
   StretchVertical,
@@ -34,6 +35,8 @@ import {
   Star,
   Loader2,
   Send,
+  Tag,
+  Save
 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -53,6 +56,7 @@ import { SortableItem, DragHandle } from "../widgets/SortableItem";
 
 import { TaskItem, SortOption } from "../utils/types";
 import TagManager from "../navigation/TagManager";
+import TaskDetails from "../task-cards/TaskDetails";
 
 interface LedgerViewProps {
   items: TaskItem[];
@@ -63,6 +67,7 @@ interface LedgerViewProps {
   activePeriod?: string;
   onUpdateMetadata: (id: string, metadata: any) => void;
   onUpdateTitle: (id: string, title: string) => void;
+  onUpdateContent: (id: string, content: string) => void;
   onUpdateTags?: (id: string, tags: string[]) => void;
   onDelete: (id: string) => void;
   onToggleStatus: (id: string, status: string) => void;
@@ -88,7 +93,9 @@ interface LedgerViewProps {
     title: string,
   ) => void;
   onBulkDelete?: (ids: string[]) => void;
-  onAdd: (title: string, content: string, priority: string) => void;
+  onAdd: (title: string, content: string, priority: string, tags: string[], isFavorite: boolean) => void;
+  onDeleteTag?: (tag: string) => void;
+  onUpdateSubtasks?: (parentId: string, subtasks: any[]) => void;
   isAdding?: boolean;
 }
 
@@ -108,6 +115,7 @@ export default function LedgerView({
   activePeriod = "all",
   onUpdateMetadata,
   onUpdateTitle,
+  onUpdateContent,
   onUpdateTags,
   onDelete,
   onToggleStatus,
@@ -116,6 +124,7 @@ export default function LedgerView({
   onManualMove,
   onEdit,
   onAdd,
+  onDeleteTag,
   isAdding = false,
   onAddSubtask,
   onToggleSubtask,
@@ -123,6 +132,7 @@ export default function LedgerView({
   onReorderSubtask,
   onUpdateSubtaskTitle,
   onBulkDelete,
+  onUpdateSubtasks,
 }: LedgerViewProps) {
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
@@ -135,6 +145,10 @@ export default function LedgerView({
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newPriority, setNewPriority] = useState("normal");
+  const [newTags, setNewTags] = useState<string[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(true);
+
 
   const processedItems = items
     .filter((item) => {
@@ -246,72 +260,108 @@ export default function LedgerView({
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-32 w-full max-w-5xl mx-auto">
-      {/* QUICK ADD CARD */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!newTitle.trim()) return;
-          onAdd(newTitle, newContent, newPriority);
-          setNewTitle("");
-          setNewContent("");
-          setNewPriority("normal");
-        }}
-        className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl mb-8 group transition-all focus-within:border-slate-400/30"
-      >
-        <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-          <div className="bg-slate-500/10 p-1.5 rounded-lg border border-slate-500/20">
-            <CheckCircle2 size={14} className="text-slate-400" fill="currentColor" />
-          </div>
-          <input
-            type="text"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Manual Log Entry (e.g., Completed Client Report)..."
-            className="bg-transparent w-full text-sm font-black text-white placeholder:text-slate-600 focus:outline-none"
-          />
-        </div>
+      {/* TOGGLE AREA */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-lg ${isQuickAddOpen ? "bg-slate-600/20 text-slate-400 border-slate-500/30" : "bg-slate-800 text-slate-400 border-white/5 hover:text-white"}`}
+        >
+          {isQuickAddOpen ? <ChevronUp size={14} /> : <Plus size={14} />}
+          {isQuickAddOpen ? "Hide Form" : "Quick Add"}
+        </button>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-3">
-            <textarea
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-              placeholder="Log details or execution notes..."
-              className="w-full bg-black/20 rounded-xl p-3 text-xs text-slate-300 focus:outline-none resize-none h-20 border border-white/5 focus:border-white/10 placeholder:text-slate-700"
+      {/* QUICK ADD CARD */}
+      {isQuickAddOpen && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!newTitle.trim()) return;
+            onAdd(newTitle, newContent, newPriority, newTags, isFavorite);
+            setNewTitle("");
+            setNewContent("");
+            setNewPriority("normal");
+            setNewTags([]);
+            setIsFavorite(false);
+          }}
+          className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl mb-8 group transition-all focus-within:border-slate-400/30"
+        >
+          <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+            <div className="bg-slate-500/10 p-1.5 rounded-lg border border-slate-500/20">
+              <CheckCircle2 size={14} className="text-slate-400" fill="currentColor" />
+            </div>
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Manual Log Entry (e.g., Completed Client Report)..."
+              className="bg-transparent w-full text-sm font-black text-white placeholder:text-slate-600 focus:outline-none"
             />
+            <button
+              type="button"
+              onClick={() => setIsFavorite(!isFavorite)}
+              className={`p-1.5 rounded-lg transition-all ${isFavorite ? "text-amber-400 bg-amber-400/10" : "text-slate-600 hover:text-white"}`}
+            >
+              <Star size={14} fill={isFavorite ? "currentColor" : "none"} />
+            </button>
           </div>
-          <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
-              <AlertTriangle size={12} /> Priority
-            </span>
-            <div className="grid grid-cols-2 gap-1.5">
-              {["low", "normal", "high", "critical"].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setNewPriority(p)}
-                  className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${newPriority === p
-                    ? "bg-slate-100 text-slate-900 border-white"
-                    : "bg-white/5 text-slate-500 border-white/5 hover:text-white"}`}
-                >
-                  {p}
-                </button>
-              ))}
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5 pl-1">
+              <Tag size={10} /> Tags
+            </label>
+            <div className="bg-black/20 rounded-xl p-2 border border-white/5">
+              <TagManager
+                selectedTags={newTags}
+                allSystemTags={allSystemTags}
+                onUpdateTags={setNewTags}
+                onDeleteTag={onDeleteTag}
+              />
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-end pt-1">
-          <button
-            type="submit"
-            disabled={isAdding || !newTitle.trim()}
-            className="bg-slate-100 hover:bg-white disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest grow md:grow-0 transition-all flex items-center justify-center gap-2 shadow-lg"
-          >
-            {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Record Log"}
-            {!isAdding && <Send size={12} />}
-          </button>
-        </div>
-      </form>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-3">
+              <textarea
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                placeholder="Log details or execution notes..."
+                className="w-full bg-black/20 rounded-xl p-3 text-xs text-slate-300 focus:outline-none resize-none h-20 border border-white/5 focus:border-white/10 placeholder:text-slate-700"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                <AlertTriangle size={12} /> Priority
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {["low", "normal", "high", "critical"].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setNewPriority(p)}
+                    className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${newPriority === p
+                      ? "bg-slate-100 text-slate-900 border-white"
+                      : "bg-white/5 text-slate-500 border-white/5 hover:text-white"}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              disabled={isAdding || !newTitle.trim()}
+              className="bg-slate-100 hover:bg-white disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest grow md:grow-0 transition-all flex items-center justify-center gap-2 shadow-lg"
+            >
+              {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Record Log"}
+              {!isAdding && <Send size={12} />}
+            </button>
+          </div>
+        </form>
+      )}
       {/* CUSTOM LEDGER CONTROL DECK */}
       <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-4 md:p-5 mb-8 shadow-2xl space-y-4">
         {/* TOP ROW: Priority Filters + Desktop View Toggle */}
@@ -325,6 +375,7 @@ export default function LedgerView({
               {["all", "critical", "high", "normal", "low"].map((prio) => (
                 <button
                   key={prio}
+                  type="button"
                   onClick={() => setFilterPriority(prio)}
                   className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-inner ${filterPriority === prio
                     ? prio === "critical"
@@ -344,6 +395,7 @@ export default function LedgerView({
           {/* DESKTOP VIEW TOGGLE (HIDDEN ON MOBILE) */}
           <div className="hidden md:flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner shrink-0 self-end md:self-auto">
             <button
+              type="button"
               onClick={() => setViewMode("compact")}
               className={`p-2 rounded-lg transition-all ${viewMode === "compact" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
               title="Compact View"
@@ -386,6 +438,7 @@ export default function LedgerView({
           ].map((type) => (
             <button
               key={type}
+              type="button"
               onClick={() => setFilterType(type)}
               className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${filterType === type
                 ? "bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-lg"
@@ -403,6 +456,7 @@ export default function LedgerView({
         <div className="flex md:hidden justify-center w-full pt-2">
           <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner shrink-0">
             <button
+              type="button"
               onClick={() => setViewMode("compact")}
               className={`p-2 rounded-lg transition-all ${viewMode === "compact" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
               title="Compact View"
@@ -481,7 +535,8 @@ export default function LedgerView({
                     onAddSubtask={onAddSubtask}
                     onToggleSubtask={onToggleSubtask}
                     onDeleteSubtask={onDeleteSubtask}
-                    onReorderSubtask={onReorderSubtask}
+                    onUpdateContent={onUpdateContent}
+                    onUpdateSubtasks={onUpdateSubtasks}
                     onUpdateSubtaskTitle={onUpdateSubtaskTitle}
                   />
                 </SortableItem>
@@ -568,6 +623,8 @@ export default function LedgerView({
                           onDeleteSubtask={onDeleteSubtask}
                           onReorderSubtask={onReorderSubtask}
                           onUpdateSubtaskTitle={onUpdateSubtaskTitle}
+                          onUpdateSubtasks={onUpdateSubtasks}
+                          onUpdateContent={onUpdateContent}
                         />
                       </div>
                     </div>
@@ -601,21 +658,39 @@ function TicketCard({
   onAddSubtask,
   onToggleSubtask,
   onDeleteSubtask,
-  onReorderSubtask,
   onUpdateSubtaskTitle,
+  onUpdateSubtasks,
+  onUpdateContent,
 }: any) {
   const meta = item.metadata || {};
-  const [title, setTitle] = useState(item.title);
   const [expanded, setExpanded] = useState(false);
-  const [subtaskTitle, setSubtaskTitle] = useState("");
   const [isLocked, setIsLocked] = useState(true);
 
-  if (
-    item.title !== title &&
-    document.activeElement?.id !== `title-${item.id}`
-  ) {
-    setTitle(item.title);
-  }
+  // --- LIFTED STATE FOR MANUAL SAVE ---
+  const [localTitle, setLocalTitle] = useState(item.title);
+  const [localContent, setLocalContent] = useState(item.content || "");
+  const [localSubtasks, setLocalSubtasks] = useState(item.subtasks || []);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Sync if item changes from outside
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      setLocalTitle(item.title);
+      setLocalContent(item.content || "");
+      setLocalSubtasks(item.subtasks || []);
+    }
+  }, [item, hasUnsavedChanges]);
+
+  const handleSave = () => {
+    if (localTitle !== item.title) {
+      onUpdateTitle(item.id, localTitle);
+    }
+    if (localContent !== item.content) {
+      onUpdateContent(item.id, localContent);
+    }
+    onUpdateSubtasks(item.id, localSubtasks);
+    setHasUnsavedChanges(false);
+  };
 
   const dateStr = new Date(item.created_at).toLocaleDateString(undefined, {
     month: "short",
@@ -628,13 +703,6 @@ function TicketCard({
 
   const handleMetaChange = (field: string, value: string) => {
     onUpdateMetadata(item.id, { ...meta, [field]: value });
-  };
-
-  const handleSubmitSub = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!subtaskTitle.trim() || !onAddSubtask) return;
-    onAddSubtask(item.id, subtaskTitle);
-    setSubtaskTitle("");
   };
 
   const safeSubtasks = item.subtasks || [];
@@ -738,9 +806,9 @@ function TicketCard({
         </button>
         <div className="flex-1 min-w-0 flex items-center gap-3">
           <span
-            className={`text-sm font-bold truncate ${isCompleted ? "text-slate-600 line-through" : "text-slate-200"}`}
+            className={`text-sm font-bold ${isCompleted ? "text-slate-600 line-through" : "text-slate-200"}`}
           >
-            {title}
+            {localTitle}
           </span>
           {item.metadata?.is_favorite && (
             <Star size={10} className="text-amber-400 fill-amber-400 shrink-0" />
@@ -758,6 +826,13 @@ function TicketCard({
               {item.tags.slice(0, 1).map((t: string) => (
                 <span key={t} className="text-[8px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-white/5 font-bold uppercase">{t}</span>
               ))}
+            </div>
+          )}
+
+          {/* UNSAVED CHANGES INDICATOR (Compact Level) */}
+          {hasUnsavedChanges && (
+            <div className="flex items-center gap-2 animate-pulse ml-2 px-1 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
             </div>
           )}
         </div>
@@ -779,6 +854,18 @@ function TicketCard({
           >
             <Edit2 size={12} />
           </button>
+          {hasUnsavedChanges && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSave();
+              }}
+              className="p-1.5 text-amber-500 hover:text-white hover:bg-amber-500 rounded transition-all animate-pulse"
+              title="Save Changes"
+            >
+              <Save size={12} strokeWidth={3} />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -819,31 +906,31 @@ function TicketCard({
       {/* CENTER: CONTENT */}
       <div className="flex-1 min-w-0 flex flex-col gap-2 w-full">
         {/* TITLE - BIGGER TEXT ON DESKTOP */}
-        {isLocked ? (
-          <h3
-            className={`flex-1 text-sm md:text-lg font-bold w-full min-w-0 cursor-pointer transition-colors leading-tight line-clamp-1 ${isCompleted ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded(!expanded);
-            }}
-          >
-            {title}
-          </h3>
-        ) : (
-          <input
-            id={`title-${item.id}`}
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => {
-              if (title !== item.title) onUpdateTitle(item.id, title);
-            }}
-            onPointerDown={stopProp}
-            onKeyDown={stopProp}
-            className={`flex-1 bg-transparent text-sm md:text-lg font-bold w-full min-w-0 focus:outline-none focus:border-b focus:border-purple-500/50 pb-1 transition-colors ${isCompleted ? "text-slate-600 line-through" : "text-slate-100"}`}
-            autoFocus
-          />
-        )}
+        <div
+          className={`flex-1 flex items-center gap-3 w-full min-w-0 cursor-pointer transition-colors leading-tight ${isCompleted ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
+        >
+          <div className="flex-1 min-w-0 flex items-center gap-3">
+            {!isLocked ? (
+              <input
+                id={`title-${item.id}`}
+                value={localTitle}
+                onChange={(e) => {
+                  setLocalTitle(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
+                className="bg-black/20 px-2 py-0.5 rounded-lg w-full font-bold text-sm leading-tight focus:outline-none placeholder:text-slate-600 text-white shadow-inner"
+              />
+            ) : (
+              <h4 className="text-sm font-bold text-slate-200 truncate">
+                {localTitle}
+              </h4>
+            )}
+          </div>
+        </div>
 
         {/* METADATA ROW */}
         <div className="flex items-center gap-2 text-[10px] flex-wrap justify-between w-full">
@@ -872,17 +959,34 @@ function TicketCard({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-2 opacity-100 group-hover:opacity-100 transition-opacity">
+            {hasUnsavedChanges && (
+              <div className="flex items-center gap-2 animate-pulse px-1 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 translate-y-[2px]">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+              </div>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setIsLocked(!isLocked);
               }}
               className={`p-1.5 rounded transition-colors ${!isLocked ? "text-cyan-400 bg-cyan-500/10" : "text-slate-500 hover:text-white hover:bg-white/5"}`}
-              title={isLocked ? "Unlock to Edit" : "Lock Task"}
+              title={!isLocked ? "Lock Task" : "Unlock to Edit"}
             >
-              {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
+              {!isLocked ? <Unlock size={12} /> : <Lock size={12} />}
             </button>
+            {hasUnsavedChanges && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSave();
+                }}
+                className="p-1.5 rounded-lg bg-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white shadow-[0_0_10px_rgba(245,158,11,0.2)] transition-all animate-pulse"
+                title="Save Changes"
+              >
+                <Save size={14} strokeWidth={3} />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -993,126 +1097,28 @@ function TicketCard({
             <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
               <CheckSquare size={12} className="text-purple-500" /> Checklist
             </h5>
-
-            <div className="space-y-2 mb-4">
-              {safeSubtasks.map((sub: any, idx: number) => (
-                <div
-                  key={sub.id}
-                  className="flex items-start gap-3 group/sub relative bg-white/5 p-2 rounded-lg border border-white/5 hover:border-white/10 transition-colors"
-                >
-                  <div className="flex flex-col gap-0.5 mt-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
-                    <button
-                      disabled={idx === 0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onReorderSubtask &&
-                          onReorderSubtask(item.id, sub.id, "up");
-                      }}
-                      className="text-slate-600 hover:text-white disabled:opacity-20"
-                    >
-                      <ArrowUp size={8} />
-                    </button>
-                    <button
-                      disabled={idx === safeSubtasks.length - 1}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onReorderSubtask &&
-                          onReorderSubtask(item.id, sub.id, "down");
-                      }}
-                      className="text-slate-600 hover:text-white disabled:opacity-20"
-                    >
-                      <ArrowDown size={8} />
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      onToggleSubtask &&
-                      onToggleSubtask(item.id, sub.id, sub.status)
-                    }
-                    className={`w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center shrink-0 transition-all ${sub.status === "completed"
-                      ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                      : "border-slate-500 hover:border-indigo-400"
-                      }`}
-                  >
-                    {sub.status === "completed" && (
-                      <Check size={10} className="text-white font-black" />
-                    )}
-                  </button>
-
-                  {/* EDITABLE SUBTASK INPUT */}
-                  {!isLocked && onUpdateSubtaskTitle ? (
-                    <input
-                      type="text"
-                      defaultValue={sub.title}
-                      onBlur={(e) => {
-                        if (e.target.value !== sub.title) {
-                          onUpdateSubtaskTitle(item.id, sub.id, e.target.value);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.currentTarget.blur();
-                        }
-                        e.stopPropagation();
-                      }}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      className={`flex-1 bg-transparent text-sm border-b border-transparent focus:border-purple-500/50 focus:outline-none transition-all ${sub.status === "completed"
-                        ? "line-through text-slate-600"
-                        : "text-slate-200 font-medium"
-                        }`}
-                    />
-                  ) : (
-                    <span
-                      className={`text-sm break-words leading-relaxed pt-0.5 transition-all ${sub.status === "completed"
-                        ? "line-through text-slate-600"
-                        : "text-slate-200 font-medium"
-                        }`}
-                    >
-                      {sub.title}
-                    </span>
-                  )}
-
-                  <button
-                    onClick={() =>
-                      onDeleteSubtask && onDeleteSubtask(item.id, sub.id)
-                    }
-                    className="md:opacity-0 group-hover/sub:opacity-100 text-slate-600 hover:text-rose-400 ml-auto p-1"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              ))}
+            {/* NEW ENHANCED DETAILS */}
+            <div className="pt-4 border-t border-white/5">
+              <TaskDetails
+                item={item}
+                onAddSubtask={onAddSubtask}
+                onToggleSubtask={onToggleSubtask}
+                onDeleteSubtask={onDeleteSubtask}
+                onUpdateContent={onUpdateContent}
+                onUpdateSubtaskTitle={onUpdateSubtaskTitle}
+                onUpdateSubtasks={onUpdateSubtasks}
+                isEditing={!isLocked}
+                localTitle={localTitle}
+                setLocalTitle={setLocalTitle}
+                localContent={localContent}
+                setLocalContent={setLocalContent}
+                localSubtasks={localSubtasks}
+                setLocalSubtasks={setLocalSubtasks}
+                hasUnsavedChanges={hasUnsavedChanges}
+                setHasUnsavedChanges={setHasUnsavedChanges}
+                handleSave={handleSave}
+              />
             </div>
-
-            {item.status !== "archived" && onAddSubtask && (
-              <form
-                onSubmit={handleSubmitSub}
-                className="flex items-center gap-2 relative bg-black/20 border border-white/10 focus-within:bg-purple-500/5 focus-within:border-purple-500/50 rounded-xl transition-all"
-              >
-                <CornerDownRight
-                  size={14}
-                  className="text-slate-600 shrink-0 ml-3"
-                />
-                <input
-                  type="text"
-                  value={subtaskTitle}
-                  onChange={(e) => setSubtaskTitle(e.target.value)}
-                  onPointerDown={stopProp}
-                  onKeyDown={stopProp}
-                  // Removed isLocked check for adding subtasks - always allowed if item is not archived
-                  placeholder={isLocked ? "Unlock to add..." : "New step..."}
-                  className="bg-transparent text-sm text-white font-medium w-full px-2 py-2.5 focus:outline-none placeholder:text-slate-600"
-                />
-                <button
-                  type="submit"
-                  disabled={isLocked}
-                  className="text-slate-500 hover:text-purple-400 p-2 pr-3 transition-colors disabled:opacity-50"
-                >
-                  <Plus size={16} />
-                </button>
-              </form>
-            )}
           </div>
         )}
       </div>

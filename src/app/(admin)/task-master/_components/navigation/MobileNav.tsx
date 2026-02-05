@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Menu, X, Lightbulb, CheckSquare, Bug, GraduationCap, Code2, Share2, ChevronRight, Sparkles } from "lucide-react";
 import { ViewType } from "../utils/types";
 
@@ -9,7 +9,7 @@ interface MobileNavProps {
     onChange: (view: ViewType) => void;
 }
 
-export default function MobileNav({ activeView, onChange }: MobileNavProps) {
+function MobileNavComponent({ activeView, onChange }: MobileNavProps) {
     const [isOpen, setIsOpen] = useState(false);
 
     const navItems = [
@@ -141,3 +141,5 @@ export default function MobileNav({ activeView, onChange }: MobileNavProps) {
         </div>
     );
 }
+
+export default memo(MobileNavComponent);

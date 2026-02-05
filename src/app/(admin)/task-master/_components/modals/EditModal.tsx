@@ -92,7 +92,7 @@ export default function EditModal({
   const isResource = itemType === "resource" || itemType === "social_bookmark";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 md:p-4">
       {/* BACKDROP */}
       <div
         className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
@@ -348,8 +348,8 @@ export default function EditModal({
                   : "Add your thoughts, details, notes..."
               }
               className={`w-full min-h-[300px] bg-black/40 border border-white/5 rounded-2xl p-6 focus:outline-none focus:border-purple-500/50 transition-all resize-y ${isCodex
-                  ? "font-mono text-sm text-emerald-400"
-                  : "text-base leading-relaxed text-slate-200"
+                ? "font-mono text-sm text-emerald-400"
+                : "text-base leading-relaxed text-slate-200"
                 }`}
             />
           </div>

@@ -10,6 +10,7 @@ import {
   Loader2,
   Search,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import { addGlobalTag } from "../../actions";
 
@@ -17,6 +18,7 @@ interface TagManagerProps {
   selectedTags: string[];
   allSystemTags: string[];
   onUpdateTags: (newTags: string[]) => void;
+  onDeleteTag?: (tag: string) => void;
   disabled?: boolean;
 }
 
@@ -24,6 +26,7 @@ export default function TagManager({
   selectedTags = [],
   allSystemTags = [],
   onUpdateTags,
+  onDeleteTag,
   disabled = false,
 }: TagManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,7 +50,9 @@ export default function TagManager({
 
   const AVAILABLE_TAGS = useMemo(() => {
     const set = new Set([...allSystemTags, ...selectedTags]);
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase()),
+    );
   }, [allSystemTags, selectedTags]);
 
   const filteredTags = useMemo(() => {
@@ -102,14 +107,11 @@ export default function TagManager({
     if (isOpen) {
       document.addEventListener("mousedown", handleInteraction);
       document.addEventListener("touchstart", handleInteraction);
-      if (!isMobile)
-        window.addEventListener("scroll", () => setIsOpen(false), true);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleInteraction);
       document.removeEventListener("touchstart", handleInteraction);
-      window.removeEventListener("scroll", () => setIsOpen(false), true);
     };
   }, [isOpen, isMobile]);
 
@@ -151,6 +153,7 @@ export default function TagManager({
           >
             {tag}
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 if (!disabled)
@@ -166,15 +169,16 @@ export default function TagManager({
 
         {/* FIXED: Compact '+' Button */}
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             isOpen ? setIsOpen(false) : openDropdown();
           }}
           className={`flex items-center justify-center w-6 h-6 rounded-md border transition-all shadow-inner ${disabled
-              ? "opacity-50 cursor-not-allowed bg-white/5 border-white/10 text-slate-500"
-              : isOpen
-                ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10"
+            ? "opacity-50 cursor-not-allowed bg-white/5 border-white/10 text-slate-500"
+            : isOpen
+              ? "bg-purple-500 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+              : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10"
             }`}
           disabled={disabled}
           title="Add Tag"
@@ -221,8 +225,8 @@ export default function TagManager({
                   }
               }
               className={`flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 shadow-2xl z-[99999] p-2 animate-in duration-200 ${isMobile
-                  ? "slide-in-from-bottom-10 fade-in"
-                  : "rounded-2xl zoom-in-95 fade-in"
+                ? "slide-in-from-bottom-10 fade-in"
+                : "rounded-2xl zoom-in-95 fade-in"
                 }`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -259,24 +263,44 @@ export default function TagManager({
                 {filteredTags.map((tag) => {
                   const isSelected = selectedTags.includes(tag);
                   return (
-                    <button
+                    <div
                       key={tag}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleTag(tag);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${isSelected
+                      className="group/item relative flex items-center"
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleTag(tag);
+                        }}
+                        className={`flex-1 text-left px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors ${isSelected
                           ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
                           : "hover:bg-white/5 text-slate-300 hover:text-white"
-                        }`}
-                    >
-                      {tag} {isSelected && <Check size={14} />}
-                    </button>
+                          }`}
+                      >
+                        {tag} {isSelected && <Check size={14} />}
+                      </button>
+
+                      {onDeleteTag && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteTag(tag);
+                          }}
+                          className="absolute right-1 opacity-0 group-hover/item:opacity-100 p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-all"
+                          title="Delete Tag Globally"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
 
                 {inputValue.trim() !== "" && !exactMatchFound && (
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleCreateTag();

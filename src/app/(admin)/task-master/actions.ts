@@ -26,3 +26,20 @@ export async function addGlobalTag(tagName: string) {
     revalidatePath("/(admin)/task-master", "page");
     return { success: true };
 }
+
+export async function deleteGlobalTag(tagName: string) {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from("distinct_tags")
+        .delete()
+        .eq("tag_name", tagName);
+
+    if (error) {
+        console.error("Error deleting global tag:", error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath("/(admin)/task-master", "page");
+    return { success: true };
+}

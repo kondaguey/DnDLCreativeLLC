@@ -12,7 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, memo } from "react";
 import styles from "../../task-master.module.css";
 import { ViewType } from "../utils/types";
 
@@ -23,7 +23,7 @@ interface SidebarNavProps {
   onToggleCollapse: () => void;
 }
 
-export default function SidebarNav({ activeView, onChange, isCollapsed, onToggleCollapse }: SidebarNavProps) {
+function SidebarNav({ activeView, onChange, isCollapsed, onToggleCollapse }: SidebarNavProps) {
   const navItems = [
     {
       id: "idea_board",
@@ -81,7 +81,7 @@ export default function SidebarNav({ activeView, onChange, isCollapsed, onToggle
           {!isCollapsed && (
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all hover:-translate-x-1"
+              className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors hover:-translate-x-1 duration-200"
             >
               <ChevronLeft size={16} /> Command Center
             </Link>
@@ -89,7 +89,7 @@ export default function SidebarNav({ activeView, onChange, isCollapsed, onToggle
 
           <button
             onClick={onToggleCollapse}
-            className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all active:scale-95"
+            className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors active:scale-95 duration-200"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isCollapsed ? (
@@ -121,7 +121,7 @@ export default function SidebarNav({ activeView, onChange, isCollapsed, onToggle
             key={item.id}
             onClick={() => onChange(item.id as ViewType)}
             /* iPad scaling: Wider min-width, larger padding (md:p-5), and rounded-3xl for that iOS feel */
-            className={`snap-center shrink-0 min-w-[140px] md:min-w-[180px] max-w-[200px] h-full flex flex-col p-4 md:p-5 rounded-3xl md:rounded-[32px] border text-left transition-all shadow-lg active:scale-95 ${activeView === item.id
+            className={`snap-center shrink-0 min-w-[140px] md:min-w-[180px] max-w-[200px] h-full flex flex-col p-4 md:p-5 rounded-3xl md:rounded-[32px] border text-left transition-colors duration-200 shadow-lg active:scale-95 ${activeView === item.id
               ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
               : "bg-slate-900/60 backdrop-blur-md border-white/5 hover:bg-white/5"
               }`}
@@ -130,7 +130,7 @@ export default function SidebarNav({ activeView, onChange, isCollapsed, onToggle
               className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl w-fit ${activeView === item.id
                 ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]"
                 : "bg-white/5 text-slate-400"
-                } transition-all`}
+                } transition-colors duration-200`}
             >
               {item.icon}
             </div>
@@ -152,19 +152,21 @@ export default function SidebarNav({ activeView, onChange, isCollapsed, onToggle
   );
 }
 
+export default memo(SidebarNav);
+
 // --- DESKTOP BUTTON COMPONENT ---
-function NavButton({ active, isCollapsed, onClick, icon, label, sub }: any) {
+const NavButton = memo(function NavButton({ active, isCollapsed, onClick, icon, label, sub }: any) {
   return (
     <button
       onClick={onClick}
       title={isCollapsed ? `${label} - ${sub}` : undefined}
-      className={`group w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${active
+      className={`group w-full flex items-center gap-4 p-4 rounded-2xl transition-colors duration-200 border ${active
         ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
         : "bg-transparent border-transparent hover:bg-white/5 hover:border-white/10"
         } ${isCollapsed ? "justify-center" : "justify-start"}`}
     >
       <div
-        className={`p-2 rounded-xl shrink-0 transition-all ${active ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]" : "bg-white/5 text-slate-400 group-hover:text-slate-200"}`}
+        className={`p-2 rounded-xl shrink-0 transition-colors duration-200 ${active ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]" : "bg-white/5 text-slate-400 group-hover:text-slate-200"}`}
       >
         {icon}
       </div>
@@ -185,4 +187,4 @@ function NavButton({ active, isCollapsed, onClick, icon, label, sub }: any) {
       )}
     </button>
   );
-}
+});

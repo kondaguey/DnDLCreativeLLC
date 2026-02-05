@@ -46,6 +46,9 @@ import {
   Send,
   AlignLeft,
   Loader2,
+  Tag,
+  Star,
+  ChevronUp
 } from "lucide-react";
 
 import { TaskItem, ViewType, SortOption } from "../utils/types";
@@ -62,7 +65,7 @@ interface ResourceGridProps {
   searchQuery?: string;
   activePeriod?: string;
   onUpdateTitle: (id: string, title: string) => void;
-  onAdd: (title: string, link: string, notes: string) => void;
+  onAdd: (title: string, link: string, notes: string, tags: string[], isFavorite: boolean) => void;
   isAdding?: boolean;
   onUpdateContent: (id: string, content: string) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
@@ -73,6 +76,7 @@ interface ResourceGridProps {
   onReorder: (draggedId: string, targetId: string) => void;
   onManualMove?: (id: string, direction: "up" | "down") => void;
   onEdit?: (item: TaskItem) => void;
+  onDeleteTag?: (tag: string) => void;
 }
 
 const getEffectiveDate = (item: TaskItem): Date => {
@@ -98,11 +102,16 @@ export default function ResourceGrid({
   onManualMove,
   onEdit,
   onAdd,
+  onDeleteTag,
   isAdding = false,
 }: ResourceGridProps) {
   const [newTitle, setNewTitle] = useState("");
   const [newLink, setNewLink] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [newTags, setNewTags] = useState<string[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(true);
+
 
   const [viewMode, setViewMode] = useState<"list" | "grid" | "compact">("grid");
 
@@ -200,68 +209,103 @@ export default function ResourceGrid({
             <LayoutGrid size={16} />
           </button>
         </div>
+
+        <button
+          onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+          className={`ml-4 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-lg ${isQuickAddOpen ? "bg-cyan-600/20 text-cyan-400 border-cyan-500/30" : "bg-slate-800 text-slate-400 border-white/5 hover:text-white"}`}
+        >
+          {isQuickAddOpen ? <ChevronUp size={14} /> : <Plus size={14} />}
+          {isQuickAddOpen ? "Hide Form" : "Quick Add"}
+        </button>
       </div>
 
       <div className="pb-24 md:pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* QUICK ADD CARD */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!newTitle.trim() && !newLink.trim()) return;
-            onAdd(newTitle, newLink, newNotes);
-            setNewTitle("");
-            setNewLink("");
-            setNewNotes("");
-          }}
-          className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl mb-8 group transition-all focus-within:border-cyan-500/30 max-w-4xl mx-auto"
-        >
-          <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-            <div className="bg-cyan-500/10 p-1.5 rounded-lg border border-cyan-500/20">
-              <LinkIcon size={14} className="text-cyan-500" />
+        {isQuickAddOpen && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!newTitle.trim() && !newLink.trim()) return;
+              onAdd(newTitle.trim() || "Untitled Resource", newLink, newNotes, newTags, isFavorite);
+              setNewTitle("");
+              setNewLink("");
+              setNewNotes("");
+              setNewTags([]);
+              setIsFavorite(false);
+            }}
+            className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 flex flex-col gap-4 shadow-2xl mb-8 group transition-all focus-within:border-cyan-500/30 max-w-4xl mx-auto"
+          >
+            <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+              <div className="bg-cyan-500/10 p-1.5 rounded-lg border border-cyan-500/20">
+                <LinkIcon size={14} className="text-cyan-500" />
+              </div>
+              <input
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="New Resource Title..."
+                className="bg-transparent w-full text-sm font-black text-white placeholder:text-slate-600 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setIsFavorite(!isFavorite)}
+                className={`p-2 rounded-lg transition-all ${isFavorite ? "text-cyan-400 bg-cyan-400/10 border border-cyan-400/20" : "text-slate-600 border border-transparent hover:text-slate-100"}`}
+              >
+                <Star size={16} fill={isFavorite ? "currentColor" : "none"} />
+              </button>
             </div>
-            <input
-              type="text"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="New Resource Title..."
-              className="bg-transparent w-full text-sm font-black text-white placeholder:text-slate-600 focus:outline-none"
-            />
-          </div>
 
-          <div className="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2 border border-white/5">
-            <ExternalLink size={14} className="text-slate-500" />
-            <input
-              type="text"
-              value={newLink}
-              onChange={(e) => setNewLink(e.target.value)}
-              placeholder="https://..."
-              className="bg-transparent w-full text-xs text-cyan-400 font-mono focus:outline-none placeholder:text-slate-800"
-            />
-          </div>
+            <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2 border border-white/5">
+                <ExternalLink size={14} className="text-slate-500" />
+                <input
+                  type="text"
+                  value={newLink}
+                  onChange={(e) => setNewLink(e.target.value)}
+                  placeholder="https://..."
+                  className="bg-transparent w-full text-xs text-cyan-400 font-mono focus:outline-none placeholder:text-slate-800"
+                />
+              </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
-              <AlignLeft size={12} /> Notes / Description
-            </span>
-            <textarea
-              value={newNotes}
-              onChange={(e) => setNewNotes(e.target.value)}
-              placeholder="What is this resource for?"
-              className="w-full bg-black/20 rounded-xl p-3 text-xs text-slate-300 focus:outline-none resize-none h-16 border border-white/5 focus:border-white/10 placeholder:text-slate-700"
-            />
-          </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1 pl-1">
+                  <AlignLeft size={12} /> Notes / Description
+                </span>
+                <textarea
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="What is this resource for?"
+                  className="w-full bg-black/20 rounded-xl p-3 text-xs text-slate-300 focus:outline-none resize-none h-16 border border-white/5 focus:border-white/10 placeholder:text-slate-700"
+                />
+              </div>
 
-          <div className="flex justify-end pt-1">
-            <button
-              type="submit"
-              disabled={isAdding || (!newTitle.trim() && !newLink.trim())}
-              className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest grow md:grow-0 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-cyan-500/20"
-            >
-              {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Add Resource"}
-              {!isAdding && <Send size={12} />}
-            </button>
-          </div>
-        </form>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5 pl-1">
+                  <Tag size={10} /> Tags
+                </label>
+                <div className="bg-black/20 rounded-xl p-2 border border-white/5">
+                  <TagManager
+                    selectedTags={newTags}
+                    allSystemTags={allSystemTags}
+                    onUpdateTags={setNewTags}
+                    onDeleteTag={onDeleteTag}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="submit"
+                disabled={isAdding || (!newTitle.trim() && !newLink.trim())}
+                className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest grow md:grow-0 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-cyan-500/20"
+              >
+                {isAdding ? <Loader2 className="animate-spin" size={12} /> : "Add Resource"}
+                {!isAdding && <Send size={12} />}
+              </button>
+            </div>
+          </form>
+        )}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -411,6 +455,7 @@ function ResourceCard({
   onManualMove,
   onEdit,
   viewMode,
+  onDeleteTag,
 }: any) {
   const [content, setContent] = useState(item.content || "");
   const [title, setTitle] = useState(item.title);
@@ -488,7 +533,7 @@ function ResourceCard({
         )}
 
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-200 truncate">{title}</span>
+          <span className="text-sm font-bold text-slate-200">{title}</span>
           <span className="text-[10px] text-slate-500 font-mono hidden sm:inline-block">{displayDate}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -498,6 +543,7 @@ function ResourceCard({
             </a>
           )}
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onEdit && onEdit(item);
@@ -507,6 +553,7 @@ function ResourceCard({
             <Edit2 size={12} />
           </button>
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(item.id);
@@ -542,7 +589,7 @@ function ResourceCard({
           <div className="flex-1 min-w-0 w-full space-y-2">
             {/* TITLE */}
             {isLocked ? (
-              <h3 className="text-sm md:text-lg font-black text-slate-100 w-full line-clamp-2 md:truncate cursor-default">
+              <h3 className="text-sm md:text-lg font-black text-slate-100 w-full cursor-default">
                 {title}
               </h3>
             ) : (
@@ -552,7 +599,7 @@ function ResourceCard({
                 onBlur={() => {
                   if (title !== item.title) onUpdateTitle(item.id, title);
                 }}
-                className="bg-black/40 rounded px-2 py-0.5 text-sm md:text-lg font-black text-slate-100 w-full focus:outline-none placeholder:text-slate-600 border border-cyan-500/30"
+                className="bg-black/40 rounded px-2 py-0.5 text-sm md:text-lg font-black text-white w-full focus:outline-none placeholder:text-slate-600 border border-cyan-500/30 opacity-100 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
                 placeholder="Resource Title..."
                 autoFocus
               />
@@ -612,6 +659,7 @@ function ResourceCard({
             selectedTags={item.tags || []}
             allSystemTags={allSystemTags}
             onUpdateTags={(t) => onUpdateTags(item.id, t)}
+            onDeleteTag={onDeleteTag}
           />
         </div>
 
