@@ -502,7 +502,7 @@ function TaskView({
               <button
                 type="button"
                 onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === "list"
+                className={`hidden md:block p-1.5 rounded-lg transition-all ${viewMode === "list"
                   ? "bg-slate-700 text-white shadow-inner"
                   : "text-slate-500 hover:text-white"
                   }`}

@@ -12,9 +12,9 @@ interface RecurringBadgeProps {
 export default function RecurringBadge({ recurrence, dueDate, isSatisfied }: RecurringBadgeProps) {
     if (!recurrence || recurrence === "one_off") return null;
 
-    // If satisfied, the passed dueDate is actually the NEXT deadline
-    const currentDeadline = isSatisfied ? getPrevCycleDeadline(dueDate || null, recurrence) : dueDate;
-    const nextDeadline = isSatisfied ? dueDate : null;
+    // When satisfied, dueDate is the NEXT period. getPrevCycleDeadline gives us the CURRENT period we just met.
+    const currentDeadline = isSatisfied ? getPrevCycleDeadline(dueDate || null, recurrence) : (dueDate || null);
+    const nextDeadline = isSatisfied ? (dueDate || null) : null;
 
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -27,7 +27,7 @@ export default function RecurringBadge({ recurrence, dueDate, isSatisfied }: Rec
                 <CountdownTimer
                     targetDate={currentDeadline}
                     variant={isSatisfied ? "green" : "gray"}
-                    label={isSatisfied ? "Claimed" : "Period"}
+                    label={isSatisfied ? "Ahead" : "Period"}
                 />
             )}
 
@@ -35,7 +35,7 @@ export default function RecurringBadge({ recurrence, dueDate, isSatisfied }: Rec
                 <CountdownTimer
                     targetDate={nextDeadline}
                     variant="gray"
-                    label="Upcoming"
+                    label="Due Next"
                 />
             )}
         </div>

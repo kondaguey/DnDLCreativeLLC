@@ -297,7 +297,7 @@ export default function IdeaBoard({
           <button
             type="button"
             onClick={() => setViewMode("list")}
-            className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
+            className={`hidden md:block p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white/10 text-white shadow-md" : "text-slate-500 hover:text-white"}`}
             title="Expanded Line"
           >
             <StretchVertical size={16} />

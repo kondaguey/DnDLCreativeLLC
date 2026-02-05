@@ -406,7 +406,8 @@ export default function TaskMasterShell({
       }));
 
       const stats = calculateStats(newLog.map(d => d.split(" @ ")[0]), item.created_at || new Date().toISOString(), item.recurrence || "daily", item.metadata);
-      const nextDate = calculateStandardDueDate(newLog, item.recurrence || "daily");
+      // Advance from the ORIGINAL due date, not from today
+      const nextDate = calcNextDueDate(item.due_date || todayVal, item.recurrence || "daily");
 
       const newMeta = {
         ...item.metadata,
@@ -1480,18 +1481,22 @@ export default function TaskMasterShell({
             const id = uncheckCandidate;
             const item = items.find(i => i.id === id);
             if (item) {
-              import("../utils/dateUtils").then(({ getTodayString, calculateStats, calculateStandardDueDate }) => {
+              import("../utils/dateUtils").then(({ getTodayString, calculateStats, getPrevCycleDeadline }) => {
                 const todayVal = getTodayString();
                 const currentLog = (item.metadata?.completed_dates as string[]) || [];
                 // Filter out any entry starting with today's date
                 const newLog = currentLog.filter(entry => !entry.startsWith(todayVal));
-                const nextDate = calculateStandardDueDate(newLog, item.recurrence || "daily");
+
+                // IMPORTANT: Preserve the original due date!
+                // The CURRENT due_date was advanced after completing, so we roll it back using getPrevCycleDeadline
+                const originalDueDate = getPrevCycleDeadline(item.due_date || null, item.recurrence || "daily");
+
                 const stats = calculateStats(newLog.map(d => d.split(" @ ")[0]), item.created_at || new Date().toISOString(), item.recurrence || "daily", item.metadata);
                 const newMeta = { ...item.metadata, completed_dates: newLog, streak: stats.streak };
 
-                setItems(prev => prev.map(i => i.id === id ? { ...i, due_date: nextDate, metadata: newMeta } : i));
-                supabase.from("task_master_items").update({ due_date: nextDate, metadata: newMeta }).eq("id", id).then();
-                showToast("success", "Task unchecked. Due today.");
+                setItems(prev => prev.map(i => i.id === id ? { ...i, due_date: originalDueDate, metadata: newMeta } : i));
+                supabase.from("task_master_items").update({ due_date: originalDueDate, metadata: newMeta }).eq("id", id).then();
+                showToast("success", `Task unchecked. Due: ${originalDueDate}`);
               });
             }
           }
