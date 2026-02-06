@@ -22,7 +22,7 @@
   --animate-slide-up: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-gradient-xy: gradient-xy 3s ease infinite;
   --animate-gradient-x: gradient-x 10s ease infinite;
-  --animate-ticker: ticker 30s linear infinite;
+  --animate-ticker: ticker 65s linear infinite;
   --animate-glitch: glitch 4000ms infinite;
   --animate-wave: wave 2.5s ease-in-out infinite;
   --animate-glow-usa: glow-usa 4s linear infinite;

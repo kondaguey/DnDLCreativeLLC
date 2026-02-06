@@ -21,23 +21,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const currencies = [
-  { flag: "🇺🇸", name: "United States Dollar", symbol: "$", code: "USD" },
-  { flag: "🇪🇺", name: "Euro", symbol: "€", code: "EUR" },
-  { flag: "🇬🇧", name: "Great British Pound", symbol: "£", code: "GBP" },
-  { flag: "🇨🇦", name: "Canadian Dollar", symbol: "$", code: "CAD" },
-  { flag: "🇦🇺", name: "Australian Dollar", symbol: "$", code: "AUD" },
-  { flag: "🇯🇵", name: "Japanese Yen", symbol: "¥", code: "JPY" },
-  { flag: "🇨🇳", name: "Chinese Yuan", symbol: "¥", code: "CNY" },
-  { flag: "🇭🇰", name: "Hong Kong Dollar", symbol: "$", code: "HKD" },
-  { flag: "🇸🇬", name: "Singapore Dollar", symbol: "$", code: "SGD" },
-  { flag: "🇰🇷", name: "South Korean Won", symbol: "₩", code: "KRW" },
-  { flag: "🇳🇿", name: "New Zealand Dollar", symbol: "$", code: "NZD" },
-  { flag: "🇨🇭", name: "Swiss Franc", symbol: "Fr", code: "CHF" },
-  { flag: "🇵🇱", name: "Polish Złoty", symbol: "zł", code: "PLN" },
-  { flag: "🇹🇼", name: "Taiwan Dollar", symbol: "$", code: "TWD" },
-];
 import Image from "next/image";
+import { WiseCard } from "@/components/payments/WiseCard";
+import { StripeCard } from "@/components/payments/StripeCard";
+import { BillCard } from "@/components/payments/BillCard";
+import { PaypalCard } from "@/components/payments/PaypalCard";
+import { CookieConsent } from "@/components/legal/CookieConsent";
 
 // --- Components ---
 
@@ -181,7 +170,6 @@ function PolicyCard({
 export default function Page() {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isPolicyAccepted, setIsPolicyAccepted] = useState(false);
-  const [stripeRegion, setStripeRegion] = useState("SK");
   const now = new Date();
   const year = now.getFullYear();
   const month = now.toLocaleString("default", { month: "long" });
@@ -556,419 +544,12 @@ export default function Page() {
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-                    {/* 1. WISE - THE ACH PREFERRED SETTLEMENT */}
-                    <div className="bg-slate-900 text-white p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-2xl relative overflow-hidden group border border-slate-800">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#9FE870]/10 rounded-full -mr-32 -mt-32 blur-3xl transition-opacity group-hover:opacity-100 opacity-50" />
-                      <div className="relative z-10 flex flex-col h-full">
-                        <div className="flex items-center justify-between mb-8">
-                          <img
-                            src="/images/payments/wise-logo.png"
-                            alt="Wise Logo"
-                            className="h-20 md:h-24 w-auto"
-                          />
-                          <div className="pl-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 italic">
-                            Preferred for ACH / Direct Transfers
-                          </div>
-                        </div>
-
-                        <div className="mb-6">
-
-                          <h3 className="text-3xl font-black uppercase tracking-tighter mb-4">
-                            Domestic & International Settlement
-                          </h3>
-                          <p className="text-slate-400 font-medium text-sm leading-relaxed">
-                            Our primary engine for high-value direct transfers
-                            and international business settlements. Optimized
-                            for zero-margin exchange rates and fast ACH routing.
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mb-8">
-                          <div className="space-y-2">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-[#9FE870]">
-                              The Pros
-                            </p>
-                            <ul className="text-[11px] text-slate-300 space-y-1 font-bold italic">
-                              <li>• Lowest possible fees</li>
-                              <li>• Real-time exchange rates</li>
-                              <li>• Efficient ACH routing</li>
-                            </ul>
-                          </div>
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-red-500">
-                                The Cons
-                              </p>
-                              <ul className="text-[11px] text-slate-500 space-y-1 font-medium">
-                                <li>• Strict KYC requirements</li>
-                                <li>• No Amex/Discover/PayPal</li>
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Extreme Fee Warning */}
-                        <div className="p-4 bg-red-500/5 rounded-2xl border border-red-500/20 mb-6">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-red-400 mb-1">
-                            Fee Warning
-                          </p>
-                          <p className="text-[10px] text-slate-400 font-bold leading-tight italic">
-                            Extreme Credit Card Processing Fees (3.5%+) —{" "}
-                            <span className="text-red-400 font-black">
-                              ACH Highly Recommended
-                            </span>{" "}
-                            for all settlements over $1k.
-                          </p>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap gap-4 items-center">
-                            <img
-                              src="/images/payment-icons/visa.svg"
-                              alt="Visa"
-                              className="h-4 md:h-6 w-auto"
-                            />
-                            <img
-                              src="/images/payment-icons/mastercard.svg"
-                              alt="Mastercard"
-                              className="h-6 md:h-8 w-auto"
-                            />
-                            <img
-                              src="/images/payments/apple-pay-logo.jpg"
-                              alt="Apple Pay"
-                              className="h-6 md:h-10 w-auto rounded-sm"
-                            />
-                          </div>
-
-                          <div className="p-5 bg-white/5 rounded-2xl border border-white/10 overflow-hidden relative group/ticker">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-[#9FE870] mb-3 italic">
-                              Worldwide Settlement Engine
-                            </p>
-                            <div className="flex animate-ticker whitespace-nowrap gap-12 py-1">
-                              {[...currencies, ...currencies].map((curr, idx) => (
-                                <div key={idx} className="flex items-center gap-3 shrink-0">
-                                  <span className="text-base">{curr.flag}</span>
-                                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">
-                                    {curr.name} {curr.symbol}
-                                  </span>
-                                  <span className="text-[9px] font-black text-[#9FE870] opacity-80">
-                                    ({curr.code})
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-slate-900 to-transparent z-10" />
-                            <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-slate-900 to-transparent z-10" />
-                          </div>
-                        </div>
-
-                        <div className="mt-8 pt-6 border-t border-white/5">
-                          <p className="text-[9px] text-red-400/60 font-black uppercase tracking-widest italic leading-tight">
-                            Strictly No Amex / No Discover / No PayPal per
-                            Compliance
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 2. SECONDARY PAYMENT PROCESSORS */}
+                    <WiseCard />
                     <div className="grid grid-cols-1 gap-6">
-                      {/* Stripe */}
-                      <div className="bg-[#0A2540] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group border border-[#635BFF]/20">
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-[#635BFF]/20 rounded-full -mr-24 -mt-24 blur-3xl transition-opacity group-hover:opacity-100 opacity-50" />
-                        <div className="relative z-10">
-                          <div className="flex items-center justify-between mb-6">
-                            <img
-                              src="/images/payments/stripe-logo.png"
-                              alt="Stripe"
-                              className="h-10 md:h-12 w-auto rounded-xl border border-white/10 hover:scale-105 transition-transform"
-                            />
-                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic">
-                              Built for Access
-                            </div>
-                          </div>
-                          <h4 className="text-xl font-black uppercase tracking-tight mb-4">
-                            Omnichannel Checkout
-                          </h4>
-                          <div className="grid grid-cols-2 gap-6 mb-6">
-                            <div className="space-y-2">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-[#635BFF]">
-                                The Pros
-                              </p>
-                              <ul className="text-[10px] text-slate-300 space-y-1 font-bold italic">
-                                <li>• Accepts Amex & Discover</li>
-                                <li>• Fast Digital Wallet Pay</li>
-                                <li>• Global Card Coverage</li>
-                              </ul>
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-red-400/80">
-                                The Cons
-                              </p>
-                              <ul className="text-[10px] text-slate-500 space-y-1 font-medium">
-                                <li>• Standard Tx Fees</li>
-                                <li>• Verification Overhead</li>
-                              </ul>
-                            </div>
-                          </div>
-                          <div className="pt-4 border-t border-white/5 space-y-4">
-                            <div className="flex flex-wrap gap-2 items-center">
-                              {[
-                                { id: "SK", name: "South Korea", flag: "🇰🇷" },
-                                { id: "EU", name: "Europe & Italy", flag: "🇪🇺🇮🇹" },
-                                { id: "CN", name: "China", flag: "🇨🇳" },
-                                { id: "HK", name: "Hong Kong", flag: "🇭🇰" },
-                                { id: "TW", name: "Taiwan", flag: "🇹🇼" },
-                                { id: "AU", name: "Australia", flag: "🇦🇺" },
-                              ].map((region) => (
-                                <button
-                                  key={region.id}
-                                  onClick={() => setStripeRegion(region.id)}
-                                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all ${stripeRegion === region.id
-                                    ? "bg-[#635BFF] border-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20 scale-[1.02]"
-                                    : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
-                                    }`}
-                                >
-                                  <span className="text-sm">{region.flag}</span>
-                                  <span className="text-[9px] font-black uppercase tracking-wider">{region.name}</span>
-                                </button>
-                              ))}
-                            </div>
-
-                            <div className="p-5 bg-white/5 rounded-2xl border border-white/10 animate-fade-in transition-all overflow-hidden relative">
-                              <div className="absolute top-0 right-0 p-3 opacity-10 text-4xl select-none">
-                                {[
-                                  { id: "SK", flag: "🇰🇷" },
-                                  { id: "EU", flag: "🇪🇺" },
-                                  { id: "CN", flag: "🇨🇳" },
-                                  { id: "HK", flag: "🇭🇰" },
-                                  { id: "TW", flag: "🇹🇼" },
-                                  { id: "AU", flag: "🇦🇺" },
-                                ].find(r => r.id === stripeRegion)?.flag}
-                              </div>
-
-                              <div className="relative z-10 space-y-4">
-                                {stripeRegion === "SK" && (
-                                  <>
-                                    <div>
-                                      <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
-                                        Official South Korea Specs
-                                      </p>
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                          <span className="text-[8px] font-black text-slate-500 uppercase">Wallets</span>
-                                          <p className="text-[10px] text-slate-300 font-bold">Naver Pay, Kakao Pay, Samsung Pay, PAYCO</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                          <span className="text-[8px] font-black text-slate-500 uppercase">Networks</span>
-                                          <p className="text-[10px] text-slate-300 font-bold leading-tight">BC, Lotte, Samsung, Shinhan, Hyundai, KB, Woori, Hana</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="pt-3 border-t border-white/5">
-                                      <div className="grid grid-cols-3 gap-2">
-                                        <div className="bg-white/5 p-2 rounded-lg text-center">
-                                          <span className="block text-[8px] font-black text-slate-500 uppercase">Installments</span>
-                                          <span className="text-[9px] text-teal-400 font-black">50k+ KRW</span>
-                                        </div>
-                                        <div className="bg-white/5 p-2 rounded-lg text-center">
-                                          <span className="block text-[8px] font-black text-slate-500 uppercase">Auth</span>
-                                          <span className="text-[9px] text-[#635BFF] font-black">3DS/Strong</span>
-                                        </div>
-                                        <div className="bg-white/5 p-2 rounded-lg text-center">
-                                          <span className="block text-[8px] font-black text-slate-500 uppercase">Payout</span>
-                                          <span className="text-[9px] text-slate-300 font-black">T+4 / T+7</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <p className="text-[9px] text-slate-500 italic font-medium leading-tight">
-                                      Compliance: Accepts all local KR cards without a local entity. Automatic tax collection supported via Stripe Tax.
-                                    </p>
-                                  </>
-                                )}
-
-                                {stripeRegion === "EU" && (
-                                  <>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
-                                      Eurozone & Italy (MyBank/Satispay)
-                                    </p>
-                                    <p className="text-[11px] text-slate-300 font-bold leading-relaxed italic">
-                                      iDEAL, SEPA Direct Debit, Bancontact, Giropay, MyBank, Satispay, EPS, Przelewy24, Sofort, Klarna
-                                    </p>
-                                    <div className="pt-2 flex gap-3 opacity-60">
-                                      <span className="text-[9px] font-black text-slate-500 border border-white/10 px-2 py-0.5 rounded">3D SECURE</span>
-                                      <span className="text-[9px] font-black text-slate-500 border border-white/10 px-2 py-0.5 rounded">CARTES BANCAIRES</span>
-                                    </div>
-                                  </>
-                                )}
-
-                                {stripeRegion === "CN" && (
-                                  <>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
-                                      Mainland China Gateway
-                                    </p>
-                                    <div className="space-y-3">
-                                      <div className="bg-white/5 p-3 rounded-xl border border-white/10 flex items-center justify-between group-hover:border-[#635BFF]/30 transition-colors">
-                                        <span className="text-[11px] text-slate-300 font-black uppercase tracking-widest">Alipay</span>
-                                        <span className="text-[9px] text-teal-400 font-bold">CROSS-BORDER</span>
-                                      </div>
-                                      <div className="bg-white/5 p-3 rounded-xl border border-white/10 flex items-center justify-between group-hover:border-[#635BFF]/30 transition-colors">
-                                        <span className="text-[11px] text-slate-300 font-black uppercase tracking-widest">WeChat Pay</span>
-                                        <span className="text-[9px] text-teal-400 font-bold">CROSS-BORDER</span>
-                                      </div>
-                                    </div>
-                                  </>
-                                )}
-
-                                {stripeRegion === "HK" && (
-                                  <>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
-                                      HK High-Speed Settlement
-                                    </p>
-                                    <p className="text-[11px] text-slate-300 font-bold leading-relaxed italic">
-                                      Alipay HK, WeChat Pay HK, Octopus, PayMe, FPS (Faster Payment System)
-                                    </p>
-                                    <div className="mt-3 flex gap-2">
-                                      <span className="px-2 py-1 bg-white/5 rounded text-[8px] font-bold text-slate-400 border border-white/10">HKD</span>
-                                      <span className="px-2 py-1 bg-white/5 rounded text-[8px] font-bold text-slate-400 border border-white/10">UNIONPAY</span>
-                                    </div>
-                                  </>
-                                )}
-
-                                {stripeRegion === "TW" && (
-                                  <>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
-                                      Taiwan Market Support
-                                    </p>
-                                    <p className="text-[11px] text-slate-300 font-bold leading-relaxed italic">
-                                      All major credit cards (Visa, Mastercard, JCB) with Apple Pay and Google Pay optimization.
-                                    </p>
-                                    <p className="text-[9px] text-slate-500 font-medium italic mt-2">
-                                      Supports TWD presentment and cross-border settlement.
-                                    </p>
-                                  </>
-                                )}
-
-                                {stripeRegion === "AU" && (
-                                  <>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
-                                      ANZ Settlement Logic
-                                    </p>
-                                    <div className="space-y-3">
-                                      <div className="bg-white/5 p-2 rounded-lg border border-white/10">
-                                        <span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Direct Bank</span>
-                                        <span className="text-[10px] text-slate-300 font-bold">BECS Direct Debit</span>
-                                      </div>
-                                      <div className="bg-white/5 p-2 rounded-lg border border-white/10">
-                                        <span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Buy Now Pay Later</span>
-                                        <span className="text-[10px] text-slate-300 font-bold">Afterpay</span>
-                                      </div>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* BILL + PayPal Row */}
+                      <StripeCard />
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {/* BILL */}
-                        <div className="bg-[#1A0A00] text-white p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group border border-[#FF5722]/20 h-full flex flex-col">
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF5722]/20 rounded-full -mr-16 -mt-16 blur-2xl transition-opacity group-hover:opacity-100 opacity-50" />
-                          <div className="relative z-10 flex flex-col h-full">
-                            <div className="flex items-center justify-between mb-4">
-                              <img
-                                src="/images/payments/bill-logo.png"
-                                alt="BILL"
-                                className="h-8 md:h-10 w-auto rounded-xl border border-white/10 hover:scale-105 transition-transform"
-                              />
-                              <span className="text-[8px] font-black text-slate-500 uppercase italic">
-                                Built for Cost
-                              </span>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 mb-4 flex-grow">
-                              <div className="space-y-2">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-[#FF5722]">
-                                  The Pros
-                                </p>
-                                <ul className="text-[9px] text-slate-300 space-y-1 font-bold italic">
-                                  <li>• Lowest Flat-Fee ACH</li>
-                                  <li>• Direct B2B Portal</li>
-                                </ul>
-                              </div>
-                              <div className="space-y-2">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-red-400/60">
-                                  The Cons
-                                </p>
-                                <ul className="text-[9px] text-slate-500 space-y-1 font-medium">
-                                  <li>• Domestic (US) Only</li>
-                                  <li>• No Credit Card Support</li>
-                                </ul>
-                              </div>
-                            </div>
-                            <div className="pt-3 border-t border-white/5 text-[8px] font-black text-slate-500 uppercase">
-                              Industrial Standard ACH
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* PayPal */}
-                        <div className="bg-[#00457C] text-white p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group border border-[#0079C1]/30 h-full flex flex-col">
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-[#0079C1]/30 rounded-full -mr-16 -mt-16 blur-2xl transition-opacity group-hover:opacity-100 opacity-50" />
-                          <div className="relative z-10 flex flex-col h-full">
-                            <div className="flex items-center justify-between mb-4">
-                              <a
-                                href="/digital-wallet/ways-to-pay/add-payment-method"
-                                title="How PayPal Works"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  window.open(
-                                    "/digital-wallet/ways-to-pay/add-payment-method",
-                                    "WIPaypal",
-                                    "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=1060, height=700",
-                                  );
-                                }}
-                                className="block hover:scale-105 transition-transform"
-                              >
-                                <img
-                                  src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_74x46.jpg"
-                                  alt="PayPal Logo"
-                                  className="h-6 md:h-8 w-auto rounded"
-                                />
-                              </a>
-                              <span className="text-[8px] font-black text-slate-400 uppercase italic">
-                                Built for Convenience
-                              </span>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 mb-4 flex-grow">
-                              <div className="space-y-2">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-[#0079C1]">
-                                  The Pros
-                                </p>
-                                <ul className="text-[9px] text-slate-300 space-y-1 font-bold italic">
-                                  <li>• One-Click Checkout</li>
-                                  <li>• Trusted Buyer Protection</li>
-                                </ul>
-                              </div>
-                              <div className="space-y-2">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-red-400/60">
-                                  The Cons
-                                </p>
-                                <ul className="text-[9px] text-slate-500 space-y-1 font-medium">
-                                  <li>• Premium Transaction Fees</li>
-                                  <li>• Potential Asset Holds</li>
-                                </ul>
-                              </div>
-                            </div>
-                            <div className="pt-3 border-t border-white/5 text-[8px] font-black text-slate-500 uppercase">
-                              Legacy Consumer Trust
-                            </div>
-                          </div>
-                        </div>
+                        <BillCard />
+                        <PaypalCard />
                       </div>
                     </div>
                   </div>
@@ -976,132 +557,132 @@ export default function Page() {
               )}
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Legal Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Link href="/legal/refunds-and-delivery">
-          <PolicyCard
-            icon={<Truck size={18} />}
-            title="Delivery Policy"
-            content={
-              <>
-                <p>
-                  All services provided by DnDL Creative LLC are delivered
-                  digitally unless explicitly stated otherwise in a physical
-                  contract.
-                </p>
-                <p>
-                  Assets (Audio/Video/Code) are delivered via encrypted
-                  cloud links or direct repository access within established
-                  project timelines.
-                </p>
-              </>
-            }
-          />
-        </Link>
-        <Link href="/legal/refunds-and-delivery">
-          <PolicyCard
-            icon={<ShieldCheck size={18} />}
-            title="Refund & Cancellation"
-            content={
-              <>
-                <p>
-                  Policies are dependent upon specific terms defined in your{" "}
-                  <strong>DBA contract</strong>. In general, non-refundable
-                  deposits are required to secure production time.
-                </p>
-                <p>
-                  Partial refunds may be issued depending on project stage
-                  and circumstances. Full refunds are reserved for extremely
-                  rare exceptions at studio discretion.
-                </p>
-              </>
-            }
-          />
-        </Link>
-        <Link href="/legal/privacy">
-          <PolicyCard
-            icon={<Scale size={18} />}
-            title="Privacy & Data"
-            content={
-              <>
-                <p>
-                  We do not sell your personal or business data. We use
-                  industry-standard{" "}
-                  <strong>Transport Layer Security (TLS)</strong> encryption
-                  to protect all client sensitive information.
-                </p>
-                <p>
-                  Payment card data is never stored on our servers; it is
-                  handled exclusively by PCI-compliant payment gateways.
-                </p>
-              </>
-            }
-          />
-        </Link>
-        <PolicyCard
-          icon={<Globe size={18} />}
-          title="Global Standards & Ethics"
-          content={
-            <>
-              <p>
-                DnDL Creative LLC is committed to global digital ethics,
-                maintaining full compliance with <strong>GDPR</strong> (Data
-                Protection) and the <strong>CAN-SPAM Act</strong>.
-              </p>
-              <p>
-                We ensure all international service delivery meets the
-                highest standards of commercial transparency and
-                cross-border regulatory integrity.
-              </p>
-            </>
-          }
-        />
-      </div>
+          {/* Legal Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Link href="/legal/refunds-and-delivery">
+              <PolicyCard
+                icon={<Truck size={18} />}
+                title="Delivery Policy"
+                content={
+                  <>
+                    <p>
+                      All services provided by DnDL Creative LLC are delivered
+                      digitally unless explicitly stated otherwise in a physical
+                      contract.
+                    </p>
+                    <p>
+                      Assets (Audio/Video/Code) are delivered via encrypted
+                      cloud links or direct repository access within established
+                      project timelines.
+                    </p>
+                  </>
+                }
+              />
+            </Link>
+            <Link href="/legal/refunds-and-delivery">
+              <PolicyCard
+                icon={<ShieldCheck size={18} />}
+                title="Refund & Cancellation"
+                content={
+                  <>
+                    <p>
+                      Policies are dependent upon specific terms defined in your{" "}
+                      <strong>DBA contract</strong>. In general, non-refundable
+                      deposits are required to secure production time.
+                    </p>
+                    <p>
+                      Partial refunds may be issued depending on project stage
+                      and circumstances. Full refunds are reserved for extremely
+                      rare exceptions at studio discretion.
+                    </p>
+                  </>
+                }
+              />
+            </Link>
+            <Link href="/legal/privacy">
+              <PolicyCard
+                icon={<Scale size={18} />}
+                title="Privacy & Data"
+                content={
+                  <>
+                    <p>
+                      We do not sell your personal or business data. We use
+                      industry-standard{" "}
+                      <strong>Transport Layer Security (TLS)</strong> encryption
+                      to protect all client sensitive information.
+                    </p>
+                    <p>
+                      Payment card data is never stored on our servers; it is
+                      handled exclusively by PCI-compliant payment gateways.
+                    </p>
+                  </>
+                }
+              />
+            </Link>
+            <PolicyCard
+              icon={<Globe size={18} />}
+              title="Global Standards & Ethics"
+              content={
+                <>
+                  <p>
+                    DnDL Creative LLC is committed to global digital ethics,
+                    maintaining full compliance with <strong>GDPR</strong> (Data
+                    Protection) and the <strong>CAN-SPAM Act</strong>.
+                  </p>
+                  <p>
+                    We ensure all international service delivery meets the
+                    highest standards of commercial transparency and
+                    cross-border regulatory integrity.
+                  </p>
+                </>
+              }
+            />
+          </div>
 
-      {/* Audit Compliance Verification */}
-      <div className="mt-12 md:mt-16 bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-12 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 mb-4 italic">
-            Creative Audit Compliance Verification
-          </h3>
-          <p className="text-slate-600 text-sm md:text-base font-medium mb-8 leading-relaxed">
-            To ensure full transparency and security during the payment
-            process, all clients are required to acknowledge our trade
-            policies. By initiating a payment request, you are confirming
-            acceptance of our{" "}
-            <Link href="/legal/terms" className="text-indigo-600 underline">
-              Terms of Service
-            </Link>
-            ,{" "}
-            <Link
-              href="/legal/refunds-and-delivery"
-              className="text-indigo-600 underline"
-            >
-              Refund Policy
-            </Link>
-            , and{" "}
-            <Link
-              href="/legal/privacy"
-              className="text-indigo-600 underline"
-            >
-              Privacy Policy
-            </Link>
-            .
-          </p>
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-            <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-sm border border-indigo-100">
-              <div className="w-4 h-4 rounded bg-indigo-600 flex items-center justify-center">
-                <ShieldCheck size={10} className="text-white" />
+          {/* Audit Compliance Verification */}
+          <div className="mt-12 md:mt-16 bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-12 text-center">
+            <div className="max-w-3xl mx-auto">
+              <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 mb-4 italic">
+                Creative Audit Compliance Verification
+              </h3>
+              <p className="text-slate-600 text-sm md:text-base font-medium mb-8 leading-relaxed">
+                To ensure full transparency and security during the payment
+                process, all clients are required to acknowledge our trade
+                policies. By initiating a payment request, you are confirming
+                acceptance of our{" "}
+                <Link href="/legal/terms" className="text-indigo-600 underline">
+                  Terms of Service
+                </Link>
+                ,{" "}
+                <Link
+                  href="/legal/refunds-and-delivery"
+                  className="text-indigo-600 underline"
+                >
+                  Refund Policy
+                </Link>
+                , and{" "}
+                <Link
+                  href="/legal/privacy"
+                  className="text-indigo-600 underline"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+              <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+                <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-sm border border-indigo-100">
+                  <div className="w-4 h-4 rounded bg-indigo-600 flex items-center justify-center">
+                    <ShieldCheck size={10} className="text-white" />
+                  </div>
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-indigo-900 italic">
+                    Audit Secure
+                  </span>
+                </div>
+                <div className="text-slate-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] leading-tight">
+                  Transaction Verified by Wise, Stripe, PayPal, and bill.com
+                </div>
               </div>
-              <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-indigo-900 italic">
-                Audit Secure
-              </span>
-            </div>
-            <div className="text-slate-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] leading-tight">
-              Transaction Verified by Wise, Stripe, PayPal, and bill.com
             </div>
           </div>
         </div>
@@ -1193,6 +774,7 @@ export default function Page() {
           </p>
         </div>
       </footer>
+      <CookieConsent />
     </div>
   );
 }
