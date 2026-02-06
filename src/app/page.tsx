@@ -17,14 +17,37 @@ import {
   Phone,
   ArrowUpRight,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
+
+const currencies = [
+  { flag: "🇺🇸", name: "United States Dollar", symbol: "$", code: "USD" },
+  { flag: "🇪🇺", name: "Euro", symbol: "€", code: "EUR" },
+  { flag: "🇬🇧", name: "Great British Pound", symbol: "£", code: "GBP" },
+  { flag: "🇨🇦", name: "Canadian Dollar", symbol: "$", code: "CAD" },
+  { flag: "🇦🇺", name: "Australian Dollar", symbol: "$", code: "AUD" },
+  { flag: "🇯🇵", name: "Japanese Yen", symbol: "¥", code: "JPY" },
+  { flag: "🇨🇳", name: "Chinese Yuan", symbol: "¥", code: "CNY" },
+  { flag: "🇭🇰", name: "Hong Kong Dollar", symbol: "$", code: "HKD" },
+  { flag: "🇸🇬", name: "Singapore Dollar", symbol: "$", code: "SGD" },
+  { flag: "🇰🇷", name: "South Korean Won", symbol: "₩", code: "KRW" },
+  { flag: "🇳🇿", name: "New Zealand Dollar", symbol: "$", code: "NZD" },
+  { flag: "🇨🇭", name: "Swiss Franc", symbol: "Fr", code: "CHF" },
+  { flag: "🇵🇱", name: "Polish Złoty", symbol: "zł", code: "PLN" },
+  { flag: "🇹🇼", name: "Taiwan Dollar", symbol: "$", code: "TWD" },
+];
 import Image from "next/image";
 
 // --- Components ---
 
-function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+function SectionHeader({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <div className="mb-12 text-center">
       <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-slate-900 mb-4">
@@ -45,7 +68,7 @@ function BrandCard({
   name,
   desc,
   url,
-  variant = "default"
+  variant = "default",
 }: {
   icon?: React.ReactNode;
   logo?: string;
@@ -56,9 +79,12 @@ function BrandCard({
 }) {
   const styles = {
     default: "bg-white border-slate-100 shadow-slate-200/50 text-slate-900",
-    daniel: "bg-gradient-to-br from-[#0d9488]/10 to-[#d4a373]/10 border-[#0d9488]/30 shadow-[#0d9488]/10 text-slate-900",
-    dineout: "bg-gradient-to-br from-[#E31837]/5 to-[#ff6b6b]/5 border-[#E31837]/20 shadow-[#E31837]/10 text-slate-900",
-    steel: "bg-gradient-to-br from-[#212529] to-[#2b2d42] border-[#00F0FF]/30 shadow-[#00F0FF]/20 text-white",
+    daniel:
+      "bg-gradient-to-br from-[#0d9488]/10 to-[#d4a373]/10 border-[#0d9488]/30 shadow-[#0d9488]/10 text-slate-900",
+    dineout:
+      "bg-gradient-to-br from-[#E31837]/5 to-[#ff6b6b]/5 border-[#E31837]/20 shadow-[#E31837]/10 text-slate-900",
+    steel:
+      "bg-gradient-to-br from-[#212529] to-[#2b2d42] border-[#00F0FF]/30 shadow-[#00F0FF]/20 text-white",
     cine: "bg-gradient-to-br from-[#020010] to-[#0c0442] border-[#D4AF37]/30 shadow-[#D4AF37]/20 text-white",
     anti: "bg-white border-black border-[3px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-black font-black",
   };
@@ -74,7 +100,9 @@ function BrandCard({
 
   const content = (
     <>
-      <div className={`${iconStyles[variant]} ${variant === 'cine' || variant === 'steel' ? 'w-28 h-28 md:w-40 md:h-40 p-0' : 'w-16 h-16 md:w-20 md:h-20 p-3'} rounded-2xl flex items-center justify-center mb-6 z-10 transition-transform group-hover:scale-110 overflow-hidden shadow-lg`}>
+      <div
+        className={`${iconStyles[variant]} ${variant === "cine" || variant === "steel" ? "w-28 h-28 md:w-40 md:h-40 p-0" : "w-16 h-16 md:w-20 md:h-20 p-3"} rounded-2xl flex items-center justify-center mb-6 z-10 transition-transform group-hover:scale-110 overflow-hidden shadow-lg`}
+      >
         {logo ? (
           <Image
             src={logo}
@@ -89,9 +117,16 @@ function BrandCard({
       </div>
       <h3 className="text-lg md:text-xl font-black uppercase tracking-tight mb-3 italic z-10 flex items-center gap-2 justify-center">
         {name}
-        {url && <ArrowUpRight size={18} className="md:size-[20px] opacity-60 group-hover:opacity-100 transition-opacity" />}
+        {url && (
+          <ArrowUpRight
+            size={18}
+            className="md:size-[20px] opacity-60 group-hover:opacity-100 transition-opacity"
+          />
+        )}
       </h3>
-      <p className={`${variant === 'daniel' || variant === 'cine' || variant === 'steel' ? 'text-slate-400' : 'text-slate-500'} text-sm md:text-base font-medium leading-relaxed z-10`}>
+      <p
+        className={`${variant === "daniel" || variant === "cine" || variant === "steel" ? "text-slate-400" : "text-slate-500"} text-sm md:text-base font-medium leading-relaxed z-10`}
+      >
         {desc}
       </p>
     </>
@@ -99,27 +134,42 @@ function BrandCard({
 
   if (url) {
     return (
-      <Link href={url} className={`${styles[variant]} p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border h-full hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center group block`}>
+      <Link
+        href={url}
+        className={`${styles[variant]} p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border h-full hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center group block`}
+      >
         {content}
       </Link>
     );
   }
 
   return (
-    <div className={`${styles[variant]} p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border h-full hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center group`}>
+    <div
+      className={`${styles[variant]} p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border h-full hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center group`}
+    >
       {content}
     </div>
   );
 }
 
-function PolicyCard({ icon, title, content }: { icon: React.ReactNode; title: string; content: React.ReactNode }) {
+function PolicyCard({
+  icon,
+  title,
+  content,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  content: React.ReactNode;
+}) {
   return (
     <div className="bg-slate-50/50 p-6 md:p-8 rounded-[2rem] md:rounded-3xl border border-slate-200/60 h-full">
       <div className="flex items-center gap-4 mb-6 text-slate-900">
         <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 italic">
           {icon}
         </div>
-        <h3 className="font-black uppercase tracking-wider text-xs md:text-sm">{title}</h3>
+        <h3 className="font-black uppercase tracking-wider text-xs md:text-sm">
+          {title}
+        </h3>
       </div>
       <div className="text-slate-600 text-[13px] md:text-sm leading-relaxed space-y-4 font-medium">
         {content}
@@ -131,9 +181,10 @@ function PolicyCard({ icon, title, content }: { icon: React.ReactNode; title: st
 export default function Page() {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isPolicyAccepted, setIsPolicyAccepted] = useState(false);
+  const [stripeRegion, setStripeRegion] = useState("SK");
   const now = new Date();
   const year = now.getFullYear();
-  const month = now.toLocaleString('default', { month: 'long' });
+  const month = now.toLocaleString("default", { month: "long" });
   const day = now.getDate();
 
   return (
@@ -149,9 +200,14 @@ export default function Page() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-900 text-white rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-8 md:mb-10 animate-fade-in shadow-xl shadow-slate-900/10">
             Official Creative HQ
           </div>
-          <h1 className="h1-wave mb-6 md:mb-8 block w-full text-4xl md:text-7xl">DnDL Creative LLC</h1>
+          <h1 className="h1-wave mb-6 md:mb-8 block w-full text-4xl md:text-7xl">
+            DnDL Creative LLC
+          </h1>
           <p className="text-slate-500 text-lg md:text-2xl max-w-4xl mx-auto leading-relaxed font-medium px-4 md:px-0">
-            Innovative production house specializing in creative <span className="text-slate-900 font-bold">audiobook & drama, e-commerce, apparel, academy education, marketing, audio, video,</span> and <span className="text-slate-900 font-bold">original content production.</span>
+            We’re a human-centric creative collective specializing in audiobook
+            & drama production, artistic & linguistic education, high-quality
+            audio, video & content creation, anti-zeitgeist marketing,
+            e-commerce solutions, and apparel.
           </p>
         </div>
       </section>
@@ -159,7 +215,10 @@ export default function Page() {
       {/* 2. DIVISIONS GRID */}
       <section className="py-20 px-6 bg-slate-50/30">
         <div className="max-w-7xl mx-auto">
-          <SectionHeader title="Our Divisions" subtitle="Managed under the umbrella of DnDL Creative LLC, these specialized units deliver one-of-a-kind creativity within various sectors including audio entertainment, content, educational, apparel, e-commerce, and marketing services." />
+          <SectionHeader
+            title="Our Divisions"
+            subtitle="Managed under the umbrella of DnDL Creative LLC, these specialized units deliver one-of-a-kind creativity within various sectors including audio entertainment, content, educational, apparel, e-commerce, and marketing services."
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* 1. Daniel Lewis */}
@@ -178,7 +237,7 @@ export default function Page() {
                 logo="/images/brands/anti-logo.png"
                 url="https://anti-marketingmarketing.com"
                 name="Anti-Marketing Marketing"
-                desc="Going against the grain. We blend battle-tested traditional marketing with emerging AI-driven strategies—SEO, AEO, GEO, and social—while keeping a raw, uncensored edge. No fluff, no corporate speak. Marketed as a DBA of DnDL Creative LLC."
+                desc="Digital fatigue is the new default. As the majority disappears into the algorithmic noise, we capture attention by doing exactly what they aren't: building for the human on the other side. It’s not a performance—it’s a winning strategy against the slop. Marketed as a DBA of DnDL Creative LLC."
               />
             </div>
 
@@ -198,8 +257,12 @@ export default function Page() {
                   <div className="absolute -inset-3 bg-teal-500/10 rounded-full blur-lg opacity-0 group-hover/river:opacity-100 transition-opacity duration-500" />
                   <div className="px-2 md:px-4 py-1 md:py-1.5 bg-white border border-teal-200 rounded-full text-[6px] md:text-[9px] font-black uppercase tracking-widest text-teal-600 shadow-md flex items-center gap-1 md:gap-2 relative whitespace-nowrap">
                     <span className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                    <span className="hidden sm:inline">Presented as a Division of Anti-Marketing</span>
-                    <span className="sm:hidden">Division of Anti-Marketing</span>
+                    <span className="hidden sm:inline">
+                      Division of Anti-Marketing Marketing
+                    </span>
+                    <span className="sm:hidden">
+                      Division of Anti-Marketing Marketing
+                    </span>
                   </div>
                 </div>
 
@@ -243,93 +306,133 @@ export default function Page() {
       {/* 3. BUSINESS DISCLOSURES */}
       <section className="py-24 px-6 border-t border-slate-100">
         <div className="max-w-7xl mx-auto">
-          <SectionHeader title="Creative Compliance" subtitle="Business and payment information providing transparency for our clients and partners." />
+          <SectionHeader
+            title="Creative Compliance"
+            subtitle="Business and payment information providing transparency for our clients and partners."
+          />
 
           {/* US Business Confirmation */}
           <div className="mb-16">
-            <div className="bg-[#12294B] text-white p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] shadow-[0_20px_60px_rgba(18,41,75,0.4)] relative overflow-hidden text-center max-w-4xl mx-auto border border-white/10 group">
+            <div className="bg-[#12294B] text-white p-4 md:p-12 rounded-[1.5rem] md:rounded-[3.5rem] shadow-[0_20px_60px_rgba(18,41,75,0.4)] relative overflow-hidden text-center max-w-4xl mx-auto border border-white/10 group">
               <div className="absolute inset-0 bg-gradient-to-br from-[#8C1D24] via-[#12294B] to-[#0A1629]" />
               <div className="absolute inset-0 opacity-10 mix-blend-overlay pointer-events-none">
-                <img src="/images/ohio-flag.webp" alt="" className="w-full h-full object-cover scale-150 rotate-12" />
+                <img
+                  src="/images/ohio-flag.webp"
+                  alt=""
+                  className="w-full h-full object-cover scale-150 rotate-12"
+                />
               </div>
               <div className="absolute -top-24 -right-24 w-80 h-80 bg-red-600/10 rounded-full blur-3xl group-hover:opacity-100 opacity-60 transition-opacity" />
 
               <div className="relative z-10 flex flex-col items-center">
-                <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8 mb-8 md:mb-12">
+                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 mb-6 md:mb-10">
+                  <div className="flex items-center gap-3 md:gap-6">
+                    <div className="flex items-center gap-2 md:gap-4">
+                      <a
+                        href="https://businesssearch.ohiosos.gov/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group/btn relative px-4 py-2 md:px-5 md:py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-black/20"
+                      >
+                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white whitespace-nowrap">
+                          Verify via Ohio SOS
+                        </span>
+                      </a>
+                      <div className="text-white/60 animate-pulse hidden md:block">
+                        <ArrowRight size={20} className="stroke-[3px]" />
+                      </div>
+                    </div>
 
-                  {/* --- NEW BUTTON & ARROW (Desktop) --- */}
-                  <div className="hidden md:flex items-center gap-4 mr-2">
+                    {/* Flag Circle */}
                     <a
                       href="https://businesssearch.ohiosos.gov/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group/btn relative px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-black/20"
+                      className="relative group/flag block cursor-pointer shrink-0"
+                      title="Verify on Ohio Secretary of State"
                     >
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-white">Verify w/ Ohio SOS</span>
+                      <div className="absolute inset-0 bg-white/20 rounded-full blur-2xl group-hover/flag:bg-white/40 transition-colors animate-pulse" />
+                      <div className="w-14 h-14 md:w-24 md:h-24 rounded-full border-4 border-white/30 relative z-10 shadow-[0_0_40px_rgba(255,255,255,0.2)] group-hover/flag:scale-110 transition-transform duration-700 overflow-hidden bg-white/10 p-2 md:p-4 flex items-center justify-center backdrop-blur-md">
+                        <img
+                          src="/images/ohio-flag.webp"
+                          alt="Ohio State Flag"
+                          className="w-full h-full object-contain hover:rotate-6 transition-transform duration-500"
+                        />
+                      </div>
                     </a>
-                    <div className="text-white/60 animate-pulse">
-                      <ArrowRight size={24} className="stroke-[3px]" />
-                    </div>
                   </div>
 
-                  {/* Flag Circle */}
-                  <a
-                    href="https://businesssearch.ohiosos.gov/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative group/flag block cursor-pointer"
-                    title="Verify on Ohio Secretary of State"
-                  >
-                    <div className="absolute inset-0 bg-white/20 rounded-full blur-2xl group-hover/flag:bg-white/40 transition-colors animate-pulse" />
-
-                    {/* Mobile Floating Button Overlay */}
-                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-red-600 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-xl shadow-red-600/30 border border-red-400/50 flex items-center gap-2 animate-bounce md:hidden z-20">
-                      <span>TAP TO VERIFY WITH OHIO SOS</span>
-                      <ArrowUpRight size={12} className="text-white rotate-90" />
-                    </div>
-
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white/30 relative z-10 shadow-[0_0_40px_rgba(255,255,255,0.2)] group-hover/flag:scale-110 transition-transform duration-700 overflow-hidden bg-white/10 p-3 md:p-4 flex items-center justify-center backdrop-blur-md">
-                      <img
-                        src="/images/ohio-flag.webp"
-                        alt="Ohio State Flag - Click to verify on Ohio SOS"
-                        className="w-full h-full object-contain hover:rotate-6 transition-transform duration-500"
-                      />
-                    </div>
-                  </a>
-
-                  <div className="h-16 w-px bg-white/10 hidden md:block" />
+                  <div className="h-12 w-px bg-white/10 hidden md:block" />
 
                   <div className="flex flex-col items-center md:items-start translate-y-1">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600/20 rounded-full border border-red-500/30 mb-3 backdrop-blur-sm">
-                      <ShieldCheck size={12} className="text-red-400" />
-                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-red-100">Verified Jurisdiction</span>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600/20 rounded-full border border-red-500/30 mb-2 backdrop-blur-sm">
+                      <ShieldCheck size={10} className="text-red-400" />
+                      <span className="text-[8px] font-black uppercase tracking-[0.2em] text-red-100">
+                        Verified Jurisdiction
+                      </span>
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-none text-white italic tracking-[-0.04em]">Ohio licensed entity</h3>
+                    <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter leading-none text-white italic tracking-[-0.04em]">
+                      Ohio licensed entity
+                    </h3>
                   </div>
                 </div>
 
-                <h3 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-8 leading-none tracking-[-0.06em]">Official US-Based Business</h3>
+                <h3 className="text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 leading-none tracking-[-0.06em]">
+                  Official US-Based Business
+                </h3>
 
-                <p className="text-white/90 text-sm md:text-xl font-medium leading-relaxed max-w-3xl mx-auto mb-10">
-                  DnDL Creative LLC is a <span className="text-white font-black underline decoration-red-600/50 underline-offset-4">USA-based</span> and <span className="text-white font-black underline decoration-red-600/50 underline-offset-4">Ohio-verified</span> business. Our business infrastructure is fully documented with a registered <span className="text-red-400 font-bold italic">EIN</span>, formal <span className="text-red-400 font-bold italic">Articles of Organization</span>, and active <span className="text-red-400 font-bold italic">Ohio Registered Agents</span>. All governance is managed via our <span className="text-red-400 font-black italic">Cincinnati, Ohio</span> headquarters.
+                <p className="text-white/90 text-[13px] md:text-xl font-medium leading-relaxed max-w-3xl mx-auto mb-8">
+                  DnDL Creative LLC is a{" "}
+                  <span className="text-white font-black underline decoration-red-600/50 underline-offset-4">
+                    USA-based
+                  </span>{" "}
+                  and{" "}
+                  <span className="text-white font-black underline decoration-red-600/50 underline-offset-4">
+                    Ohio-verified
+                  </span>{" "}
+                  business. Our business infrastructure is fully documented with
+                  a registered{" "}
+                  <span className="text-red-400 font-bold italic">EIN</span>,
+                  formal{" "}
+                  <span className="text-red-400 font-bold italic">
+                    Articles of Organization
+                  </span>
+                  , and active{" "}
+                  <span className="text-red-400 font-bold italic">
+                    Ohio Registered Agents
+                  </span>
+                  . All governance is managed via our{" "}
+                  <span className="text-red-400 font-black italic">
+                    Cincinnati, Ohio
+                  </span>{" "}
+                  address.
                 </p>
 
-                <div className="mt-4 pt-10 border-t border-white/10 w-full flex flex-col md:flex-row items-center justify-between gap-8 px-6">
+                <div className="mt-2 pt-8 border-t border-white/10 w-full flex flex-col md:flex-row items-center justify-between gap-6 px-4">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-red-600/10 rounded-2xl border border-red-500/20">
                       <MapPin className="text-red-500" size={24} />
                     </div>
                     <div className="flex flex-col items-start leading-tight">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Headquarters</span>
-                      <span className="text-sm font-black text-white italic">Cincinnati, OH (US HQ)</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">
+                        Based in
+                      </span>
+                      <span className="text-sm font-black text-white italic">
+                        Cincinnati, OH (US HQ)
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
-                    <div className="text-[11px] font-black uppercase tracking-[0.5em] text-white/30">Established 2026</div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.5em] text-white/30">
+                      Established 2026
+                    </div>
                     <div className="flex gap-2 items-center">
                       {[1, 2, 3].map((i) => (
-                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-red-500/40" />
+                        <div
+                          key={i}
+                          className="w-1.5 h-1.5 rounded-full bg-red-500/40"
+                        />
                       ))}
                     </div>
                   </div>
@@ -346,20 +449,32 @@ export default function Page() {
             >
               <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 w-full md:w-auto">
                 <div className="p-3 md:p-4 bg-white rounded-xl md:rounded-2xl shadow-md border border-slate-100 group-hover:scale-110 transition-transform">
-                  <CreditCard size={24} className="md:size-[28px] text-slate-800" />
+                  <CreditCard
+                    size={24}
+                    className="md:size-[28px] text-slate-800"
+                  />
                 </div>
                 <div>
-                  <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 italic">Payment Options & Policies</h3>
-                  <p className="text-xs md:text-sm text-slate-500 font-medium">Click to view accepted methods, global currencies, and security protocols</p>
+                  <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 italic">
+                    Payment Options & Policies
+                  </h3>
+                  <p className="text-xs md:text-sm text-slate-500 font-medium">
+                    Click to view accepted methods, global currencies, and
+                    security protocols
+                  </p>
                 </div>
               </div>
-              <div className={`p-2 rounded-full bg-white border border-slate-200 transition-transform duration-500 hidden md:block ${isPaymentOpen ? 'rotate-180 bg-slate-200' : ''}`}>
+              <div
+                className={`p-2 rounded-full bg-white border border-slate-200 transition-transform duration-500 hidden md:block ${isPaymentOpen ? "rotate-180 bg-slate-200" : ""}`}
+              >
                 <ChevronDown size={20} className="text-slate-600" />
               </div>
             </button>
 
             {/* Collapsible Content */}
-            <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isPaymentOpen ? 'max-h-[5000px] opacity-100 mt-12' : 'max-h-0 opacity-0'}`}>
+            <div
+              className={`transition-all duration-500 ease-in-out overflow-hidden ${isPaymentOpen ? "max-h-[5000px] opacity-100 mt-12" : "max-h-0 opacity-0"}`}
+            >
               {!isPolicyAccepted ? (
                 /* Click to Accept Gateway */
                 <div className="mb-16 bg-slate-50 border-2 border-indigo-100 rounded-[2.5rem] p-8 md:p-12 text-center shadow-xl shadow-indigo-500/5 ring-4 ring-white">
@@ -367,9 +482,14 @@ export default function Page() {
                     <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-600/20">
                       <ShieldCheck size={32} className="text-white" />
                     </div>
-                    <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900 mb-4 italic">Policy & Compliance Gateway</h4>
+                    <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900 mb-4 italic">
+                      Policy & Compliance Gateway
+                    </h4>
                     <p className="text-slate-600 text-sm md:text-lg font-medium mb-8 leading-relaxed">
-                      To view our payment instructions and global settlement details, you must first acknowledge our studio policies. This ensures full transparency regarding refunds, data privacy, and delivery terms.
+                      To view our payment instructions and global settlement
+                      details, you must first acknowledge our studio policies.
+                      This ensures full transparency regarding refunds, data
+                      privacy, and delivery terms.
                     </p>
                     <button
                       onClick={() => setIsPolicyAccepted(true)}
@@ -379,9 +499,24 @@ export default function Page() {
                       <ArrowUpRight size={20} />
                     </button>
                     <div className="mt-8 flex flex-col md:flex-row items-center justify-center gap-6 opacity-60">
-                      <Link href="/legal/terms" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 underline">Terms of Service</Link>
-                      <Link href="/legal/refunds-and-delivery" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 underline">Refund Policy</Link>
-                      <Link href="/legal/privacy" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 underline">Privacy Policy</Link>
+                      <Link
+                        href="/legal/terms"
+                        className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 underline"
+                      >
+                        Terms of Service
+                      </Link>
+                      <Link
+                        href="/legal/refunds-and-delivery"
+                        className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 underline"
+                      >
+                        Refund Policy
+                      </Link>
+                      <Link
+                        href="/legal/privacy"
+                        className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 underline"
+                      >
+                        Privacy Policy
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -394,11 +529,29 @@ export default function Page() {
                         <ShieldCheck size={24} className="text-blue-600" />
                       </div>
                       <div>
-                        <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-2">Security Capability & Data Policy</h4>
+                        <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-2">
+                          Security Capability & Data Policy
+                        </h4>
                         <p className="text-slate-600 text-sm font-medium leading-relaxed">
-                          DnDL Creative LLC employs industry-leading security practices. All transmission of sensitive buyer information is conducted via Transport Layer Security (TLS) and handled exclusively by our PCI-DSS Level 1 compliant partners. We do not store or process raw credit card data on our infrastructure.
+                          DnDL Creative LLC employs industry-leading security
+                          practices. All transmission of sensitive buyer
+                          information is conducted via Transport Layer Security
+                          (TLS) and handled exclusively by our PCI-DSS Level 1
+                          compliant partners. We do not store or process raw
+                          credit card data on our infrastructure.
                         </p>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center mb-8 md:mb-12">
+                    <div className="relative overflow-hidden group/flag inline-flex items-center gap-3 rounded-full border border-white/20 bg-slate-950/90 px-4 py-2 backdrop-blur-md shadow-lg shadow-black/10 transition-all hover:scale-105 active:scale-95">
+                      <span className="relative z-10 text-lg leading-none filter drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
+                        🇺🇸
+                      </span>
+                      <span className="relative z-10 text-[9px] md:text-[11px] font-black uppercase italic tracking-[0.15em] text-center px-1 text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-white to-blue-500">
+                        Unless otherwise requested, all transactions are settled with the United States Dollar (USD)
+                      </span>
                     </div>
                   </div>
 
@@ -408,28 +561,33 @@ export default function Page() {
                       <div className="absolute top-0 right-0 w-64 h-64 bg-[#9FE870]/10 rounded-full -mr-32 -mt-32 blur-3xl transition-opacity group-hover:opacity-100 opacity-50" />
                       <div className="relative z-10 flex flex-col h-full">
                         <div className="flex items-center justify-between mb-8">
-                          <img src="/images/brands/wise-logo.png" alt="Wise Logo" className="h-20 md:h-24 w-auto" onError={(e) => { e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Wise_logo.svg'; }} />
-                          <div className="pl-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 italic">Preferred for ACH / Direct Transfers</div>
+                          <img
+                            src="/images/payments/wise-logo.png"
+                            alt="Wise Logo"
+                            className="h-20 md:h-24 w-auto"
+                          />
+                          <div className="pl-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 italic">
+                            Preferred for ACH / Direct Transfers
+                          </div>
                         </div>
 
                         <div className="mb-6">
-                          {/* Extreme USD Default Visual */}
-                          <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/5 rounded-full border border-white/10 mb-6 backdrop-blur-md relative overflow-hidden group/flag">
-                            <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 via-white/5 to-blue-600/10 animate-pulse" />
-                            <span className="text-lg relative z-10 leading-none">🇺🇸</span>
-                            <span className="text-[11px] font-black uppercase tracking-[0.15em] text-white relative z-10 italic">USD Default Currency ($)</span>
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse relative z-10" />
-                          </div>
 
-                          <h3 className="text-3xl font-black uppercase tracking-tighter mb-4">Domestic & International Settlement</h3>
+                          <h3 className="text-3xl font-black uppercase tracking-tighter mb-4">
+                            Domestic & International Settlement
+                          </h3>
                           <p className="text-slate-400 font-medium text-sm leading-relaxed">
-                            Our primary engine for high-value direct transfers and international business settlements. Optimized for zero-margin exchange rates and fast ACH routing.
+                            Our primary engine for high-value direct transfers
+                            and international business settlements. Optimized
+                            for zero-margin exchange rates and fast ACH routing.
                           </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-8">
                           <div className="space-y-2">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-[#9FE870]">The Pros</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-[#9FE870]">
+                              The Pros
+                            </p>
                             <ul className="text-[11px] text-slate-300 space-y-1 font-bold italic">
                               <li>• Lowest possible fees</li>
                               <li>• Real-time exchange rates</li>
@@ -438,7 +596,9 @@ export default function Page() {
                           </div>
                           <div className="space-y-4">
                             <div className="space-y-2">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-red-500">The Cons</p>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-red-500">
+                                The Cons
+                              </p>
                               <ul className="text-[11px] text-slate-500 space-y-1 font-medium">
                                 <li>• Strict KYC requirements</li>
                                 <li>• No Amex/Discover/PayPal</li>
@@ -449,30 +609,63 @@ export default function Page() {
 
                         {/* Extreme Fee Warning */}
                         <div className="p-4 bg-red-500/5 rounded-2xl border border-red-500/20 mb-6">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-red-400 mb-1">Fee Warning</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-red-400 mb-1">
+                            Fee Warning
+                          </p>
                           <p className="text-[10px] text-slate-400 font-bold leading-tight italic">
-                            Extreme Credit Card Processing Fees (3.5%+) — <span className="text-red-400 font-black">ACH Highly Recommended</span> for all settlements over $1k.
+                            Extreme Credit Card Processing Fees (3.5%+) —{" "}
+                            <span className="text-red-400 font-black">
+                              ACH Highly Recommended
+                            </span>{" "}
+                            for all settlements over $1k.
                           </p>
                         </div>
 
                         <div className="space-y-4">
                           <div className="flex flex-wrap gap-4 items-center">
-                            <img src="/images/payment-icons/visa.svg" alt="Visa" className="h-4 md:h-6 w-auto" />
-                            <img src="/images/payment-icons/mastercard.svg" alt="Mastercard" className="h-6 md:h-8 w-auto" />
-                            <div className="px-3 py-1.5 bg-black text-white rounded-lg text-[10px] font-black border border-white/10 uppercase">Apple Pay</div>
+                            <img
+                              src="/images/payment-icons/visa.svg"
+                              alt="Visa"
+                              className="h-4 md:h-6 w-auto"
+                            />
+                            <img
+                              src="/images/payment-icons/mastercard.svg"
+                              alt="Mastercard"
+                              className="h-6 md:h-8 w-auto"
+                            />
+                            <img
+                              src="/images/payments/apple-pay-logo.jpg"
+                              alt="Apple Pay"
+                              className="h-6 md:h-10 w-auto rounded-sm"
+                            />
                           </div>
 
-                          <div className="p-5 bg-white/5 rounded-2xl border border-white/10">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 italic">Global Currency Capability</p>
-                            <p className="text-sm text-slate-200 font-bold tracking-tight leading-relaxed">
-                              🇨🇦 CAD, 🇪🇺 EUR, 🇹🇼 TWD, 🇰🇷 KRW, 🇵🇱 PLN, 🇯🇵 JPY, 🇨🇳 CNY, 🇭🇰 HKD, and 10+ other global settlements.
+                          <div className="p-5 bg-white/5 rounded-2xl border border-white/10 overflow-hidden relative group/ticker">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[#9FE870] mb-3 italic">
+                              Worldwide Settlement Engine
                             </p>
+                            <div className="flex animate-ticker whitespace-nowrap gap-12 py-1">
+                              {[...currencies, ...currencies].map((curr, idx) => (
+                                <div key={idx} className="flex items-center gap-3 shrink-0">
+                                  <span className="text-base">{curr.flag}</span>
+                                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">
+                                    {curr.name} {curr.symbol}
+                                  </span>
+                                  <span className="text-[9px] font-black text-[#9FE870] opacity-80">
+                                    ({curr.code})
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-slate-900 to-transparent z-10" />
+                            <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-slate-900 to-transparent z-10" />
                           </div>
                         </div>
 
                         <div className="mt-8 pt-6 border-t border-white/5">
                           <p className="text-[9px] text-red-400/60 font-black uppercase tracking-widest italic leading-tight">
-                            Strictly No Amex / No Discover / No PayPal per Compliance
+                            Strictly No Amex / No Discover / No PayPal per
+                            Compliance
                           </p>
                         </div>
                       </div>
@@ -485,13 +678,23 @@ export default function Page() {
                         <div className="absolute top-0 right-0 w-48 h-48 bg-[#635BFF]/20 rounded-full -mr-24 -mt-24 blur-3xl transition-opacity group-hover:opacity-100 opacity-50" />
                         <div className="relative z-10">
                           <div className="flex items-center justify-between mb-6">
-                            <div className="px-4 py-1.5 bg-[#635BFF] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-[#635BFF]/20">Stripe</div>
-                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic">Built for Access</div>
+                            <img
+                              src="/images/payments/stripe-logo.png"
+                              alt="Stripe"
+                              className="h-10 md:h-12 w-auto rounded-xl border border-white/10 hover:scale-105 transition-transform"
+                            />
+                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic">
+                              Built for Access
+                            </div>
                           </div>
-                          <h4 className="text-xl font-black uppercase tracking-tight mb-4">Omnichannel Checkout</h4>
+                          <h4 className="text-xl font-black uppercase tracking-tight mb-4">
+                            Omnichannel Checkout
+                          </h4>
                           <div className="grid grid-cols-2 gap-6 mb-6">
                             <div className="space-y-2">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-[#635BFF]">The Pros</p>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-[#635BFF]">
+                                The Pros
+                              </p>
                               <ul className="text-[10px] text-slate-300 space-y-1 font-bold italic">
                                 <li>• Accepts Amex & Discover</li>
                                 <li>• Fast Digital Wallet Pay</li>
@@ -499,14 +702,173 @@ export default function Page() {
                               </ul>
                             </div>
                             <div className="space-y-2">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-red-400/80">The Cons</p>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-red-400/80">
+                                The Cons
+                              </p>
                               <ul className="text-[10px] text-slate-500 space-y-1 font-medium">
                                 <li>• Standard Tx Fees</li>
                                 <li>• Verification Overhead</li>
                               </ul>
                             </div>
                           </div>
-                          <p className="text-slate-400 text-xs font-medium leading-relaxed">Full network processing including support for premium business credit cards.</p>
+                          <div className="pt-4 border-t border-white/5 space-y-4">
+                            <div className="flex flex-wrap gap-2 items-center">
+                              {[
+                                { id: "SK", name: "South Korea", flag: "🇰🇷" },
+                                { id: "EU", name: "Europe & Italy", flag: "🇪🇺🇮🇹" },
+                                { id: "CN", name: "China", flag: "🇨🇳" },
+                                { id: "HK", name: "Hong Kong", flag: "🇭🇰" },
+                                { id: "TW", name: "Taiwan", flag: "🇹🇼" },
+                                { id: "AU", name: "Australia", flag: "🇦🇺" },
+                              ].map((region) => (
+                                <button
+                                  key={region.id}
+                                  onClick={() => setStripeRegion(region.id)}
+                                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all ${stripeRegion === region.id
+                                    ? "bg-[#635BFF] border-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20 scale-[1.02]"
+                                    : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
+                                    }`}
+                                >
+                                  <span className="text-sm">{region.flag}</span>
+                                  <span className="text-[9px] font-black uppercase tracking-wider">{region.name}</span>
+                                </button>
+                              ))}
+                            </div>
+
+                            <div className="p-5 bg-white/5 rounded-2xl border border-white/10 animate-fade-in transition-all overflow-hidden relative">
+                              <div className="absolute top-0 right-0 p-3 opacity-10 text-4xl select-none">
+                                {[
+                                  { id: "SK", flag: "🇰🇷" },
+                                  { id: "EU", flag: "🇪🇺" },
+                                  { id: "CN", flag: "🇨🇳" },
+                                  { id: "HK", flag: "🇭🇰" },
+                                  { id: "TW", flag: "🇹🇼" },
+                                  { id: "AU", flag: "🇦🇺" },
+                                ].find(r => r.id === stripeRegion)?.flag}
+                              </div>
+
+                              <div className="relative z-10 space-y-4">
+                                {stripeRegion === "SK" && (
+                                  <>
+                                    <div>
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
+                                        Official South Korea Specs
+                                      </p>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                          <span className="text-[8px] font-black text-slate-500 uppercase">Wallets</span>
+                                          <p className="text-[10px] text-slate-300 font-bold">Naver Pay, Kakao Pay, Samsung Pay, PAYCO</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[8px] font-black text-slate-500 uppercase">Networks</span>
+                                          <p className="text-[10px] text-slate-300 font-bold leading-tight">BC, Lotte, Samsung, Shinhan, Hyundai, KB, Woori, Hana</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="pt-3 border-t border-white/5">
+                                      <div className="grid grid-cols-3 gap-2">
+                                        <div className="bg-white/5 p-2 rounded-lg text-center">
+                                          <span className="block text-[8px] font-black text-slate-500 uppercase">Installments</span>
+                                          <span className="text-[9px] text-teal-400 font-black">50k+ KRW</span>
+                                        </div>
+                                        <div className="bg-white/5 p-2 rounded-lg text-center">
+                                          <span className="block text-[8px] font-black text-slate-500 uppercase">Auth</span>
+                                          <span className="text-[9px] text-[#635BFF] font-black">3DS/Strong</span>
+                                        </div>
+                                        <div className="bg-white/5 p-2 rounded-lg text-center">
+                                          <span className="block text-[8px] font-black text-slate-500 uppercase">Payout</span>
+                                          <span className="text-[9px] text-slate-300 font-black">T+4 / T+7</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <p className="text-[9px] text-slate-500 italic font-medium leading-tight">
+                                      Compliance: Accepts all local KR cards without a local entity. Automatic tax collection supported via Stripe Tax.
+                                    </p>
+                                  </>
+                                )}
+
+                                {stripeRegion === "EU" && (
+                                  <>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
+                                      Eurozone & Italy (MyBank/Satispay)
+                                    </p>
+                                    <p className="text-[11px] text-slate-300 font-bold leading-relaxed italic">
+                                      iDEAL, SEPA Direct Debit, Bancontact, Giropay, MyBank, Satispay, EPS, Przelewy24, Sofort, Klarna
+                                    </p>
+                                    <div className="pt-2 flex gap-3 opacity-60">
+                                      <span className="text-[9px] font-black text-slate-500 border border-white/10 px-2 py-0.5 rounded">3D SECURE</span>
+                                      <span className="text-[9px] font-black text-slate-500 border border-white/10 px-2 py-0.5 rounded">CARTES BANCAIRES</span>
+                                    </div>
+                                  </>
+                                )}
+
+                                {stripeRegion === "CN" && (
+                                  <>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
+                                      Mainland China Gateway
+                                    </p>
+                                    <div className="space-y-3">
+                                      <div className="bg-white/5 p-3 rounded-xl border border-white/10 flex items-center justify-between group-hover:border-[#635BFF]/30 transition-colors">
+                                        <span className="text-[11px] text-slate-300 font-black uppercase tracking-widest">Alipay</span>
+                                        <span className="text-[9px] text-teal-400 font-bold">CROSS-BORDER</span>
+                                      </div>
+                                      <div className="bg-white/5 p-3 rounded-xl border border-white/10 flex items-center justify-between group-hover:border-[#635BFF]/30 transition-colors">
+                                        <span className="text-[11px] text-slate-300 font-black uppercase tracking-widest">WeChat Pay</span>
+                                        <span className="text-[9px] text-teal-400 font-bold">CROSS-BORDER</span>
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+
+                                {stripeRegion === "HK" && (
+                                  <>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
+                                      HK High-Speed Settlement
+                                    </p>
+                                    <p className="text-[11px] text-slate-300 font-bold leading-relaxed italic">
+                                      Alipay HK, WeChat Pay HK, Octopus, PayMe, FPS (Faster Payment System)
+                                    </p>
+                                    <div className="mt-3 flex gap-2">
+                                      <span className="px-2 py-1 bg-white/5 rounded text-[8px] font-bold text-slate-400 border border-white/10">HKD</span>
+                                      <span className="px-2 py-1 bg-white/5 rounded text-[8px] font-bold text-slate-400 border border-white/10">UNIONPAY</span>
+                                    </div>
+                                  </>
+                                )}
+
+                                {stripeRegion === "TW" && (
+                                  <>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
+                                      Taiwan Market Support
+                                    </p>
+                                    <p className="text-[11px] text-slate-300 font-bold leading-relaxed italic">
+                                      All major credit cards (Visa, Mastercard, JCB) with Apple Pay and Google Pay optimization.
+                                    </p>
+                                    <p className="text-[9px] text-slate-500 font-medium italic mt-2">
+                                      Supports TWD presentment and cross-border settlement.
+                                    </p>
+                                  </>
+                                )}
+
+                                {stripeRegion === "AU" && (
+                                  <>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#635BFF] mb-2 italic">
+                                      ANZ Settlement Logic
+                                    </p>
+                                    <div className="space-y-3">
+                                      <div className="bg-white/5 p-2 rounded-lg border border-white/10">
+                                        <span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Direct Bank</span>
+                                        <span className="text-[10px] text-slate-300 font-bold">BECS Direct Debit</span>
+                                      </div>
+                                      <div className="bg-white/5 p-2 rounded-lg border border-white/10">
+                                        <span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Buy Now Pay Later</span>
+                                        <span className="text-[10px] text-slate-300 font-bold">Afterpay</span>
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
@@ -517,27 +879,39 @@ export default function Page() {
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF5722]/20 rounded-full -mr-16 -mt-16 blur-2xl transition-opacity group-hover:opacity-100 opacity-50" />
                           <div className="relative z-10 flex flex-col h-full">
                             <div className="flex items-center justify-between mb-4">
-                              <div className="inline-flex px-3 py-1 bg-[#FF5722] text-white rounded-xl font-black text-[9px] uppercase tracking-widest">BILL</div>
-                              <span className="text-[8px] font-black text-slate-500 uppercase italic">Built for Cost</span>
+                              <img
+                                src="/images/payments/bill-logo.png"
+                                alt="BILL"
+                                className="h-8 md:h-10 w-auto rounded-xl border border-white/10 hover:scale-105 transition-transform"
+                              />
+                              <span className="text-[8px] font-black text-slate-500 uppercase italic">
+                                Built for Cost
+                              </span>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 mb-4 flex-grow">
                               <div className="space-y-2">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-[#FF5722]">The Pros</p>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-[#FF5722]">
+                                  The Pros
+                                </p>
                                 <ul className="text-[9px] text-slate-300 space-y-1 font-bold italic">
                                   <li>• Lowest Flat-Fee ACH</li>
                                   <li>• Direct B2B Portal</li>
                                 </ul>
                               </div>
                               <div className="space-y-2">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-red-400/60">The Cons</p>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-red-400/60">
+                                  The Cons
+                                </p>
                                 <ul className="text-[9px] text-slate-500 space-y-1 font-medium">
                                   <li>• Domestic (US) Only</li>
                                   <li>• No Credit Card Support</li>
                                 </ul>
                               </div>
                             </div>
-                            <div className="pt-3 border-t border-white/5 text-[8px] font-black text-slate-500 uppercase">Industrial Standard ACH</div>
+                            <div className="pt-3 border-t border-white/5 text-[8px] font-black text-slate-500 uppercase">
+                              Industrial Standard ACH
+                            </div>
                           </div>
                         </div>
 
@@ -546,27 +920,53 @@ export default function Page() {
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[#0079C1]/30 rounded-full -mr-16 -mt-16 blur-2xl transition-opacity group-hover:opacity-100 opacity-50" />
                           <div className="relative z-10 flex flex-col h-full">
                             <div className="flex items-center justify-between mb-4">
-                              <div className="inline-flex px-3 py-1 bg-[#0079C1] text-white rounded-xl font-black text-[9px] uppercase tracking-widest">PayPal</div>
-                              <span className="text-[8px] font-black text-slate-400 uppercase italic">Built for Convenience</span>
+                              <a
+                                href="/digital-wallet/ways-to-pay/add-payment-method"
+                                title="How PayPal Works"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  window.open(
+                                    "/digital-wallet/ways-to-pay/add-payment-method",
+                                    "WIPaypal",
+                                    "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=1060, height=700",
+                                  );
+                                }}
+                                className="block hover:scale-105 transition-transform"
+                              >
+                                <img
+                                  src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_74x46.jpg"
+                                  alt="PayPal Logo"
+                                  className="h-6 md:h-8 w-auto rounded"
+                                />
+                              </a>
+                              <span className="text-[8px] font-black text-slate-400 uppercase italic">
+                                Built for Convenience
+                              </span>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 mb-4 flex-grow">
                               <div className="space-y-2">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-[#0079C1]">The Pros</p>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-[#0079C1]">
+                                  The Pros
+                                </p>
                                 <ul className="text-[9px] text-slate-300 space-y-1 font-bold italic">
                                   <li>• One-Click Checkout</li>
                                   <li>• Trusted Buyer Protection</li>
                                 </ul>
                               </div>
                               <div className="space-y-2">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-red-400/60">The Cons</p>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-red-400/60">
+                                  The Cons
+                                </p>
                                 <ul className="text-[9px] text-slate-500 space-y-1 font-medium">
                                   <li>• Premium Transaction Fees</li>
                                   <li>• Potential Asset Holds</li>
                                 </ul>
                               </div>
                             </div>
-                            <div className="pt-3 border-t border-white/5 text-[8px] font-black text-slate-500 uppercase">Legacy Consumer Trust</div>
+                            <div className="pt-3 border-t border-white/5 text-[8px] font-black text-slate-500 uppercase">
+                              Legacy Consumer Trust
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -576,73 +976,132 @@ export default function Page() {
               )}
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Legal Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Link href="/legal/refunds-and-delivery">
-              <PolicyCard
-                icon={<Truck size={18} />}
-                title="Delivery Policy"
-                content={
-                  <>
-                    <p>All services provided by DnDL Creative LLC are delivered digitally unless explicitly stated otherwise in a physical contract.</p>
-                    <p>Assets (Audio/Video/Code) are delivered via encrypted cloud links or direct repository access within established project timelines.</p>
-                  </>
-                }
-              />
-            </Link>
-            <Link href="/legal/refunds-and-delivery">
-              <PolicyCard
-                icon={<ShieldCheck size={18} />}
-                title="Refund & Cancellation"
-                content={
-                  <>
-                    <p>Policies are dependent upon specific terms defined in your <strong>DBA contract</strong>. In general, non-refundable deposits are required to secure production time.</p>
-                    <p>Partial refunds may be issued depending on project stage and circumstances. Full refunds are reserved for extremely rare exceptions at studio discretion.</p>
-                  </>
-                }
-              />
-            </Link>
-            <Link href="/legal/privacy">
-              <PolicyCard
-                icon={<Scale size={18} />}
-                title="Privacy & Data"
-                content={
-                  <>
-                    <p>We do not sell your personal or business data. We use industry-standard <strong>Transport Layer Security (TLS)</strong> encryption to protect all client sensitive information.</p>
-                    <p>Payment card data is never stored on our servers; it is handled exclusively by PCI-compliant payment gateways.</p>
-                  </>
-                }
-              />
-            </Link>
-            <PolicyCard
-              icon={<Globe size={18} />}
-              title="Global Standards & Ethics"
-              content={
-                <>
-                  <p>DnDL Creative LLC is committed to global digital ethics, maintaining full compliance with <strong>GDPR</strong> (Data Protection) and the <strong>CAN-SPAM Act</strong>.</p>
-                  <p>We ensure all international service delivery meets the highest standards of commercial transparency and cross-border regulatory integrity.</p>
-                </>
-              }
-            />
-          </div>
-
-          {/* Audit Compliance Verification */}
-          <div className="mt-12 md:mt-16 bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-12 text-center">
-            <div className="max-w-3xl mx-auto">
-              <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 mb-4 italic">Creative Audit Compliance Verification</h3>
-              <p className="text-slate-600 text-sm md:text-base font-medium mb-8 leading-relaxed">
-                To ensure full transparency and security during the payment process, all clients are required to acknowledge our trade policies. By initiating a payment request, you are confirming acceptance of our <Link href="/legal/terms" className="text-indigo-600 underline">Terms of Service</Link>, <Link href="/legal/refunds-and-delivery" className="text-indigo-600 underline">Refund Policy</Link>, and <Link href="/legal/privacy" className="text-indigo-600 underline">Privacy Policy</Link>.
+      {/* Legal Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Link href="/legal/refunds-and-delivery">
+          <PolicyCard
+            icon={<Truck size={18} />}
+            title="Delivery Policy"
+            content={
+              <>
+                <p>
+                  All services provided by DnDL Creative LLC are delivered
+                  digitally unless explicitly stated otherwise in a physical
+                  contract.
+                </p>
+                <p>
+                  Assets (Audio/Video/Code) are delivered via encrypted
+                  cloud links or direct repository access within established
+                  project timelines.
+                </p>
+              </>
+            }
+          />
+        </Link>
+        <Link href="/legal/refunds-and-delivery">
+          <PolicyCard
+            icon={<ShieldCheck size={18} />}
+            title="Refund & Cancellation"
+            content={
+              <>
+                <p>
+                  Policies are dependent upon specific terms defined in your{" "}
+                  <strong>DBA contract</strong>. In general, non-refundable
+                  deposits are required to secure production time.
+                </p>
+                <p>
+                  Partial refunds may be issued depending on project stage
+                  and circumstances. Full refunds are reserved for extremely
+                  rare exceptions at studio discretion.
+                </p>
+              </>
+            }
+          />
+        </Link>
+        <Link href="/legal/privacy">
+          <PolicyCard
+            icon={<Scale size={18} />}
+            title="Privacy & Data"
+            content={
+              <>
+                <p>
+                  We do not sell your personal or business data. We use
+                  industry-standard{" "}
+                  <strong>Transport Layer Security (TLS)</strong> encryption
+                  to protect all client sensitive information.
+                </p>
+                <p>
+                  Payment card data is never stored on our servers; it is
+                  handled exclusively by PCI-compliant payment gateways.
+                </p>
+              </>
+            }
+          />
+        </Link>
+        <PolicyCard
+          icon={<Globe size={18} />}
+          title="Global Standards & Ethics"
+          content={
+            <>
+              <p>
+                DnDL Creative LLC is committed to global digital ethics,
+                maintaining full compliance with <strong>GDPR</strong> (Data
+                Protection) and the <strong>CAN-SPAM Act</strong>.
               </p>
-              <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-                <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-sm border border-indigo-100">
-                  <div className="w-4 h-4 rounded bg-indigo-600 flex items-center justify-center">
-                    <ShieldCheck size={10} className="text-white" />
-                  </div>
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-indigo-900 italic">Audit Secure</span>
-                </div>
-                <div className="text-slate-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] leading-tight">Transaction Verified by Wise, Stripe, PayPal, and bill.com</div>
+              <p>
+                We ensure all international service delivery meets the
+                highest standards of commercial transparency and
+                cross-border regulatory integrity.
+              </p>
+            </>
+          }
+        />
+      </div>
+
+      {/* Audit Compliance Verification */}
+      <div className="mt-12 md:mt-16 bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-12 text-center">
+        <div className="max-w-3xl mx-auto">
+          <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 mb-4 italic">
+            Creative Audit Compliance Verification
+          </h3>
+          <p className="text-slate-600 text-sm md:text-base font-medium mb-8 leading-relaxed">
+            To ensure full transparency and security during the payment
+            process, all clients are required to acknowledge our trade
+            policies. By initiating a payment request, you are confirming
+            acceptance of our{" "}
+            <Link href="/legal/terms" className="text-indigo-600 underline">
+              Terms of Service
+            </Link>
+            ,{" "}
+            <Link
+              href="/legal/refunds-and-delivery"
+              className="text-indigo-600 underline"
+            >
+              Refund Policy
+            </Link>
+            , and{" "}
+            <Link
+              href="/legal/privacy"
+              className="text-indigo-600 underline"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </p>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+            <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-sm border border-indigo-100">
+              <div className="w-4 h-4 rounded bg-indigo-600 flex items-center justify-center">
+                <ShieldCheck size={10} className="text-white" />
               </div>
+              <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-indigo-900 italic">
+                Audit Secure
+              </span>
+            </div>
+            <div className="text-slate-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] leading-tight">
+              Transaction Verified by Wise, Stripe, PayPal, and bill.com
             </div>
           </div>
         </div>
@@ -652,18 +1111,34 @@ export default function Page() {
       <footer className="bg-slate-900 text-white py-16 md:py-20 px-6 text-center md:text-left">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center md:items-start justify-between gap-12">
           <div className="max-w-sm flex flex-col items-center md:items-start text-center md:text-left">
-            <h3 className="text-2xl font-black uppercase tracking-tighter mb-4">DnDL Creative LLC</h3>
+            <h3 className="text-2xl font-black uppercase tracking-tighter mb-4">
+              DnDL Creative LLC
+            </h3>
             <p className="text-slate-400 font-medium text-sm leading-relaxed mb-6 md:mb-10">
-              Innovative production house specializing in creative audiobook & drama, e-commerce, apparel, academy education, marketing, audio, video, and original content production.
+              We’re a human-centric creative collective specializing in
+              audiobook & drama production, artistic & linguistic education,
+              high-quality audio, video & content creation, anti-zeitgeist
+              marketing, e-commerce solutions, and apparel.
             </p>
             <p className="text-slate-500 text-[10px] md:text-[11px] font-medium mb-8 md:mb-12">
-              By accessing our services, you agree to our <Link href="/legal/terms" className="underline hover:text-white transition-colors">Terms of Service</Link>.
+              By accessing our services, you agree to our{" "}
+              <Link
+                href="/legal/terms"
+                className="underline hover:text-white transition-colors"
+              >
+                Terms of Service
+              </Link>
+              .
             </p>
             <div className="flex gap-4 w-full">
               <div className="p-4 bg-white/5 rounded-2xl border border-white/10 w-full text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Notice to Buyers</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                  Notice to Buyers
+                </p>
                 <p className="text-[10px] md:text-[11px] text-slate-300 italic font-medium leading-relaxed">
-                  As of {month} {day}, {year}, by confirming your order, you acknowledge that you have read and accepted our Refund, Delivery, and Privacy policies.
+                  As of {month} {day}, {year}, by confirming your order, you
+                  acknowledge that you have read and accepted our Refund,
+                  Delivery, and Privacy policies.
                 </p>
               </div>
             </div>
@@ -671,27 +1146,40 @@ export default function Page() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-center md:text-left w-full md:w-auto">
             <div className="flex flex-col items-center md:items-start">
-              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-teal-400 mb-6">Contact Us</h4>
+              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-teal-400 mb-6">
+                Contact Us
+              </h4>
               <ul className="space-y-4">
                 <li className="flex items-center justify-center md:justify-start gap-3">
                   <Mail size={16} className="text-slate-500 md:size-[18px]" />
-                  <a href="mailto:admin@dndlcreative.com" className="text-sm font-bold hover:text-teal-400 transition-colors">admin@dndlcreative.com</a>
+                  <a
+                    href="mailto:admin@dndlcreative.com"
+                    className="text-sm font-bold hover:text-teal-400 transition-colors"
+                  >
+                    admin@dndlcreative.com
+                  </a>
                 </li>
                 <li className="flex items-center justify-center md:justify-start gap-3">
                   <Phone size={16} className="text-slate-500 md:size-[18px]" />
                   <span className="text-sm font-bold">+1 (513) 836-1273</span>
                 </li>
                 <li className="flex items-center justify-center md:justify-start gap-3 max-w-[280px]">
-                  <div className="p-1 px-2 bg-slate-800 rounded border border-slate-700 text-[9px] md:text-[10px] uppercase font-black text-slate-500 leading-tight">6809 Main St #1118, Cincinnati, OH 45244</div>
+                  <div className="p-1 px-2 bg-slate-800 rounded border border-slate-700 text-[9px] md:text-[10px] uppercase font-black text-slate-500 leading-tight">
+                    6809 Main St #1118, Cincinnati, OH 45244
+                  </div>
                 </li>
               </ul>
             </div>
             <div className="flex flex-col items-center md:items-start">
-              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6">Mailing Address</h4>
+              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6">
+                Mailing Address
+              </h4>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">
                 DnDL Creative LLC <br />
-                6809 Main St #1118<br />
-                Cincinnati, OH 45244<br />
+                6809 Main St #1118
+                <br />
+                Cincinnati, OH 45244
+                <br />
                 United States of America
               </p>
             </div>
@@ -700,7 +1188,8 @@ export default function Page() {
 
         <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-white/5 text-center">
           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">
-            © {year} DnDL Creative LLC. All Rights Reserved. Fully US-Based Entity.
+            © {year} DnDL Creative LLC. All Rights Reserved. Fully US-Based
+            Entity.
           </p>
         </div>
       </footer>

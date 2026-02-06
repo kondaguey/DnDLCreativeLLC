@@ -1,5 +1,5 @@
-import CommandCenter from "../../CommandCenter";
+import CommandCenter from "../CommandCenter";
 
 export default function Page() {
-    return <CommandCenter />;
+  return <CommandCenter />;
 }

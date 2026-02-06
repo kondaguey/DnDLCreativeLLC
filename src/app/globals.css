@@ -25,6 +25,7 @@
   --animate-ticker: ticker 30s linear infinite;
   --animate-glitch: glitch 4000ms infinite;
   --animate-wave: wave 2.5s ease-in-out infinite;
+  --animate-glow-usa: glow-usa 4s linear infinite;
 
   /* --- KEYFRAMES --- */
   @keyframes fadeIn {
@@ -128,6 +129,28 @@
 
     100% {
       transform: translateY(100%);
+    }
+  }
+
+  @keyframes glow-usa {
+
+    0%,
+    100% {
+      box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000;
+      background-color: #ff0000;
+      filter: brightness(1.5);
+    }
+
+    33% {
+      box-shadow: 0 0 10px #ffffff, 0 0 20px #ffffff, 0 0 30px #ffffff;
+      background-color: #ffffff;
+      filter: brightness(1.2);
+    }
+
+    66% {
+      box-shadow: 0 0 10px #0000ff, 0 0 20px #0000ff, 0 0 30px #0000ff;
+      background-color: #0000ff;
+      filter: brightness(1.5);
     }
   }
 }
