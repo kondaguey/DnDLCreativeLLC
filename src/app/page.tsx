@@ -127,7 +127,7 @@ function BrandCard({
           )}
         </h3>
         <p
-          className={`${variant === "daniel" || variant === "cine" || variant === "steel" ? "text-slate-400" : "text-slate-500"} text-[13px] md:text-sm font-medium leading-relaxed z-10 text-center mb-4`}
+          className={`${variant === "daniel" ? "text-slate-600" : variant === "cine" || variant === "steel" ? "text-slate-300" : "text-slate-500"} text-sm md:text-base font-medium leading-relaxed z-10 text-center mb-4`}
         >
           {desc}
         </p>
@@ -144,7 +144,7 @@ function BrandCard({
 
       {/* Absolute Sub-Division Content (Overlay) */}
       <div
-        className={`absolute inset-0 bg-inherit flex flex-col items-center justify-center p-6 md:p-8 transition-all duration-500 ease-in-out z-30 ${isSubOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}
+        className={`absolute inset-0 bg-inherit flex flex-col items-center justify-center p-6 md:p-8 pb-20 md:pb-24 transition-all duration-500 ease-in-out z-30 ${isSubOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}
       >
         {subDivisionContent}
       </div>
@@ -764,8 +764,8 @@ export default function Page() {
             <p className="text-slate-400 font-medium text-sm leading-relaxed mb-6 md:mb-10">
               We’re a human-centric creative collective specializing in
               audiobook & drama production, artistic & linguistic education,
-              high-quality audio, video & content creation, anti-zeitgeist
-              marketing, e-commerce solutions, and apparel.
+              high-quality audio, video & content creation, AI consulting,
+              anti-zeitgeist marketing, e-commerce solutions, and apparel.
             </p>
             <p className="text-slate-500 text-[10px] md:text-[11px] font-medium mb-8 md:mb-12">
               By accessing our services, you agree to our{" "}
@@ -774,6 +774,13 @@ export default function Page() {
                 className="underline hover:text-white transition-colors"
               >
                 Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/legal/contractors"
+                className="underline hover:text-white transition-colors"
+              >
+                Contractor Protocol
               </Link>
               .
             </p>
@@ -810,11 +817,7 @@ export default function Page() {
                   <Phone size={16} className="text-slate-500 md:size-[18px]" />
                   <span className="text-sm font-bold">+1 (513) 836-1273</span>
                 </li>
-                <li className="flex items-center justify-center md:justify-start gap-3 max-w-[280px]">
-                  <div className="p-1 px-2 bg-slate-800 rounded border border-slate-700 text-[9px] md:text-[10px] uppercase font-black text-slate-500 leading-tight">
-                    6809 Main St #1118, Cincinnati, OH 45244
-                  </div>
-                </li>
+
               </ul>
             </div>
             <div className="flex flex-col items-center md:items-start">

@@ -16,7 +16,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 mb-4">1. Acceptance of Terms</h2>
                         <p>
-                            By accessing or using the services provided by DnDL Creative LLC ("the Company"), including our production, narration, and marketing services, you agree to be bound by these Terms and Conditions. If you do not agree, please do not use our services.
+                            By accessing or using the services provided by DnDL Creative LLC ("the Company"), including our production, narration, marketing, apparel, and educational services, you agree to be bound by these Terms and Conditions. If you do not agree, please do not use our services.
                         </p>
                     </section>
 
@@ -26,9 +26,13 @@ export default function TermsPage() {
                             DnDL Creative LLC provides professional creative services including, but not limited to:
                         </p>
                         <ul className="list-disc pl-6 mt-4 space-y-2">
-                            <li>Audiobook narration and production services.</li>
+                            <li>Audiobook and audiodrama production, including contracting out professional talent.</li>
+                            <li>Professional audio production, narration, and voice-over (not limited to music production).</li>
+                            <li>Professional video production and social media content creation.</li>
                             <li>Voice-over and acting services for stage and screen.</li>
-                            <li>Digital marketing, SEO, AEO, and GEO strategic consulting.</li>
+                            <li>Education and courses focusing on acting and performance.</li>
+                            <li>Digital marketing, SEO, AEO, GEO, and AI strategic consulting.</li>
+                            <li>Custom apparel and merchandise.</li>
                             <li>Creative production for film and audio media.</li>
                         </ul>
                     </section>
@@ -75,6 +79,13 @@ export default function TermsPage() {
                         <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 mb-4">7. Governing Law</h2>
                         <p>
                             These terms are governed by the laws of the State of Ohio, United States. Any disputes shall be settled in the courts of Cincinnati, OH.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 mb-4">8. Independent Contractor Status</h2>
+                        <p>
+                            DnDL Creative LLC operates under a strict non-misclassification protocol. All talent and technical contributors are engaged exclusively as Independent Contractors. For detailed information on our contractor standards, payment gateway requirements, and tax compliance, please review our <Link href="/legal/contractors" className="text-slate-900 underline hover:bg-slate-900 hover:text-white transition-colors">Contractor Protocol</Link>.
                         </p>
                     </section>
                 </div>
