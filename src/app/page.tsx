@@ -16,7 +16,8 @@ import {
   Activity,
   Phone,
   ArrowUpRight,
-  ChevronDown
+  ChevronDown,
+  ArrowRight
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -55,13 +56,9 @@ function BrandCard({
 }) {
   const styles = {
     default: "bg-white border-slate-100 shadow-slate-200/50 text-slate-900",
-    // Daniel Lewis - Teal/Tan from dndl-new-website/globals.css
     daniel: "bg-gradient-to-br from-[#0d9488]/10 to-[#d4a373]/10 border-[#0d9488]/30 shadow-[#0d9488]/10 text-slate-900",
-    // Dine Out - Sriracha Red from dine-out-digital/globals.css
     dineout: "bg-gradient-to-br from-[#E31837]/5 to-[#ff6b6b]/5 border-[#E31837]/20 shadow-[#E31837]/10 text-slate-900",
-    // Anti-Marketing - Industrial Cyan/Charcoal (raw, uncensored, electric)
     steel: "bg-gradient-to-br from-[#212529] to-[#2b2d42] border-[#00F0FF]/30 shadow-[#00F0FF]/20 text-white",
-    // CineSonic - Gold/Deep Space from cinesonic-website-webapp/globals.css
     cine: "bg-gradient-to-br from-[#020010] to-[#0c0442] border-[#D4AF37]/30 shadow-[#D4AF37]/20 text-white",
     anti: "bg-white border-black border-[3px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-black font-black",
   };
@@ -150,12 +147,11 @@ export default function Page() {
 
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-900 text-white rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-8 md:mb-10 animate-fade-in shadow-xl shadow-slate-900/10">
-            Official Corporate Headquarters
+            Official Creative HQ
           </div>
           <h1 className="h1-wave mb-6 md:mb-8 block w-full text-4xl md:text-7xl">DnDL Creative LLC</h1>
-          <p className="text-slate-500 text-lg md:text-2xl max-w-3xl mx-auto leading-relaxed font-medium px-4 md:px-0">
-            Innovative creative production house specializing in <br className="hidden md:block" />
-            audiobooks, audio/film entertainment, and digital marketing.
+          <p className="text-slate-500 text-lg md:text-2xl max-w-4xl mx-auto leading-relaxed font-medium px-4 md:px-0">
+            Innovative production house specializing in creative <span className="text-slate-900 font-bold">audiobook & drama, e-commerce, apparel, academy education, marketing, audio, video,</span> and <span className="text-slate-900 font-bold">original content production.</span>
           </p>
         </div>
       </section>
@@ -163,7 +159,7 @@ export default function Page() {
       {/* 2. DIVISIONS GRID */}
       <section className="py-20 px-6 bg-slate-50/30">
         <div className="max-w-7xl mx-auto">
-          <SectionHeader title="Our Divisions" subtitle="Managed under the umbrella of DnDL Creative LLC, these specialized units deliver world-class creative services." />
+          <SectionHeader title="Our Divisions" subtitle="Managed under the umbrella of DnDL Creative LLC, these specialized units deliver one-of-a-kind creativity within various sectors including audio entertainment, content, educational, apparel, e-commerce, and marketing services." />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* 1. Daniel Lewis */}
@@ -186,17 +182,37 @@ export default function Page() {
               />
             </div>
 
-            {/* 4. Dine Out Digital with bridge - MOVED HERE for mobile connection */}
-            <div className="flex flex-col items-center lg:order-5">
-              <div className="flex flex-col items-center">
-                <div className="w-[1.5px] h-6 md:h-8 bg-gradient-to-b from-slate-200 to-teal-500" />
-                <div className="px-2 md:px-3 py-1 bg-white border border-teal-200 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest text-teal-600 -mt-1 -mb-1 z-10 shadow-sm italic">
-                  Marketed as a Division
+            {/* 4. Dine Out Digital with bridge */}
+            <div className="flex flex-col items-center lg:order-5 -mt-1">
+              <div className="flex flex-col items-center group/river">
+                {/* Upper Arrow */}
+                <div className="w-2 h-2 md:w-2.5 md:h-2.5 border-b-2 border-r-2 border-teal-500 rotate-45 mb-[-2px] z-20 bg-white shadow-sm" />
+
+                {/* Animated River Flow Connector - Upper */}
+                <div className="w-[2px] h-3 md:h-5 bg-gradient-to-b from-slate-300 via-teal-400 to-teal-500 relative overflow-hidden rounded-full">
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/60 to-transparent animate-[river-flow_1.5s_ease-in-out_infinite]" />
                 </div>
-                <div className="w-[1.5px] h-6 md:h-8 bg-gradient-to-b from-teal-500 to-slate-200" />
+
+                {/* Label with pulse */}
+                <div className="relative z-10">
+                  <div className="absolute -inset-3 bg-teal-500/10 rounded-full blur-lg opacity-0 group-hover/river:opacity-100 transition-opacity duration-500" />
+                  <div className="px-2 md:px-4 py-1 md:py-1.5 bg-white border border-teal-200 rounded-full text-[6px] md:text-[9px] font-black uppercase tracking-widest text-teal-600 shadow-md flex items-center gap-1 md:gap-2 relative whitespace-nowrap">
+                    <span className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                    <span className="hidden sm:inline">Presented as a Division of Anti-Marketing</span>
+                    <span className="sm:hidden">Division of Anti-Marketing</span>
+                  </div>
+                </div>
+
+                {/* Animated River Flow Connector - Lower */}
+                <div className="w-[2px] h-3 md:h-5 bg-gradient-to-b from-teal-500 via-teal-400 to-slate-300 relative overflow-hidden rounded-full">
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/60 to-transparent animate-[river-flow_1.5s_ease-in-out_infinite]" />
+                </div>
+
+                {/* Lower Arrow */}
+                <div className="w-2 h-2 md:w-2.5 md:h-2.5 border-b-2 border-r-2 border-teal-500 rotate-45 mt-[-2px] z-20 bg-white shadow-sm" />
               </div>
 
-              <div className="w-full">
+              <div className="w-full -mt-1">
                 <BrandCard
                   variant="dineout"
                   logo="/images/brands/dine-out-logo.png"
@@ -218,49 +234,72 @@ export default function Page() {
               />
             </div>
 
-            {/* Spacer for alignment */}
             <div className="hidden lg:block lg:order-4" />
             <div className="hidden lg:block lg:order-6" />
           </div>
         </div>
       </section>
 
-      {/* 3. BUSINESS DISCLOSURES (Wise Requirements) */}
+      {/* 3. BUSINESS DISCLOSURES */}
       <section className="py-24 px-6 border-t border-slate-100">
         <div className="max-w-7xl mx-auto">
-          <SectionHeader title="Corporate Compliance" subtitle="Business and payment information providing transparency for our clients and partners." />
+          <SectionHeader title="Creative Compliance" subtitle="Business and payment information providing transparency for our clients and partners." />
 
-          {/* US Business Confirmation - Premium Polished Centerpiece - MOVED ABOVE PAYMENTS */}
+          {/* US Business Confirmation */}
           <div className="mb-16">
             <div className="bg-[#12294B] text-white p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] shadow-[0_20px_60px_rgba(18,41,75,0.4)] relative overflow-hidden text-center max-w-4xl mx-auto border border-white/10 group">
-              {/* Ohio Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#8C1D24] via-[#12294B] to-[#0A1629]" />
-
-              {/* Subtle Flag BG Pattern */}
               <div className="absolute inset-0 opacity-10 mix-blend-overlay pointer-events-none">
                 <img src="/images/ohio-flag.webp" alt="" className="w-full h-full object-cover scale-150 rotate-12" />
               </div>
-
               <div className="absolute -top-24 -right-24 w-80 h-80 bg-red-600/10 rounded-full blur-3xl group-hover:opacity-100 opacity-60 transition-opacity" />
 
               <div className="relative z-10 flex flex-col items-center">
                 <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8 mb-8 md:mb-12">
+
+                  {/* --- NEW BUTTON & ARROW (Desktop) --- */}
+                  <div className="hidden md:flex items-center gap-4 mr-2">
+                    <a
+                      href="https://businesssearch.ohiosos.gov/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group/btn relative px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-black/20"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white">Verify w/ Ohio SOS</span>
+                    </a>
+                    <div className="text-white/60 animate-pulse">
+                      <ArrowRight size={24} className="stroke-[3px]" />
+                    </div>
+                  </div>
+
+                  {/* Flag Circle */}
                   <a
                     href="https://businesssearch.ohiosos.gov/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="relative group/flag block cursor-pointer"
+                    title="Verify on Ohio Secretary of State"
                   >
                     <div className="absolute inset-0 bg-white/20 rounded-full blur-2xl group-hover/flag:bg-white/40 transition-colors animate-pulse" />
+
+                    {/* Mobile Floating Button Overlay */}
+                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-red-600 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-xl shadow-red-600/30 border border-red-400/50 flex items-center gap-2 animate-bounce md:hidden z-20">
+                      <span>TAP TO VERIFY WITH OHIO SOS</span>
+                      <ArrowUpRight size={12} className="text-white rotate-90" />
+                    </div>
+
                     <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white/30 relative z-10 shadow-[0_0_40px_rgba(255,255,255,0.2)] group-hover/flag:scale-110 transition-transform duration-700 overflow-hidden bg-white/10 p-3 md:p-4 flex items-center justify-center backdrop-blur-md">
                       <img
                         src="/images/ohio-flag.webp"
-                        alt="Ohio State Flag"
+                        alt="Ohio State Flag - Click to verify on Ohio SOS"
                         className="w-full h-full object-contain hover:rotate-6 transition-transform duration-500"
                       />
                     </div>
                   </a>
+
                   <div className="h-16 w-px bg-white/10 hidden md:block" />
+
                   <div className="flex flex-col items-center md:items-start translate-y-1">
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600/20 rounded-full border border-red-500/30 mb-3 backdrop-blur-sm">
                       <ShieldCheck size={12} className="text-red-400" />
@@ -273,7 +312,7 @@ export default function Page() {
                 <h3 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-8 leading-none tracking-[-0.06em]">Official US-Based Business</h3>
 
                 <p className="text-white/90 text-sm md:text-xl font-medium leading-relaxed max-w-3xl mx-auto mb-10">
-                  DnDL Creative LLC is a <span className="text-white font-black underline decoration-red-600/50 underline-offset-4">USA-based</span> and <span className="text-white font-black underline decoration-red-600/50 underline-offset-4">Ohio-verified</span> business. Our corporate infrastructure is fully documented with a registered <span className="text-red-400 font-bold italic">EIN</span>, formal <span className="text-red-400 font-bold italic">Articles of Organization</span>, and active <span className="text-red-400 font-bold italic">Ohio Registered Agents</span>. All governance is managed via our <span className="text-red-400 font-black italic">Cincinnati, Ohio</span> headquarters.
+                  DnDL Creative LLC is a <span className="text-white font-black underline decoration-red-600/50 underline-offset-4">USA-based</span> and <span className="text-white font-black underline decoration-red-600/50 underline-offset-4">Ohio-verified</span> business. Our business infrastructure is fully documented with a registered <span className="text-red-400 font-bold italic">EIN</span>, formal <span className="text-red-400 font-bold italic">Articles of Organization</span>, and active <span className="text-red-400 font-bold italic">Ohio Registered Agents</span>. All governance is managed via our <span className="text-red-400 font-black italic">Cincinnati, Ohio</span> headquarters.
                 </p>
 
                 <div className="mt-4 pt-10 border-t border-white/10 w-full flex flex-col md:flex-row items-center justify-between gap-8 px-6">
@@ -322,7 +361,7 @@ export default function Page() {
             {/* Collapsible Content */}
             <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isPaymentOpen ? 'max-h-[5000px] opacity-100 mt-12' : 'max-h-0 opacity-0'}`}>
               {!isPolicyAccepted ? (
-                /* Click to Accept Gateway (Wise Requirement #4) */
+                /* Click to Accept Gateway */
                 <div className="mb-16 bg-slate-50 border-2 border-indigo-100 rounded-[2.5rem] p-8 md:p-12 text-center shadow-xl shadow-indigo-500/5 ring-4 ring-white">
                   <div className="max-w-2xl mx-auto">
                     <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-600/20">
@@ -330,7 +369,7 @@ export default function Page() {
                     </div>
                     <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900 mb-4 italic">Policy & Compliance Gateway</h4>
                     <p className="text-slate-600 text-sm md:text-lg font-medium mb-8 leading-relaxed">
-                      To view our payment instructions and global settlement details, you must first acknowledge our corporate policies. This ensures full transparency regarding refunds, data privacy, and delivery terms.
+                      To view our payment instructions and global settlement details, you must first acknowledge our studio policies. This ensures full transparency regarding refunds, data privacy, and delivery terms.
                     </p>
                     <button
                       onClick={() => setIsPolicyAccepted(true)}
@@ -369,7 +408,7 @@ export default function Page() {
                       <div className="absolute top-0 right-0 w-64 h-64 bg-[#9FE870]/10 rounded-full -mr-32 -mt-32 blur-3xl transition-opacity group-hover:opacity-100 opacity-50" />
                       <div className="relative z-10 flex flex-col h-full">
                         <div className="flex items-center justify-between mb-8">
-                          <img src="/images/payment-icons/wise.svg" alt="Wise Logo" className="h-6 md:h-8 w-auto filter brightness-0 invert" onError={(e) => { e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Wise_logo.svg'; }} />
+                          <img src="/images/brands/wise-logo.png" alt="Wise Logo" className="h-20 md:h-24 w-auto" onError={(e) => { e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Wise_logo.svg'; }} />
                           <div className="pl-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 italic">Preferred for ACH / Direct Transfers</div>
                         </div>
 
@@ -441,7 +480,7 @@ export default function Page() {
 
                     {/* 2. SECONDARY PAYMENT PROCESSORS */}
                     <div className="grid grid-cols-1 gap-6">
-                      {/* Stripe - Purple themed dark card */}
+                      {/* Stripe */}
                       <div className="bg-[#0A2540] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group border border-[#635BFF]/20">
                         <div className="absolute top-0 right-0 w-48 h-48 bg-[#635BFF]/20 rounded-full -mr-24 -mt-24 blur-3xl transition-opacity group-hover:opacity-100 opacity-50" />
                         <div className="relative z-10">
@@ -467,13 +506,13 @@ export default function Page() {
                               </ul>
                             </div>
                           </div>
-                          <p className="text-slate-400 text-xs font-medium leading-relaxed">Full network processing including support for premium corporate credit cards.</p>
+                          <p className="text-slate-400 text-xs font-medium leading-relaxed">Full network processing including support for premium business credit cards.</p>
                         </div>
                       </div>
 
                       {/* BILL + PayPal Row */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {/* BILL - Orange themed dark card */}
+                        {/* BILL */}
                         <div className="bg-[#1A0A00] text-white p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group border border-[#FF5722]/20 h-full flex flex-col">
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF5722]/20 rounded-full -mr-16 -mt-16 blur-2xl transition-opacity group-hover:opacity-100 opacity-50" />
                           <div className="relative z-10 flex flex-col h-full">
@@ -502,7 +541,7 @@ export default function Page() {
                           </div>
                         </div>
 
-                        {/* PayPal - Blue themed dark card */}
+                        {/* PayPal */}
                         <div className="bg-[#00457C] text-white p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group border border-[#0079C1]/30 h-full flex flex-col">
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[#0079C1]/30 rounded-full -mr-16 -mt-16 blur-2xl transition-opacity group-hover:opacity-100 opacity-50" />
                           <div className="relative z-10 flex flex-col h-full">
@@ -559,7 +598,7 @@ export default function Page() {
                 content={
                   <>
                     <p>Policies are dependent upon specific terms defined in your <strong>DBA contract</strong>. In general, non-refundable deposits are required to secure production time.</p>
-                    <p>Partial refunds may be issued depending on project stage and circumstances. Full refunds are reserved for extremely rare exceptions at corporate discretion.</p>
+                    <p>Partial refunds may be issued depending on project stage and circumstances. Full refunds are reserved for extremely rare exceptions at studio discretion.</p>
                   </>
                 }
               />
@@ -588,10 +627,10 @@ export default function Page() {
             />
           </div>
 
-          {/* Audit Compliance Verification Segment (滿足 Wise 的 "click to accept" 要求) */}
+          {/* Audit Compliance Verification */}
           <div className="mt-12 md:mt-16 bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-12 text-center">
             <div className="max-w-3xl mx-auto">
-              <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 mb-4 italic">Corporate Audit Compliance Verification</h3>
+              <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 mb-4 italic">Creative Audit Compliance Verification</h3>
               <p className="text-slate-600 text-sm md:text-base font-medium mb-8 leading-relaxed">
                 To ensure full transparency and security during the payment process, all clients are required to acknowledge our trade policies. By initiating a payment request, you are confirming acceptance of our <Link href="/legal/terms" className="text-indigo-600 underline">Terms of Service</Link>, <Link href="/legal/refunds-and-delivery" className="text-indigo-600 underline">Refund Policy</Link>, and <Link href="/legal/privacy" className="text-indigo-600 underline">Privacy Policy</Link>.
               </p>
@@ -609,19 +648,18 @@ export default function Page() {
         </div>
       </section>
 
-      {/* 4. FOOTER / CONTACT INFO */}
+      {/* 4. FOOTER */}
       <footer className="bg-slate-900 text-white py-16 md:py-20 px-6 text-center md:text-left">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center md:items-start justify-between gap-12">
           <div className="max-w-sm flex flex-col items-center md:items-start text-center md:text-left">
             <h3 className="text-2xl font-black uppercase tracking-tighter mb-4">DnDL Creative LLC</h3>
             <p className="text-slate-400 font-medium text-sm leading-relaxed mb-6 md:mb-10">
-              Innovative creative production house specializing in audiobooks, audio/film entertainment, and digital marketing.
+              Innovative production house specializing in creative audiobook & drama, e-commerce, apparel, academy education, marketing, audio, video, and original content production.
             </p>
             <p className="text-slate-500 text-[10px] md:text-[11px] font-medium mb-8 md:mb-12">
               By accessing our services, you agree to our <Link href="/legal/terms" className="underline hover:text-white transition-colors">Terms of Service</Link>.
             </p>
             <div className="flex gap-4 w-full">
-              {/* Click to Accept Acknowledgement */}
               <div className="p-4 bg-white/5 rounded-2xl border border-white/10 w-full text-center">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Notice to Buyers</p>
                 <p className="text-[10px] md:text-[11px] text-slate-300 italic font-medium leading-relaxed">
@@ -649,7 +687,7 @@ export default function Page() {
               </ul>
             </div>
             <div className="flex flex-col items-center md:items-start">
-              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6">Corporate Office</h4>
+              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6">Mailing Address</h4>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">
                 DnDL Creative LLC <br />
                 6809 Main St #1118<br />

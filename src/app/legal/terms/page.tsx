@@ -6,7 +6,7 @@ export default function TermsPage() {
         <div className="min-h-screen bg-white py-24 px-6">
             <div className="max-w-4xl mx-auto">
                 <Link href="/" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors mb-12 block">
-                    ← Back to Corporate
+                    ← Back to Creative
                 </Link>
 
                 <h1 className="text-5xl font-black uppercase tracking-tighter text-slate-900 mb-4">Terms & Conditions</h1>
