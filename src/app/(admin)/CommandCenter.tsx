@@ -14,6 +14,7 @@ import {
   Mic,
   Activity,
   Clapperboard,
+  Zap,
 } from "lucide-react";
 
 import styles from "./CommandCenter.module.css";
@@ -228,6 +229,36 @@ export default function CommandCenter() {
             </div>
             <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 pb-2">
               <Sparkles className="text-rose-500" size={24} />
+            </div>
+          </Link>
+
+          {/* 7. PERSONAL (Emerald) */}
+          <Link
+            href="/daily-schedule"
+            className={`${styles.appCard} ${styles.cardPersonal} group`}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className={styles.cardContent}>
+              <div
+                className={`${styles.cardIcon} text-emerald-400 group-hover:border-emerald-500/30`}
+              >
+                <Zap size={48} />
+              </div>
+              <div className={styles.cardTextGroup}>
+                <h2
+                  className={`${styles.cardTitle} bg-gradient-to-r from-emerald-300 to-teal-300 group-hover:from-emerald-200 group-hover:to-teal-200`}
+                >
+                  Daily Schedule
+                </h2>
+                <p
+                  className={`${styles.cardSubtitle} group-hover:text-emerald-400/80`}
+                >
+                  Magnus Mode Protocol
+                </p>
+              </div>
+            </div>
+            <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 pb-2">
+              <Activity className="text-emerald-500" size={24} />
             </div>
           </Link>
         </div>

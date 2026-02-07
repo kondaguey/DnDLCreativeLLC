@@ -15,7 +15,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const nextPath = searchParams.get("next") || "/";
+  const nextPath = searchParams.get("next") || "/dashboard";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

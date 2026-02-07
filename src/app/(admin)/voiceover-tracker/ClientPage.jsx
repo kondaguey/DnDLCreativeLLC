@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 import VoiceoverProjectModal from "@/app/(admin)/voiceover-tracker/_components/VoiceoverProjectModal";
 import StickyNotes from "@/components/StickyNotes";
 
@@ -61,9 +62,8 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon }) => {
         </span>
         <ChevronDown
           size={14}
-          className={`transition-transform shrink-0 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`transition-transform shrink-0 ${isOpen ? "rotate-180" : ""
+            }`}
         />
       </button>
       {isOpen && (
@@ -286,6 +286,12 @@ export default function ClientVoiceoverTracker({ initialItems }) {
   return (
     <div className="min-h-screen bg-slate-900 text-white pb-40 font-sans relative">
       <div className="max-w-7xl mx-auto p-4 md:p-8">
+        <Link
+          href="/dashboard"
+          className="w-fit flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors mb-6"
+        >
+          <ArrowLeft size={14} /> Back to Command Center
+        </Link>
         {/* --- TABS --- */}
         <div className="mb-8 flex justify-start md:justify-center">
           <div className="pt-18 md:pt-2 flex gap-2 overflow-x-auto md:overflow-visible p-4 scrollbar-hide -mx-4 md:mx-0 md:p-0 md:flex-wrap">
@@ -301,11 +307,10 @@ export default function ClientVoiceoverTracker({ initialItems }) {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                  activeTab === tab
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20 scale-105"
-                    : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white"
-                }`}
+                className={`px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20 scale-105"
+                  : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white"
+                  }`}
               >
                 {tab}
               </button>
@@ -450,30 +455,28 @@ export default function ClientVoiceoverTracker({ initialItems }) {
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden group">
             <div
-              className={`absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-20 ${
-                confirmConfig.color === "green"
-                  ? "bg-green-500"
-                  : confirmConfig.color === "red"
+              className={`absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-20 ${confirmConfig.color === "green"
+                ? "bg-green-500"
+                : confirmConfig.color === "red"
                   ? "bg-red-500"
                   : confirmConfig.color === "blue"
-                  ? "bg-blue-500"
-                  : confirmConfig.color === "purple"
-                  ? "bg-purple-500"
-                  : "bg-slate-500"
-              }`}
+                    ? "bg-blue-500"
+                    : confirmConfig.color === "purple"
+                      ? "bg-purple-500"
+                      : "bg-slate-500"
+                }`}
             />
             <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 relative z-10 ${
-                confirmConfig.color === "green"
-                  ? "bg-green-500/20 text-green-400"
-                  : confirmConfig.color === "red"
+              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 relative z-10 ${confirmConfig.color === "green"
+                ? "bg-green-500/20 text-green-400"
+                : confirmConfig.color === "red"
                   ? "bg-red-500/20 text-red-400"
                   : confirmConfig.color === "blue"
-                  ? "bg-blue-500/20 text-blue-400"
-                  : confirmConfig.color === "purple"
-                  ? "bg-purple-500/20 text-purple-400"
-                  : "bg-slate-800 text-slate-400"
-              }`}
+                    ? "bg-blue-500/20 text-blue-400"
+                    : confirmConfig.color === "purple"
+                      ? "bg-purple-500/20 text-purple-400"
+                      : "bg-slate-800 text-slate-400"
+                }`}
             >
               {confirmConfig.icon ? (
                 <confirmConfig.icon size={32} />
@@ -496,17 +499,16 @@ export default function ClientVoiceoverTracker({ initialItems }) {
               </button>
               <button
                 onClick={confirmConfig.action}
-                className={`flex-1 py-3 rounded-xl font-bold uppercase text-white shadow-lg transition-colors ${
-                  confirmConfig.color === "green"
-                    ? "bg-green-600 hover:bg-green-500 shadow-green-900/20"
-                    : confirmConfig.color === "red"
+                className={`flex-1 py-3 rounded-xl font-bold uppercase text-white shadow-lg transition-colors ${confirmConfig.color === "green"
+                  ? "bg-green-600 hover:bg-green-500 shadow-green-900/20"
+                  : confirmConfig.color === "red"
                     ? "bg-red-600 hover:bg-red-500 shadow-red-900/20"
                     : confirmConfig.color === "purple"
-                    ? "bg-purple-600 hover:bg-purple-500 shadow-purple-900/20"
-                    : confirmConfig.color === "blue"
-                    ? "bg-blue-600 hover:bg-blue-500 shadow-blue-900/20"
-                    : "bg-slate-600 hover:bg-slate-500"
-                }`}
+                      ? "bg-purple-600 hover:bg-purple-500 shadow-purple-900/20"
+                      : confirmConfig.color === "blue"
+                        ? "bg-blue-600 hover:bg-blue-500 shadow-blue-900/20"
+                        : "bg-slate-600 hover:bg-slate-500"
+                  }`}
               >
                 Confirm
               </button>

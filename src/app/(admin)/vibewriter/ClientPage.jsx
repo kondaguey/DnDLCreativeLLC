@@ -24,7 +24,9 @@ import {
   Rocket,
   Radar,
   Menu,
+  ChevronLeft,
 } from "lucide-react";
+import Link from "next/link";
 import { FaHotdog } from "react-icons/fa6";
 import { Canvas } from "@react-three/fiber";
 
@@ -566,18 +568,27 @@ export default function ClientVibeWriter({ initialDrafts }) {
         className={`fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-8 md:py-4 transition-all duration-300 ${themeStyle.headerBg}`}
       >
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          {/* LOGO */}
-          <h1
-            className={`text-xl md:text-3xl font-black uppercase tracking-[0.2em] md:tracking-[0.4em] cursor-default transition-all duration-300 ${themeStyle.logo
-              } ${isDark && vibeMode === "sexy"
-                ? "sexy-text"
-                : isDark
-                  ? "glitch-text"
-                  : ""
-              }`}
-          >
-            VibeWriter
-          </h1>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/dashboard"
+              className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all"
+              title="Back to Command Center"
+            >
+              <ChevronLeft size={20} />
+            </Link>
+            {/* LOGO */}
+            <h1
+              className={`text-xl md:text-3xl font-black uppercase tracking-[0.2em] md:tracking-[0.4em] cursor-default transition-all duration-300 ${themeStyle.logo
+                } ${isDark && vibeMode === "sexy"
+                  ? "sexy-text"
+                  : isDark
+                    ? "glitch-text"
+                    : ""
+                }`}
+            >
+              VibeWriter
+            </h1>
+          </div>
 
           <div className="flex items-center gap-3">
             {/* DESKTOP ACTIONS */}

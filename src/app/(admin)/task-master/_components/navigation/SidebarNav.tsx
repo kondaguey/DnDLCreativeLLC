@@ -10,6 +10,7 @@ import {
   Bug,
   Lightbulb,
   Sparkles,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, memo } from "react";
@@ -25,6 +26,13 @@ interface SidebarNavProps {
 
 function SidebarNav({ activeView, onChange, isCollapsed, onToggleCollapse }: SidebarNavProps) {
   const navItems = [
+    {
+      id: "daily_schedule",
+      label: "Daily Schedule",
+      sub: "Personal Shell",
+      icon: <Calendar size={20} />,
+      href: "/daily-schedule"
+    },
     {
       id: "idea_board",
       label: "Quick Notes",
@@ -80,7 +88,7 @@ function SidebarNav({ activeView, onChange, isCollapsed, onToggleCollapse }: Sid
         >
           {!isCollapsed && (
             <Link
-              href="/"
+              href="/dashboard"
               className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors hover:-translate-x-1 duration-200"
             >
               <ChevronLeft size={16} /> Command Center
@@ -106,7 +114,8 @@ function SidebarNav({ activeView, onChange, isCollapsed, onToggleCollapse }: Sid
               key={item.id}
               active={activeView === item.id}
               isCollapsed={isCollapsed}
-              onClick={() => onChange(item.id as ViewType)}
+              onClick={item.href ? undefined : () => onChange(item.id as ViewType)}
+              href={item.href}
               {...item}
             />
           ))}
@@ -155,16 +164,9 @@ function SidebarNav({ activeView, onChange, isCollapsed, onToggleCollapse }: Sid
 export default memo(SidebarNav);
 
 // --- DESKTOP BUTTON COMPONENT ---
-const NavButton = memo(function NavButton({ active, isCollapsed, onClick, icon, label, sub }: any) {
-  return (
-    <button
-      onClick={onClick}
-      title={isCollapsed ? `${label} - ${sub}` : undefined}
-      className={`group w-full flex items-center gap-4 p-4 rounded-2xl transition-colors duration-200 border ${active
-        ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
-        : "bg-transparent border-transparent hover:bg-white/5 hover:border-white/10"
-        } ${isCollapsed ? "justify-center" : "justify-start"}`}
-    >
+const NavButton = memo(function NavButton({ active, isCollapsed, onClick, icon, label, sub, href }: any) {
+  const content = (
+    <>
       <div
         className={`p-2 rounded-xl shrink-0 transition-colors duration-200 ${active ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]" : "bg-white/5 text-slate-400 group-hover:text-slate-200"}`}
       >
@@ -185,6 +187,29 @@ const NavButton = memo(function NavButton({ active, isCollapsed, onClick, icon, 
           </div>
         </div>
       )}
+    </>
+  );
+
+  const className = `group w-full flex items-center gap-4 p-4 rounded-2xl transition-colors duration-200 border ${active
+    ? "bg-purple-900/40 backdrop-blur-xl border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-inner"
+    : "bg-transparent border-transparent hover:bg-white/5 hover:border-white/10"
+    } ${isCollapsed ? "justify-center" : "justify-start"}`;
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      title={isCollapsed ? `${label} - ${sub}` : undefined}
+      className={className}
+    >
+      {content}
     </button>
   );
 });

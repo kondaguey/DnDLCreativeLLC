@@ -19,6 +19,7 @@ import {
 
 import StickyNotes from "@/components/StickyNotes";
 
+import Link from "next/link";
 import {
   Inbox,
   Kanban,
@@ -28,6 +29,7 @@ import {
   CalendarRange,
   MessageCircle,
   DollarSign,
+  ChevronLeft,
 } from "lucide-react";
 
 const TABS = [
@@ -87,6 +89,12 @@ export default function ProductionManagerClient({ initialBookings }) {
       <div className="max-w-[1600px] mx-auto">
         {/* HEADER */}
         <div className="flex flex-col gap-6 md:gap-8 mb-8">
+          <Link
+            href="/dashboard"
+            className="w-fit flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors mb-2"
+          >
+            <ChevronLeft size={14} /> Back to Command Center
+          </Link>
           <div className="flex flex-col">
             <h1 className="text-center text-2xl md:text-4xl font-black uppercase text-slate-900 tracking-tight mb-2 italic leading-none md:leading-tight">
               Daniel (not Day) Lewis: Audiobook Actor
@@ -116,23 +124,21 @@ export default function ProductionManagerClient({ initialBookings }) {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     tabIndex={-1}
-                    className={`flex items-center gap-2 px-6 py-2.5 md:px-8 md:py-3 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                      isActive
-                        ? "bg-slate-900 text-white shadow-md scale-105"
-                        : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                    }`}
+                    className={`flex items-center gap-2 px-6 py-2.5 md:px-8 md:py-3 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${isActive
+                      ? "bg-slate-900 text-white shadow-md scale-105"
+                      : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      }`}
                   >
                     <Icon size={14} className="md:w-4 md:h-4" />
                     <span>{tab.label}</span>
                     {count > 0 && (
                       <span
-                        className={`ml-2 px-1.5 py-0.5 rounded-full text-[9px] font-bold shadow-sm ${
-                          tab.id === "requests"
-                            ? "bg-orange-500 text-white animate-pulse"
-                            : isActive
+                        className={`ml-2 px-1.5 py-0.5 rounded-full text-[9px] font-bold shadow-sm ${tab.id === "requests"
+                          ? "bg-orange-500 text-white animate-pulse"
+                          : isActive
                             ? "bg-white text-slate-900"
                             : "bg-slate-200 text-slate-500"
-                        }`}
+                          }`}
                       >
                         {count}
                       </span>
